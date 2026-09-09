@@ -59,7 +59,7 @@
   .tab{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-weight:700;font-size:12px;cursor:pointer;transition:.15s}
   .tab.active{background:var(--accent);color:#061018;border-color:var(--accent)}
   .pane{padding:14px;display:none;min-height:320px}
-  .pane.active{display:block}
+  .pane.active{display:block !important; opacity:1 !important; visibility:visible !important}
   .pane h3{font-family:'Syne',sans-serif;font-size:14px;margin-bottom:6px}
   .pane p{font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px}
   /* CHAT */
@@ -381,9 +381,9 @@ async function runDeepResearch(){
       <div class="tab" id="t-code" onclick="switchTab('code')">💻 Кодинг • 2.5-flash</div>
       <div class="tab" id="t-image" onclick="switchTab('image')">🎨 Изображения</div>
       <div class="tab" id="t-video" onclick="switchTab('video')">🎬 Видео</div>
-      <div class="tab" id="t-tools" onclick="switchTab('tools')">🔧 Тулзы</div>
-      <div class="tab" id="t-research" onclick="switchTab('research')">🔍 Research</div>
-      <div class="tab" id="t-agent" onclick="switchTab('agent')">🤖 Агент</div>
+      <div class="tab" id="t-tools" onclick="switchTab('tools'); setTimeout(()=>{const p=document.getElementById('pane-tools'); if(p){p.style.display='block'; p.style.opacity='1';}},150)">🔧 Тулзы</div>
+      <div class="tab" id="t-research" onclick="switchTab('research'); setTimeout(()=>{const p=document.getElementById('pane-research'); if(p){p.style.display='block'; p.style.opacity='1';}},150)">🔍 Research</div>
+      <div class="tab" id="t-agent" onclick="switchTab('agent'); setTimeout(()=>{const p=document.getElementById('pane-agent'); if(p){p.style.display='block'; p.style.opacity='1';}},150)">🤖 Агент</div>
     </div>
 
     <!-- CHAT -->
@@ -442,7 +442,7 @@ async function runDeepResearch(){
       </div>
       <div id="vidList" style="display:flex;flex-direction:column;gap:8px"></div>
     <!-- TOOLS -->
-    <div class="pane" id="pane-tools">
+    <div class="pane" id="pane-tools" style="border:2px solid var(--accent); background:rgba(10,20,40,.9)">
       <div style="margin:-14px -14px 12px;padding:8px 14px;background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.15));border-bottom:1px solid var(--line);font-size:10px;color:var(--accent);font-weight:800;text-align:center">↓ Пиши задачу здесь — поле ниже</div>
       <div style="padding:14px">
         <div style="font-size:13px;font-weight:800">🔧 Tool Calling • безлимит • Agnes 2.5-flash</div>
@@ -467,7 +467,7 @@ async function runDeepResearch(){
       </div>
     </div>
     <!-- RESEARCH -->
-    <div class="pane" id="pane-research">
+    <div class="pane" id="pane-research" style="border:2px solid var(--accent); background:rgba(10,20,40,.9)">
       <div style="margin:-14px -14px 12px;padding:8px 14px;background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.15));border-bottom:1px solid var(--line);font-size:10px;color:var(--accent);font-weight:800;text-align:center">↓ Пиши задачу здесь — поле ниже</div>
       <div style="padding:14px">
         <div style="font-size:13px;font-weight:800">🔍 Deep Research • безлимит</div>
@@ -488,7 +488,7 @@ async function runDeepResearch(){
     </div>
 
     <!-- AGENT MODE -->
-    <div class="pane" id="pane-agent">
+    <div class="pane" id="pane-agent" style="border:2px solid var(--accent); background:rgba(10,20,40,.9)">
       <div style="margin:-14px -14px 12px;padding:8px 14px;background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.15));border-bottom:1px solid var(--line);font-size:10px;color:var(--accent);font-weight:800;text-align:center">↓ Пиши задачу здесь — поле ниже</div>
       <div style="padding:14px">
         <div style="display:flex;align-items:center;gap:10px"><div style="font-size:15px;font-weight:900">🤖 Агент MODE • безлимит</div><span style="font-size:10px;padding:4px 8px;border-radius:999px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);color:#34d399;font-weight:800">FREE • CONNECTIONS</span></div>
