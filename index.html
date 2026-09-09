@@ -725,12 +725,18 @@ log('готов. нажми 🔊 Тест для проверки голоса, 
 
 // ========== TABS ==========
 function switchTab(which){
-  document.getElementById('paneCode').style.display=which==='code'?'block':'none';
-  document.getElementById('paneImg').style.display=which==='img'?'block':'none';
-  document.getElementById('paneVid').style.display=which==='vid'?'block':'none';
-  document.getElementById('tabCode').className='btn'+(which==='code'?' primary':'');
-  document.getElementById('tabImg').className='btn'+(which==='img'?' primary':'');
-  document.getElementById('tabVid').className='btn'+(which==='vid'?' primary':'');
+  // поддержка обоих неймингов: chat/code/image/video и code/img/vid
+  const map={chat:'pane-chat', code:'pane-code', image:'pane-image', video:'pane-video', img:'pane-image', vid:'pane-video'};
+  const tabMap={chat:'t-chat', code:'t-code', image:'t-image', video:'t-video', img:'t-image', vid:'t-video'};
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  const paneId=map[which]||('pane-'+which);
+  const tabId=tabMap[which]||('t-'+which);
+  const pane=document.getElementById(paneId); if(pane) pane.classList.add('active');
+  const tab=document.getElementById(tabId); if(tab) tab.classList.add('active');
+  // fallback old ids
+  const oldPane=document.getElementById('pane'+which.charAt(0).toUpperCase()+which.slice(1));
+  if(oldPane) oldPane.style.display='block';
   log('tab '+which);
 }
 
