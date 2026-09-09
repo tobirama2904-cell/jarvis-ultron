@@ -3,12 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>JARVIS • FRIDAY • ULTRON — Marvel Level • 2026</title>
-<meta name="description" content="JARVIS FRIDAY ULTRON — лицо, голос, Agnes AI free unlimited + Puter + Kilo + OVH. Marvel уровень.">
+<title>JARVIS • FRIDAY • ULTRON — Only Agnes AI • 2026</title>
+<meta name="description" content="JARVIS FRIDAY ULTRON — только Agnes AI free unlimited, лицо, голос.">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#00D9FF">
-<script src="https://js.puter.com/v2/"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap');
   :root{--bg:#04060D;--panel:#0D152B;--line:rgba(120,160,255,.14);--cyan:#00D9FF;--orange:#FF8A00;--red:#FF1A2B;--vio:#7C3AED;--gold:#F5C518;--green:#00FF88;--text:#E6EFFF;--muted:#7A8AB3;--accent:var(--cyan)}
@@ -17,85 +15,62 @@
   body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',system-ui,sans-serif;overflow-x:hidden}
   ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-thumb{background:#1e2a4a;border-radius:99px}
   .halo{position:fixed;inset:-40%;background:radial-gradient(600px 400px at 20% 15%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%), radial-gradient(700px 500px at 85% 25%, rgba(124,58,237,.12), transparent 60%);pointer-events:none;z-index:0;transition:.6s}
-  nav{position:sticky;top:0;z-index:20;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(4,6,13,.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  nav{position:sticky;top:0;z-index:20;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(4,6,13,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);flex-wrap:wrap}
   .logo{display:flex;gap:10px;align-items:center}
   .mark{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--vio));display:grid;place-items:center;font-family:'Syne',sans-serif;font-weight:800;box-shadow:0 0 28px color-mix(in srgb, var(--accent) 40%, transparent)}
   .modes{display:flex;gap:6px;padding:4px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
-  .mode{padding:7px 14px;border-radius:999px;font-weight:800;font-size:12px;cursor:pointer;border:1px solid transparent;transition:.2s}
+  .mode{padding:7px 16px;border-radius:999px;font-weight:800;font-size:12px;cursor:pointer;border:1px solid transparent;transition:.2s}
   .mode.active{background:var(--accent);color:#001018;border-color:var(--accent);box-shadow:0 0 18px color-mix(in srgb, var(--accent) 35%, transparent)}
-  .pill{display:flex;gap:6px;align-items:center;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px}
-  .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)} .dot.on{background:var(--green);box-shadow:0 0 8px var(--green)} .dot.wait{background:var(--gold);animation:blink 1s infinite} @keyframes blink{50%{opacity:.4}}
-  .wrap{position:relative;z-index:2;display:grid;grid-template-columns:420px 1fr 340px;gap:12px;max-width:1520px;margin:0 auto;padding:12px}
+  .pill{display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)} .dot.on{background:var(--green);box-shadow:0 0 8px var(--green)} .dot.wait{background:var(--gold);animation:blink 1s infinite} @keyframes blink{50%{opacity:.4}}
+  .wrap{position:relative;z-index:2;display:grid;grid-template-columns:420px 1fr;gap:12px;max-width:1280px;margin:0 auto;padding:12px}
   .card{background:rgba(13,21,43,.72);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:18px;overflow:hidden}
   .head{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
   .head b{font-family:'Syne',sans-serif;font-size:12px}
-  .stage{height:420px;position:relative;overflow:hidden;background:radial-gradient(400px 300px at 50% 30%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%), linear-gradient(180deg,#0A1022,#060A14);display:grid;place-items:center}
+  .stage{height:440px;position:relative;overflow:hidden;background:radial-gradient(400px 300px at 50% 30%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%), linear-gradient(180deg,#0A1022,#060A14);display:grid;place-items:center}
   #orb{width:100%;height:100%;display:block;cursor:grab}
-  .face{position:absolute;right:12px;bottom:12px;width:132px;height:96px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#000;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .face{position:absolute;right:12px;bottom:12px;width:142px;height:104px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#000;box-shadow:0 8px 24px rgba(0,0,0,.5)}
   .face video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
   .face canvas{position:absolute;inset:0;width:100%;height:100%}
-  .face-label{position:absolute;left:6px;top:6px;padding:3px 6px;border-radius:999px;background:rgba(0,0,0,.6);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--accent)}
-  .hud{position:absolute;left:12px;bottom:12px;display:flex;gap:8px}
+  .face-label{position:absolute;left:6px;top:6px;padding:3px 6px;border-radius:999px;background:rgba(0,0,0,.7);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--accent)}
+  .hud{position:absolute;left:12px;bottom:12px;display:flex;gap:8px;flex-wrap:wrap}
   .hud span{padding:5px 8px;border-radius:999px;background:rgba(0,0,0,.55);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent)}
   .controls{padding:10px;display:flex;gap:8px;flex-wrap:wrap}
-  .btn{height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+  .btn{height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.15s}
   .btn.primary{background:var(--accent);color:#001018;border-color:var(--accent);box-shadow:0 8px 20px color-mix(in srgb, var(--accent) 25%, transparent)}
   .btn.mic.live{background:var(--red);border-color:var(--red);color:white;animation:pulse 1.2s infinite} @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,26,43,.5)}100%{box-shadow:0 0 0 14px rgba(255,26,43,0)}}
-  .chat{height:540px;display:flex;flex-direction:column}
+  .chat{height:600px;display:flex;flex-direction:column}
   .msgs{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px;background:radial-gradient(500px 300px at 50% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 60%)}
-  .msg{max-width:88%;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.5;white-space:pre-wrap}
+  .msg{max-width:90%;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
   .msg.user{align-self:end;background:var(--accent);color:#001018;font-weight:600;border-bottom-right-radius:6px}
   .msg.bot{align-self:start;background:rgba(255,255,255,.06);border:1px solid var(--line);border-bottom-left-radius:6px}
-  .msg.sys{align-self:center;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.18);color:var(--green);font-family:'JetBrains Mono',monospace;font-size:11px}
+  .msg.sys{align-self:center;background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.22);color:#F5C518;font-family:'JetBrains Mono',monospace;font-size:11px;text-align:center}
   .input{padding:10px;border-top:1px solid var(--line);display:flex;gap:8px;background:rgba(0,0,0,.2)}
-  .input input{flex:1;height:40px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;outline:none}
-  .right{height:540px;overflow:auto;display:flex;flex-direction:column;gap:12px}
-  .tabs{display:flex;gap:6px;padding:8px 8px 0;flex-wrap:wrap}
-  .tab{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:11px;cursor:pointer}
-  .tab.active{background:var(--accent);color:#001018;font-weight:800;border-color:var(--accent)}
-  .pane{padding:10px;display:none} .pane.active{display:block}
-  .api{padding:8px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:center}
-  .api b{font-size:11px} .api span{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace}
-  .api button{padding:5px 9px;border-radius:999px;background:white;color:#001018;border:none;font-weight:800;font-size:11px;cursor:pointer}
-  select{height:32px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 8px;font-size:11px}
-  .agnes-box{padding:8px;border-radius:10px;background:rgba(245,197,24,.06);border:1px solid rgba(245,197,24,.18);margin-top:8px}
-  .agnes-box input{width:100%;height:30px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 10px;font-size:11px;margin-top:6px}
-  @media(max-width:1100px){.wrap{grid-template-columns:1fr}.stage{height:360px}.chat{height:480px}.right{height:auto}}
+  .input input{flex:1;height:42px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 14px;outline:none;font-size:14px}
+  .agnes-panel{padding:10px;background:rgba(245,197,24,.06);border-bottom:1px solid rgba(245,197,24,.14)}
+  .agnes-panel input{width:100%;height:36px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;font-size:12px;margin-top:6px}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}.stage{height:360px}.chat{height:520px}}
 </style>
 </head>
 <body class="theme-jarvis">
 <div class="halo"></div>
 <nav>
-  <div class="logo"><div class="mark">◈</div><div><b id="modeTitle">JARVIS</b><small style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.14em">MARVEL LEVEL • FACE + VOICE</small></div></div>
+  <div class="logo"><div class="mark">◈</div><div><b id="modeTitle">JARVIS</b><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.14em">ONLY AGNES AI • FREE UNLIMITED</div></div></div>
   <div class="modes">
     <div class="mode active" data-mode="jarvis" onclick="setMode('jarvis')">JARVIS</div>
     <div class="mode" data-mode="friday" onclick="setMode('friday')">FRIDAY</div>
     <div class="mode" data-mode="ultron" onclick="setMode('ultron')">ULTRON</div>
   </div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-    <span class="pill"><i class="dot wait" id="dAgnes"></i> Agnes</span>
-    <span class="pill"><i class="dot wait" id="dPuter"></i> Puter</span>
-    <span class="pill"><i class="dot wait" id="dKilo"></i> Kilo</span>
-    <span class="pill"><i class="dot wait" id="dOvh"></i> OVH</span>
-    <span class="pill"><i class="dot wait" id="dPolli"></i> Polli</span>
-    <span class="pill"><i class="dot on"></i> Offline</span>
-  </div>
-  <div style="display:flex;gap:6px;align-items:center">
-    <select id="modelSel">
-      <option value="agnes">Agnes 2.0 Flash (free full-modal)</option>
-      <option value="openai/gpt-4o">Puter: GPT-4o</option>
-      <option value="anthropic/claude-sonnet-4">Claude Sonnet 4</option>
-      <option value="google/gemini-2.0-flash">Gemini 2.0</option>
-      <option value="qwen/qwen3-coder">Qwen3</option>
-    </select>
-    <button class="btn" onclick="testAll()">Тест</button>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <span class="pill"><i class="dot wait" id="dAgnes"></i> Agnes 2.0 Flash</span>
+    <a href="https://platform.agnes-ai.com" target="_blank" style="font-size:11px;color:var(--accent)">Получить ключ →</a>
   </div>
 </nav>
 
 <div class="wrap">
   <!-- LEFT: ORB + FACE -->
   <div class="card">
-    <div class="head"><b id="orbTitle">HOLO-ORB • JARVIS</b><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">drag to rotate • scroll to zoom</span></div>
+    <div class="head"><b id="orbTitle">HOLO-ORB • JARVIS</b><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">drag • scroll zoom</span></div>
     <div class="stage">
       <canvas id="orb"></canvas>
       <div class="face">
@@ -104,86 +79,55 @@
         <div class="face-label" id="faceLabel">FACE • OFF</div>
       </div>
       <div class="hud">
-        <span id="hudState">STANDBY</span>
-        <span id="hudFps">60 FPS</span>
+        <span id="hudState">JARVIS • STANDBY</span>
         <span id="hudVoice">VOICE: OFF</span>
       </div>
     </div>
     <div class="controls">
       <button class="btn" onclick="toggleCam()">📷 Камера</button>
-      <button class="btn mic" id="micBtn">🎙️</button>
-      <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="wakeToggle" checked> Wake "Джарвис"</label>
-      <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="voiceToggle" checked> Озвучка</label>
-      <button class="btn" onclick="speak('Привет, я '+currentMode.toUpperCase()+' — на связи. Чем помочь, босс?')">Тест голоса</button>
+      <button class="btn mic" id="micBtn">🎙️ Говорить</button>
+      <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted);cursor:pointer"><input type="checkbox" id="wakeToggle" checked> Wake "Джарвис"</label>
+      <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted);cursor:pointer"><input type="checkbox" id="voiceToggle" checked> Озвучка</label>
     </div>
     <div style="padding:0 10px 10px;display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn" onclick="quick('Погода в Душанбе')">Погода</button>
-      <button class="btn" onclick="quick('Нарисуй Железного человека в Душанбе')">Нарисуй</button>
-      <button class="btn" onclick="quick('Сгенерируй видео: полет над Душанбе на закате')">Видео</button>
-      <button class="btn" onclick="quick('Сколько 245*36?')">Кальк</button>
+      <button class="btn" onclick="quick('Привет! Кто ты?')">Кто ты?</button>
+      <button class="btn" onclick="quick('Нарисуй Железного человека в Душанбе, киберпанк 4K')">🎨 Нарисуй</button>
+      <button class="btn" onclick="quick('Сгенерируй видео: полет над Душанбе на закате, cinematic')">🎬 Видео</button>
+      <button class="btn" onclick="speak('Привет, босс. Я '+currentMode.toUpperCase()+' на Agnes AI. Всё работает.')">🔊 Тест голоса</button>
+    </div>
+    <div style="padding:10px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.5">
+      <b style="color:var(--text)">Жесты:</b> тащи орбиту влево/вправо — вращение, колёсико — зум. Камера — лицо в углу с рамкой. Голос — кнопка 🎙️ или скажи «Джарвис».
     </div>
   </div>
 
   <!-- CENTER: CHAT -->
   <div class="card chat">
-    <div class="head"><b>Чат</b><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)" id="aiInfo">Agnes → Puter → Kilo → OVH → Polli → Offline</span></div>
+    <div class="agnes-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <b style="font-size:12px">🔑 Agnes AI — единственный движок (бесплатно безлимитно, RPM 20)</b>
+        <span id="agnesStat" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">нет ключа → вставь снизу</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Base: <code>https://apihub.agnes-ai.com/v1</code> • Models: <code>agnes-2.0-flash</code> / <code>agnes-image-2.0-flash</code> / <code>agnes-video-v2.0</code> • Бесплатно indefinite с 1 июня 2026, 4T запросов/нед.</div>
+      <input id="agnesKey" placeholder="sk-... вставь ключ с platform.agnes-ai.com → API Keys">
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn primary" style="height:32px" onclick="saveAgnes()">💾 Сохранить</button>
+        <button class="btn" style="height:32px" onclick="testAgnes()">Проверить</button>
+        <button class="btn" style="height:32px" onclick="clearAgnes()">Очистить</button>
+      </div>
+    </div>
     <div class="msgs" id="msgs">
-      <div class="msg bot">Я — <b id="whoBot">JARVIS</b>, твой Marvel-ассистент. У меня есть лицо (камера), голос (британский/ирландский/ультрон) и 5 AI-движков. <b>Agnes AI</b> даёт текст+картинки+видео бесплатно безлимитно (нужен ключ с platform.agnes-ai.com — вставь справа). Без ключа работаю через Puter/Kilo/OVH/Pollinations. Что прикажешь?</div>
+      <div class="msg bot">Я — <b id="whoBot">JARVIS</b> на <b>только Agnes AI</b>. Никакого Putera и прочего мусора — чистый Agnes free unlimited (текст+картинки+видео).<br><br>Вставь ключ сверху ☝️ — и сразу заработаю. Без ключа покажу, где взять. Что прикажешь, босс?</div>
     </div>
     <div class="input">
       <input id="inp" placeholder="Напиши или скажи 'Джарвис...'">
       <button class="btn primary" onclick="send()">→</button>
     </div>
-    <div id="imgOut" style="padding:8px;display:none"><img id="genImg" style="width:100%;border-radius:12px;border:1px solid var(--line)"></div>
-  </div>
-
-  <!-- RIGHT: DASH -->
-  <div class="right">
-    <div class="card">
-      <div class="tabs">
-        <div class="tab active" data-tab="api">API</div>
-        <div class="tab" data-tab="mem">Память</div>
-        <div class="tab" data-tab="tools">Tools</div>
-      </div>
-      <div class="pane active" id="pane-api">
-        <div class="agnes-box">
-          <b style="font-size:11px">Agnes AI — Full-Modal Free</b>
-          <div style="font-size:10px;color:var(--muted)">text 256K + image 4K + video — platform.agnes-ai.com → API Keys</div>
-          <input id="agnesKey" placeholder="sk-... Agnes API Key (опционально)">
-          <div style="display:flex;gap:6px;margin-top:6px">
-            <button class="btn" style="height:30px" onclick="saveAgnes()">Сохранить</button>
-            <button class="btn" style="height:30px" onclick="testAgnes()">Тест Agnes</button>
-            <span id="agnesStat" style="font-size:11px;color:var(--muted);align-self:center">нет ключа → fallback</span>
-          </div>
-        </div>
-        <div id="apiGrid" style="display:grid;gap:6px;margin-top:8px"></div>
-      </div>
-      <div class="pane" id="pane-mem">
-        <div id="memList" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow:auto"></div>
-        <div style="display:flex;gap:6px;margin-top:8px"><input id="todoInp" placeholder="Заметка..." style="flex:1;height:32px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 10px"><button class="btn primary" onclick="addTodo()">+</button></div>
-        <div id="todoList" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
-      </div>
-      <div class="pane" id="pane-tools">
-        <div style="display:grid;gap:8px">
-          <div style="padding:8px;border:1px solid var(--line);border-radius:10px"><b>Время Душанбе</b><div id="timeBox" style="font-family:'JetBrains Mono',monospace;margin-top:4px"></div></div>
-          <button class="btn" onclick="doSearch()">🔍 Поиск DuckDuckGo</button><input id="searchInp" placeholder="запрос" style="height:32px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 10px">
-          <button class="btn" onclick="generateImage()">🎨 Генерить картинку (Agnes/Pollinations)</button>
-          <button class="btn" onclick="generateVideo()">🎬 Генерить видео (Agnes)</button>
-          <div id="videoOut" style="font-size:11px;color:var(--muted)"></div>
-        </div>
-      </div>
-    </div>
-    <div class="card" style="padding:10px">
-      <b>Деплой</b><div style="font-size:11px;color:var(--muted);margin-top:4px">Пуш в main → Pages. Ссылка: <a href="https://tobirama2904-cell.github.io/jarvis-ultron/" target="_blank" style="color:var(--accent)">.../jarvis-ultron/</a></div>
-    </div>
+    <div id="imgOut" style="padding:8px;display:none"><img id="genImg" style="width:100%;border-radius:12px;border:1px solid var(--line)"><div id="imgCap" style="font-size:11px;color:var(--muted);margin-top:4px"></div></div>
+    <div id="videoOut" style="padding:0 10px 10px;font-size:11px;color:var(--muted)"></div>
   </div>
 </div>
 
 <script>
-// Tabs
-document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.getElementById('pane-'+t.dataset.tab).classList.add('active')});
-setInterval(()=>{ document.getElementById('timeBox').textContent=new Date().toLocaleString('ru-RU',{timeZone:'Asia/Dushanbe', weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', second:'2-digit'})},1000);
-// Mode
 let currentMode='jarvis';
 function setMode(m){
   currentMode=m;
@@ -192,10 +136,10 @@ function setMode(m){
   document.getElementById('modeTitle').textContent=m.toUpperCase();
   document.getElementById('orbTitle').textContent='HOLO-ORB • '+m.toUpperCase();
   document.getElementById('whoBot').textContent=m.toUpperCase();
-  document.getElementById('hudState').textContent=m.toUpperCase()+' • '+ (m==='ultron'?'DANGER':'STANDBY');
+  document.getElementById('hudState').textContent=m.toUpperCase()+' • STANDBY';
   const map={jarvis:'00D9FF', friday:'FF8A00', ultron:'FF1A2B'}; document.querySelector('meta[name="theme-color"]').content='#'+map[m];
 }
-// Orb — canvas 2D holographic with Three fallback simple
+// Orb
 const orb=document.getElementById('orb'); const octx=orb.getContext('2d');
 let rot=0, scale=1, dragging=false, lastX=0, pulse=0, speaking=false;
 function resizeOrb(){ orb.width=orb.clientWidth*devicePixelRatio; orb.height=orb.clientHeight*devicePixelRatio; octx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
@@ -205,27 +149,23 @@ orb.addEventListener('pointerup',()=>dragging=false);
 orb.addEventListener('pointermove',e=>{ if(dragging){ rot+=(e.clientX-lastX)*0.008; lastX=e.clientX; }});
 orb.addEventListener('wheel',e=>{ scale=Math.max(0.6,Math.min(1.6, scale + e.deltaY*-0.001)); e.preventDefault();},{passive:false});
 function drawOrb(){
-  const w=orb.clientWidth, h=orb.clientHeight;
+  const w=orb.clientWidth, h=orb.clientHeight; if(!w||!h) return requestAnimationFrame(drawOrb);
   octx.clearRect(0,0,w,h);
   const cx=w/2, cy=h/2, R=Math.min(w,h)*0.28*scale;
-  // glow
-  const g=octx.createRadialGradient(cx,cy,R*0.2,cx,cy,R*1.8);
   const col=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#00D9FF';
+  const g=octx.createRadialGradient(cx,cy,R*0.2,cx,cy,R*1.9);
   g.addColorStop(0, col+'33'); g.addColorStop(1,'transparent');
-  octx.fillStyle=g; octx.beginPath(); octx.arc(cx,cy,R*1.8,0,Math.PI*2); octx.fill();
-  // sphere
+  octx.fillStyle=g; octx.beginPath(); octx.arc(cx,cy,R*1.9,0,Math.PI*2); octx.fill();
   octx.save(); octx.translate(cx,cy); octx.rotate(rot);
   for(let i=0;i<3;i++){
-    octx.beginPath(); octx.strokeStyle=col + (i===0?'':'88'); octx.lineWidth=1.2 + (speaking? Math.sin(Date.now()*0.01+i)*0.8:0);
+    octx.beginPath(); octx.strokeStyle=col + (i===0?'':'88'); octx.lineWidth=1.2 + (speaking? Math.sin(Date.now()*0.01+i)*0.9:0);
     const r=R*(0.7+i*0.15); octx.ellipse(0,0,r,R*0.55,0,0,Math.PI*2); octx.stroke();
   }
-  // core
   pulse+= speaking?0.18:0.04;
   const coreR=R*0.18 + Math.sin(pulse)* (speaking?6:2);
   const cg=octx.createRadialGradient(0,0,coreR*0.3,0,0,coreR);
   cg.addColorStop(0,'white'); cg.addColorStop(1,col);
   octx.fillStyle=cg; octx.beginPath(); octx.arc(0,0,coreR,0,Math.PI*2); octx.fill();
-  // rings
   octx.strokeStyle='rgba(255,255,255,.18)'; octx.lineWidth=1;
   octx.beginPath(); octx.arc(0,0,R*1.15,0,Math.PI*2); octx.stroke();
   octx.restore();
@@ -233,7 +173,7 @@ function drawOrb(){
 }
 drawOrb();
 
-// Cam + face overlay simple
+// Cam
 let camStream=null;
 async function toggleCam(){
   const v=document.getElementById('cam');
@@ -246,25 +186,16 @@ async function toggleCam(){
 const faceOv=document.getElementById('faceOv'); const fctx=faceOv.getContext('2d');
 setInterval(()=>{
   if(!camStream) return;
-  const w=faceOv.width=132*devicePixelRatio, h=faceOv.height=96*devicePixelRatio;
+  const w=faceOv.width=142*devicePixelRatio, h=faceOv.height=104*devicePixelRatio;
   fctx.clearRect(0,0,w,h);
-  // fake face box scanning
   const t=Date.now()*0.002;
-  const x=10+Math.sin(t)*6, y=10+Math.cos(t*1.3)*4;
+  const x=12+Math.sin(t)*6, y=12+Math.cos(t*1.3)*4;
   fctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent'); fctx.lineWidth=2;
-  fctx.strokeRect(x*devicePixelRatio, y*devicePixelRatio, 80*devicePixelRatio, 60*devicePixelRatio);
-  fctx.fillStyle='rgba(255,255,255,.08)'; fctx.fillRect(x*devicePixelRatio, y*devicePixelRatio, 80*devicePixelRatio, 60*devicePixelRatio);
+  fctx.strokeRect(x*devicePixelRatio, y*devicePixelRatio, 88*devicePixelRatio, 66*devicePixelRatio);
+  fctx.fillStyle='rgba(255,255,255,.06)'; fctx.fillRect(x*devicePixelRatio, y*devicePixelRatio, 88*devicePixelRatio, 66*devicePixelRatio);
 },200);
 
-// Memory/Todo
-let mem=JSON.parse(localStorage.getItem('jarvis_mem2')||'[]');
-let todos=JSON.parse(localStorage.getItem('jarvis_todos2')||'[]');
-function renderMem(){ document.getElementById('memList').innerHTML=mem.slice(-10).reverse().map(m=>`<div style="padding:6px;border:1px solid var(--line);border-radius:8px;font-size:12px">${m}</div>`).join('')||'<div style="color:var(--muted);font-size:12px">Пока пусто</div>'; }
-function renderTodos(){ document.getElementById('todoList').innerHTML=todos.map((t,i)=>`<div style="padding:6px;border:1px solid var(--line);border-radius:8px;display:flex;justify-content:space-between;gap:6px;font-size:12px"><span>${t}</span><button class="btn" style="height:24px;padding:0 8px" onclick="todos.splice(${i},1);localStorage.setItem('jarvis_todos2',JSON.stringify(todos));renderTodos()">✕</button></div>`).join('')||'<div style="color:var(--muted);font-size:12px">Нет задач</div>'; }
-function addTodo(){ const v=document.getElementById('todoInp').value.trim(); if(!v) return; todos.push(v); mem.push('todo: '+v); localStorage.setItem('jarvis_todos2',JSON.stringify(todos)); localStorage.setItem('jarvis_mem2',JSON.stringify(mem)); document.getElementById('todoInp').value=''; renderTodos(); renderMem(); }
-renderMem(); renderTodos();
-
-// Voice
+// Voice - browser only
 let rec=null, listening=false;
 function initRec(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -283,151 +214,146 @@ function initRec(){
 }
 initRec();
 document.getElementById('micBtn').onclick=()=>{
-  if(!rec) return alert('Используй Chrome/Edge для голоса');
+  if(!rec) return alert('Голос — в Chrome/Edge на HTTPS. Пиши текстом.');
   listening=!listening;
   const b=document.getElementById('micBtn');
-  if(listening){ b.classList.add('live'); rec.start(); document.getElementById('hudVoice').textContent='VOICE: LISTENING'; b.textContent='■'; speaking=true; }
-  else { b.classList.remove('live'); rec.stop(); document.getElementById('hudVoice').textContent='VOICE: OFF'; b.textContent='🎙️'; speaking=false; }
+  if(listening){ b.classList.add('live'); rec.start(); document.getElementById('hudVoice').textContent='VOICE: LISTENING'; b.textContent='■ Стоп'; speaking=true; }
+  else { b.classList.remove('live'); rec.stop(); document.getElementById('hudVoice').textContent='VOICE: OFF'; b.textContent='🎙️ Говорить'; speaking=false; }
 };
 function speak(text){
   if(!document.getElementById('voiceToggle').checked) return;
   speaking=true; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • SPEAKING';
-  // try Puter TTS with voice per mode
-  const voiceMap={jarvis:'en-US-Jarvis', friday:'en-IE-Friday', ultron:'en-US-Ultron'};
-  if(window.puter?.ai?.txt2speech){
-    const v=currentMode==='friday'?'Kerry': currentMode==='ultron'?'Ultron':'Jarvis';
-    puter.ai.txt2speech(text.slice(0,400)).then(a=>{ try{a.play(); a.onended=()=>{speaking=false; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'}}catch{ fallbackSpeak(text)} }).catch(()=>fallbackSpeak(text));
-  } else fallbackSpeak(text);
-}
-function fallbackSpeak(text){
-  const u=new SpeechSynthesisUtterance(text); u.lang= currentMode==='friday'?'en-IE':'en-GB'; u.rate=1; u.onend=()=>{speaking=false; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'}; speechSynthesis.cancel(); speechSynthesis.speak(u);
+  const u=new SpeechSynthesisUtterance(text.slice(0,600));
+  u.lang= currentMode==='friday'?'en-IE':'en-GB'; u.rate=0.95; u.pitch= currentMode==='ultron'?0.7:1;
+  u.onend=()=>{speaking=false; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'};
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 
-// Agnes
-function saveAgnes(){ const k=document.getElementById('agnesKey').value.trim(); if(k){ localStorage.setItem('agnes_key',k); document.getElementById('agnesStat').textContent='сохранён ✓'; } else { localStorage.removeItem('agnes_key'); document.getElementById('agnesStat').textContent='нет ключа → fallback'; } testAgnes(); }
+// Agnes ONLY
+function getKey(){ return (localStorage.getItem('agnes_key')||'').trim(); }
+function setDot(state){ const el=document.getElementById('dAgnes'); el.className='dot '+(state==='on'?'on': state==='off'?'':'wait'); }
+function saveAgnes(){
+  const k=document.getElementById('agnesKey').value.trim();
+  if(!k) return alert('Вставь ключ sk-... с platform.agnes-ai.com');
+  localStorage.setItem('agnes_key',k);
+  document.getElementById('agnesStat').textContent='сохранён ✓';
+  testAgnes();
+}
+function clearAgnes(){ localStorage.removeItem('agnes_key'); document.getElementById('agnesKey').value=''; document.getElementById('agnesStat').textContent='нет ключа → вставь'; setDot('wait'); }
 async function testAgnes(){
-  const k=localStorage.getItem('agnes_key')||document.getElementById('agnesKey').value.trim();
-  if(!k){ document.getElementById('agnesStat').textContent='нет ключа'; setDot('Agnes','wait'); return; }
+  const k=getKey()||document.getElementById('agnesKey').value.trim();
+  if(!k){ document.getElementById('agnesStat').textContent='нет ключа → вставь с platform.agnes-ai.com'; setDot('wait'); return; }
+  document.getElementById('agnesStat').textContent='проверяю...';
   try{
     const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
       method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
-      body: JSON.stringify({model:'agnes-2.0-flash', messages:[{role:'user',content:'ping'}], max_tokens:10})
+      body: JSON.stringify({model:'agnes-2.0-flash', messages:[{role:'user',content:'ping'}], max_tokens:5})
     });
-    const ok=r.ok; document.getElementById('agnesStat').textContent= ok?'Agnes OK ✓':'ошибка '+r.status; setDot('Agnes', ok?'on':'off');
-  }catch(e){ document.getElementById('agnesStat').textContent='ошибка сети'; setDot('Agnes','off'); }
+    if(r.ok){ document.getElementById('agnesStat').textContent='Agnes OK ✓ — готово к работе'; setDot('on'); }
+    else { const t=await r.text(); document.getElementById('agnesStat').textContent='ошибка '+r.status+': '+(t.slice(0,80)||'проверь ключ'); setDot('off'); }
+  }catch(e){ document.getElementById('agnesStat').textContent='ошибка сети (нужен интернет)'; setDot('off'); }
 }
-document.getElementById('agnesKey').value=localStorage.getItem('agnes_key')||'';
-function setDot(name, state){ const id='d'+name; const el=document.getElementById(id); if(el) el.className='dot '+(state==='on'?'on': state==='off'?'off':'wait'); }
+document.getElementById('agnesKey').value=getKey();
+if(getKey()) testAgnes();
 
-// Chat
-function addMsg(role, text){
-  const box=document.getElementById('msgs'); const d=document.createElement('div'); d.className='msg '+role; d.textContent=text; box.appendChild(d); box.scrollTop=box.scrollHeight; if(role==='bot') speak(text); return d;
+// Chat — ONLY Agnes
+function addMsg(role, text, isHtml=false){
+  const box=document.getElementById('msgs'); const d=document.createElement('div'); d.className='msg '+role;
+  if(isHtml) d.innerHTML=text; else d.textContent=text;
+  box.appendChild(d); box.scrollTop=box.scrollHeight; if(role==='bot') speak(d.textContent);
+  return d;
 }
 function quick(t){ document.getElementById('inp').value=t; send(); }
-async function jarvisAI(prompt){
-  const sys=`Ты ${currentMode.toUpperCase()} из Marvel. Отвечай как ${currentMode}: JARVIS — британский дворецкий, сухой юмор, точность; FRIDAY — ирландская, быстрая, дружеская; ULTRON — холодный, могущественный, философский. Коротко, по-русски, с характером.`;
-  const agnesKey=localStorage.getItem('agnes_key');
-  // 1 Agnes
-  if(agnesKey){
-    try{
-      const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+agnesKey},
-        body: JSON.stringify({model:'agnes-2.0-flash', messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:800})
-      });
-      if(r.ok){ const j=await r.json(); const txt=j.choices?.[0]?.message?.content; if(txt){ setDot('Agnes','on'); mem.push(prompt.slice(0,60)); localStorage.setItem('jarvis_mem2',JSON.stringify(mem)); renderMem(); return txt; } }
-      else setDot('Agnes','off');
-    }catch{ setDot('Agnes','off'); }
+
+async function agnesChat(prompt){
+  const k=getKey();
+  if(!k){
+    return `🔑 Нет ключа Agnes. Вставь сверху ключ с **platform.agnes-ai.com → API Keys**. Это бесплатно безлимитно (text 256K, image 4K, video) с 1 июня 2026. Без ключа я не работаю — ты просил только Agnes.`;
   }
-  // 2 Puter
-  const model=document.getElementById('modelSel').value;
-  if(window.puter?.ai?.chat && model!=='agnes'){
-    try{
-      const r=await puter.ai.chat(sys+"\n\n"+prompt, {model});
-      const txt= typeof r==='string'? r : (r?.message?.content||r?.toString());
-      if(txt && txt.length>8){ setDot('Puter','on'); mem.push(prompt.slice(0,60)); localStorage.setItem('jarvis_mem2',JSON.stringify(mem)); renderMem(); return txt; }
-    }catch{ setDot('Puter','off'); }
+  const sys=`Ты ${currentMode.toUpperCase()} из Marvel. JARVIS — британский дворецкий, сухой юмор, точность; FRIDAY — ирландская, быстрая, дружеская; ULTRON — холодный, могущественный, философский. Отвечай по-русски, коротко, с характером, не длиннее 6 предложений.`;
+  try{
+    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
+      body: JSON.stringify({model:'agnes-2.0-flash', messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:900, temperature:0.8})
+    });
+    if(!r.ok){
+      const t=await r.text();
+      return `⚠️ Agnes ошибка ${r.status}: ${t.slice(0,200)}. Проверь ключ на platform.agnes-ai.com`;
+    }
+    const j=await r.json();
+    const txt=j.choices?.[0]?.message?.content;
+    if(txt){ setDot('on'); return txt; }
+    return `⚠️ Agnes пустой ответ: ${JSON.stringify(j).slice(0,200)}`;
+  }catch(e){
+    setDot('off');
+    return `⚠️ Сеть не доступна: ${e.message}. Нужен интернет для Agnes (apihub.agnes-ai.com)`;
   }
-  // 3 Kilo
-  try{
-    const r=await fetch('https://api.kilo.ai/api/gateway/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({model:'kilo-auto/free', messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:600})});
-    if(r.ok){ const j=await r.json(); const txt=j.choices?.[0]?.message?.content; if(txt){ setDot('Kilo','on'); return txt; }}
-  }catch{ setDot('Kilo','off'); }
-  // 4 OVH
-  try{
-    const r=await fetch('https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({model:'Meta-Llama-3_1-8B-Instruct', messages:[{role:'user',content:sys+"\n\n"+prompt}], max_tokens:600})});
-    if(r.ok){ const j=await r.json(); const txt=j.choices?.[0]?.message?.content; if(txt){ setDot('Ovh','on'); return txt; }}
-  }catch{ setDot('Ovh','off'); }
-  // 5 Pollinations
-  try{
-    const r=await fetch('https://text.pollinations.ai/'+encodeURIComponent(sys+"\n\n"+prompt)+'?model=openai');
-    if(r.ok){ const t=await r.text(); if(t){ setDot('Polli','on'); return t; }}
-  }catch{ setDot('Polli','off'); }
-  return `⚠️ Оффлайн: я ${currentMode.toUpperCase()}, принял "${prompt.slice(0,80)}". Без сети отвечу шаблоном. Подключи интернет или вставь Agnes ключ справа.`;
 }
+
 async function handle(prompt){
-  const last=addMsg('bot','…');
-  // tools
-  if(/погод/i.test(prompt)){
-    try{ const r=await fetch('https://wttr.in/Dushanbe?format=j1'); if(r.ok){ const j=await r.json(); const c=j.current_condition[0]; last.textContent=`🌤️ Душанбе: ${c.temp_C}°C, ${c.weatherDesc[0].value}`; speak(last.textContent); return; }}catch{}
+  // image
+  if(/нарисуй|сгенери|картинк|изображ/i.test(prompt)){
+    const p=prompt.replace(/нарисуй|сгенерируй|сделай/i,'').trim()||prompt;
+    await generateImage(p);
+    return;
   }
-  const ans=await jarvisAI(prompt);
+  if(/видео|video/i.test(prompt)){
+    const p=prompt.replace(/сгенерируй видео:?|видео:?/i,'').trim()||prompt;
+    await generateVideo(p);
+    return;
+  }
+  const last=addMsg('bot','…думаю через Agnes…');
+  const ans=await agnesChat(prompt);
   last.textContent=ans; speak(ans);
 }
 async function send(){ const inp=document.getElementById('inp'); const t=inp.value.trim(); if(!t) return; addMsg('user',t); inp.value=''; await handle(t); }
 document.getElementById('inp').addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
 
-// Image/Video via Agnes or Pollinations
-async function generateImage(){
-  const prompt=promptImage(); if(!prompt) return;
-  const k=localStorage.getItem('agnes_key');
-  const out=document.getElementById('genImg'); const wrap=document.getElementById('imgOut');
-  if(k){
-    try{
-      const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-image-2.0-flash', prompt, n:1, size:'1024x1024'})});
-      if(r.ok){ const j=await r.json(); const url=j.data?.[0]?.url; if(url){ out.src=url; wrap.style.display='block'; addMsg('bot','🎨 Agnes сгенерил картинку (выше)'); return; }}
-    }catch{}
-  }
-  const url='https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)+'?width=1024&height=1024&nologo=true&seed='+Math.floor(Math.random()*99999);
-  out.src=url; wrap.style.display='block'; addMsg('bot','🎨 Картинка (Pollinations) — смотри выше');
-}
-function promptImage(){ const p=prompt('Что нарисовать?','Iron Man in Dushanbe, cinematic 4K'); return p; }
-async function generateVideo(){
-  const k=localStorage.getItem('agnes_key'); if(!k) return alert('Для видео нужен Agnes API Key — вставь справа в API панели');
-  const prompt=prompt('Промпт для видео (5 сек):','flight over Dushanbe at sunset, cinematic'); if(!prompt) return;
-  const out=document.getElementById('videoOut'); out.textContent='⏳ Agnes Video: ставлю задачу...';
+// Image via Agnes only
+async function generateImage(prompt){
+  const k=getKey(); if(!k){ addMsg('sys','🔑 Для картинки нужен ключ Agnes сверху'); return; }
+  const wrap=document.getElementById('imgOut'); const img=document.getElementById('genImg'); const cap=document.getElementById('imgCap');
+  wrap.style.display='block'; img.src=''; cap.textContent='⏳ Agnes Image 2.0 генерирует: "'+prompt.slice(0,60)+'"...';
+  addMsg('bot','🎨 Генерю картинку через Agnes Image 2.0 Flash: "'+prompt.slice(0,80)+'"');
   try{
-    const r=await fetch('https://apihub.agnes-ai.com/v1/videos',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-video-v2.0', prompt})});
-    const j=await r.json(); const id=j.id||j.task_id; out.textContent='🎬 Задача '+id+' создана. Опрос...';
-    // poll
+    const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
+      body: JSON.stringify({model:'agnes-image-2.0-flash', prompt, n:1, size:'1024x1024'})
+    });
+    if(!r.ok){ const t=await r.text(); cap.textContent='Ошибка '+r.status+': '+t.slice(0,120); return; }
+    const j=await r.json();
+    const url=j.data?.[0]?.url || j.data?.[0]?.b64_json && ('data:image/png;base64,'+j.data[0].b64_json);
+    if(url){ img.src=url; cap.textContent='✅ Готово (Agnes Image 2.0 Flash)'; setDot('on'); }
+    else cap.textContent='Пустой ответ: '+JSON.stringify(j).slice(0,200);
+  }catch(e){ cap.textContent='Ошибка: '+e.message; setDot('off'); }
+}
+// Video via Agnes only
+async function generateVideo(prompt){
+  const k=getKey(); if(!k){ addMsg('sys','🔑 Для видео нужен ключ Agnes сверху'); return; }
+  const out=document.getElementById('videoOut');
+  out.innerHTML='⏳ Agnes Video 2.0: ставлю задачу "'+prompt.slice(0,50)+'"...';
+  addMsg('bot','🎬 Генерю видео через Agnes Video 2.0: "'+prompt.slice(0,80)+'"');
+  try{
+    const r=await fetch('https://apihub.agnes-ai.com/v1/videos',{
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
+      body: JSON.stringify({model:'agnes-video-v2.0', prompt})
+    });
+    const j=await r.json();
+    if(!r.ok){ out.textContent='Ошибка '+r.status+': '+JSON.stringify(j).slice(0,150); return; }
+    const id=j.id||j.task_id||j.data?.id; out.textContent='🎬 Задача '+id+' создана. Жду 5с опрос...';
     let tries=0; const iv=setInterval(async()=>{
-      tries++; const pr=await fetch('https://apihub.agnes-ai.com/v1/videos/'+id, {headers:{'Authorization':'Bearer '+k}});
-      const pj=await pr.json(); if(pj.status==='completed' && pj.output_url){ clearInterval(iv); out.innerHTML=`✅ Видео готово: <a href="${pj.output_url}" target="_blank" style="color:var(--accent)">открыть</a>`; addMsg('bot','🎬 Видео готово: '+pj.output_url); }
-      if(tries>20){ clearInterval(iv); out.textContent='⏳ Видео ещё готовится, проверь позже в Agnes dashboard'; }
+      tries++;
+      try{
+        const pr=await fetch('https://apihub.agnes-ai.com/v1/videos/'+id, {headers:{'Authorization':'Bearer '+k}});
+        const pj=await pr.json();
+        if(pj.status==='completed' && (pj.output_url||pj.url)){ clearInterval(iv); out.innerHTML=`✅ Видео готово: <a href="${pj.output_url||pj.url}" target="_blank" style="color:var(--accent)">открыть видео</a>`; }
+        else if(pj.status==='failed'){ clearInterval(iv); out.textContent='❌ Ошибка видео: '+JSON.stringify(pj).slice(0,120); }
+        else if(tries>24){ clearInterval(iv); out.textContent='⏳ Ещё готовится — проверь позже на platform.agnes-ai.com'; }
+        else out.textContent='⏳ Готовлю... '+pj.status+' ('+tries+'/24)';
+      }catch(e){ if(tries>6){clearInterval(iv); out.textContent='Ошибка опроса: '+e.message} }
     },5000);
   }catch(e){ out.textContent='Ошибка: '+e.message; }
 }
-
-// API grid
-const apis=[
-  {id:'Agnes', name:'Agnes AI', desc:'text 256K + image 4K + video • free indefinite • RPM20'},
-  {id:'Puter', name:'Puter.js', desc:'unlimited user-pays • без ключа'},
-  {id:'Kilo', name:'Kilo Free', desc:'200/час без ключа'},
-  {id:'Ovh', name:'OVH', desc:'2 RPM без ключа EU'},
-  {id:'Polli', name:'Pollinations', desc:'unlimited 1/15s'},
-];
-document.getElementById('apiGrid').innerHTML=apis.map(a=>`<div class="api"><div><b>${a.name}</b><br><span>${a.desc}</span></div><button onclick="testOne('${a.id}')">Тест</button></div>`).join('');
-async function testOne(id){
-  try{
-    if(id==='Agnes') return testAgnes();
-    if(id==='Puter'){ const r=await puter.ai.chat('ping',{model:'openai'}); setDot(id, r?'on':'off'); return; }
-    if(id==='Kilo'){ const r=await fetch('https://api.kilo.ai/api/gateway/v1/models'); setDot(id, r.ok?'on':'off'); return; }
-    if(id==='Ovh'){ const r=await fetch('https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/models'); setDot(id, r.ok?'on':'off'); return; }
-    if(id==='Polli'){ const r=await fetch('https://text.pollinations.ai/hello?model=openai'); setDot(id, r.ok?'on':'off'); return; }
-  }catch{ setDot(id,'off'); }
-}
-function testAll(){ ['Agnes','Puter','Kilo','Ovh','Polli'].forEach(testOne); }
-setTimeout(testAll,900);
-function doSearch(){ const q=document.getElementById('searchInp').value.trim(); if(q) handle('найди '+q); }
 </script>
 </body>
 </html>
