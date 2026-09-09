@@ -381,7 +381,7 @@ function testVoice(){
 }
 
 // MIC - надёжно, теперь без обязательного wake + с проверкой микрофона
-let rec=null, listening=false, micStream=null, micMeterRAF=null;
+let rec=null, listening=false, micStream=null, micMeterRAF=null, offlineMode=false, whisperPipe=null, offlineRec=null, offlineChunks=[];
 function initRec(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){ log('SpeechRecognition нет — нужен Chrome/Edge v80+'); return null; }
@@ -410,10 +410,41 @@ function initRec(){
       addMsg('user','🎙️ '+t); handle(cmd);
     }
   };
-  r.onerror=e=>{ log('❌ mic error '+e.error+' '+(e.message||'')); if(e.error==='not-allowed') addMsg('sys','🎙️ Доступ запрещён — нажми замок в адресе → Микрофон → Разрешить → Перезагрузи страницу'); if(e.error==='no-speech') log('no-speech — ты молчал 5с, говорю громче'); if(e.error==='audio-capture') addMsg('sys','🎙️ Микрофон занят другим приложением'); if(e.error==='network') addMsg('sys','🌐 Сеть для распознавания (Google) заблокирована — попробуй VPN или пиши текстом, я отвечу голосом'); if(e.error==='aborted') log('aborted'); };
-  r.onend=()=>{ log('mic end, listening='+listening); if(listening){ log('перезапуск через 0.6с...'); setTimeout(()=>{ if(listening) try{ r.start(); log('restart ok'); }catch(err){ log('restart fail '+err.message); } },600);} };
+  r.onerror=e=>{ log('❌ mic error '+e.error+' '+(e.message||'')); if(e.error==='not-allowed') addMsg('sys','🎙️ Доступ запрещён — нажми замок в адресе → Микрофон → Разрешить → Перезагрузи страницу'); if(e.error==='no-speech') log('no-speech — ты молчал 5с, говорю громче'); if(e.error==='audio-capture') addMsg('sys','🎙️ Микрофон занят другим приложением'); if(e.error==='network'){
+      log('🌐 Google STT заблокирован у тебя (TJ) — включаю оффлайн Whisper');
+      addMsg('sys','🌐 Google заблокирован. Включаю оффлайн Whisper (без VPN). Нажми 🎙️ ещё раз — теперь запись через Whisper (скачает ~30МБ один раз).');
+      offlineMode=true;
+      document.getElementById('micBtn').textContent='🎙️ Оффлайн';
+      document.getElementById('hudVoice').textContent='VOICE: OFFLINE READY';
+      try{ r.stop(); }catch{}
+      listening=false; document.getElementById('micBtn').classList.remove('live');
+      loadWhisper().catch(err=>log('whisper load fail '+err.message));
+    } if(e.error==='aborted') log('aborted'); };
+  r.onend=()=>{ log('mic end, listening='+listening+' offline='+offlineMode); if(listening && !offlineMode){ log('перезапуск через 0.6с...'); setTimeout(()=>{ if(listening) try{ r.start(); log('restart ok'); }catch(err){ log('restart fail '+err.message); } },600);} };
   r.onnomatch=()=>{ log('nomatch — не понял'); };
   return r;
+}
+async function loadWhisper(){
+  if(whisperPipe) return whisperPipe;
+  log('⏳ Гружу Whisper tiny (30МБ, один раз) ...');
+  document.getElementById('hudVoice').textContent='VOICE: гружу Whisper...';
+  try{
+    const mod=await import('https://esm.sh/@huggingface/transformers@3.3.0');
+    const { pipeline } = mod;
+    whisperPipe = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', { quantized: true });
+    log('✅ Whisper готов! Теперь оффлайн');
+    document.getElementById('hudVoice').textContent='VOICE: Whisper готов';
+    addMsg('sys','✅ Оффлайн Whisper готов — теперь нажми 🎙️ Оффлайн и говори, Амин!');
+    return whisperPipe;
+  }catch(e){
+    log('whisper esm.sh fail '+e.message);
+    try{
+      const mod2=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.0/+esm');
+      const { pipeline } = mod2;
+      whisperPipe = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', { quantized: true });
+      log('✅ Whisper cdn готов'); return whisperPipe;
+    }catch(e2){ log('whisper fail2 '+e2.message); addMsg('sys','❌ Не смог загрузить Whisper — включи VPN для первой загрузки'); throw e2; }
+  }
 }
 function startMeter(stream){
   try{
@@ -433,21 +464,83 @@ function startMeter(stream){
   }catch(e){ log('meter fail '+e.message); }
 }
 async function toggleMic(){
+  // ОФФЛАЙН режим — Whisper
+  if(offlineMode){
+    const btn=document.getElementById('micBtn');
+    if(!offlineRec || offlineRec.state==='inactive'){
+      // старт записи
+      try{
+        log('🎙️ Оффлайн запись — говори 2-4с, потом нажми стоп');
+        document.getElementById('hudVoice').textContent='VOICE: 🔴 запись... говори!';
+        if(!whisperPipe) await loadWhisper();
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+        offlineChunks=[];
+        offlineRec=new MediaRecorder(stream, {mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm'});
+        offlineRec.ondataavailable=e=>{ if(e.data.size>0) offlineChunks.push(e.data); };
+        offlineRec.onstop=async()=>{
+          try{
+            log('обработка Whisper...');
+            document.getElementById('hudVoice').textContent='VOICE: 🧠 Whisper думает...';
+            const blob=new Blob(offlineChunks, {type: offlineRec.mimeType || 'audio/webm'});
+            // декодим через AudioContext в Float32
+            const ac=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+            const arrayBuf=await blob.arrayBuffer();
+            let audioData;
+            try{
+              const decoded=await ac.decodeAudioData(arrayBuf.slice(0));
+              // ресемплим уже 16k, берём первый канал
+              audioData=decoded.getChannelData(0);
+            }catch{
+              // fallback: читаем как есть — whisper может принять blob URL
+              // попробуем через FileReader как base? просто передадим blob URL
+              log('decode fail, пробую blob');
+              document.getElementById('hudVoice').textContent='VOICE: ошибка аудио';
+              addMsg('sys','❌ Не смог декодировать аудио — попробуй ещё раз, говори чётко');
+              stream.getTracks().forEach(tr=>tr.stop());
+              listening=false; btn.classList.remove('live'); btn.textContent='🎙️ Оффлайн'; return;
+            }
+            // whisper ожидает 16k float32
+            const result=await whisperPipe(audioData, {language:'russian', task:'transcribe'});
+            const text=(result.text||'').trim();
+            log('Whisper → "'+text+'"');
+            if(text){
+              document.getElementById('hudVoice').textContent='VOICE: "'+text.slice(0,24)+'"';
+              addMsg('user','🎙️ '+text);
+              handle(text);
+            }else{
+              addMsg('sys','🤷 Whisper не понял — говори громче и чётче, 2-4 сек');
+              document.getElementById('hudVoice').textContent='VOICE: не понял';
+            }
+            stream.getTracks().forEach(tr=>tr.stop());
+            try{ac.close()}catch{}
+          }catch(e){ log('whisper transcribe fail '+e.message); addMsg('sys','❌ Whisper ошибка: '+e.message); }
+          listening=false; btn.classList.remove('live'); btn.textContent='🎙️ Оффлайн'; document.getElementById('hudVoice').textContent='VOICE: OFFLINE READY';
+        };
+        offlineRec.start();
+        listening=true; btn.classList.add('live'); btn.textContent='■ Стоп (оффлайн)'; 
+        log('offline rec started');
+      }catch(e){ log('offline start fail '+e.message); addMsg('sys','❌ Микрофон оффлайн fail: '+e.message); }
+      return;
+    }else{
+      // стоп записи
+      try{ offlineRec.stop(); log('offline rec stop'); }catch(e){ log('stop fail '+e.message); }
+      document.getElementById('hudVoice').textContent='VOICE: обработка...';
+      return;
+    }
+  }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const btn=document.getElementById('micBtn');
-  if(!SR){ addMsg('sys','🎙️ Распознавание только в Chrome/Edge на HTTPS (Android/ПК). На iPhone — пиши текстом.'); log('no SR UA='+navigator.userAgent.slice(0,70)); return; }
+  if(!SR){ addMsg('sys','🎙️ Распознавание только в Chrome/Edge на HTTPS. На iPhone — пиши текстом.'); log('no SR UA='+navigator.userAgent.slice(0,70)); return; }
   if(!rec) rec=initRec();
   if(!rec){ log('rec null'); return; }
   listening=!listening;
   if(listening){
     unlockAudio(true);
-    // 1) явно просим доступ к микрофону чтобы показать диалог и получить громкость
     try{
       log('запрос mic getUserMedia...');
       micStream=await navigator.mediaDevices.getUserMedia({audio:true});
       log('mic permission OK — микрофон живой, громкость покажу');
       startMeter(micStream);
-      // не закрываем сразу — оставим для уровня, закроем при stop
     }catch(e){
       log('getUserMedia fail '+e.name+' '+e.message);
       addMsg('sys','🎙️ Нет доступа к микрофону: '+e.message+' — замок в адресе → Разрешить');
@@ -460,7 +553,6 @@ async function toggleMic(){
     }
     btn.classList.add('live'); btn.textContent='■ Стоп'; document.getElementById('hudVoice').textContent='VOICE: LISTENING... говори громко!'; document.getElementById('wave').style.display='flex';
     addMsg('sys','🎙️ Слушаю, Амин — говори что угодно громко: "привет", "нарисуй кота". Смотри VOICE: "текст" и лог.');
-    // таймаут если 6с нет ФИНАЛ — подсказка
     setTimeout(()=>{ if(listening && document.getElementById('hudVoice').textContent.includes('LISTENING')){ log('⚠️ 6с нет результата — говори громче, ближе к микрофону, проверь интернет (Google STT нужен)'); } },6500);
   }else{
     try{ if(micStream) micStream.getTracks().forEach(t=>t.stop()); }catch{}
