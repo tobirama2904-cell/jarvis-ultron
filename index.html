@@ -381,9 +381,7 @@ async function runDeepResearch(){
       <div class="tab" id="t-code" onclick="switchTab('code')">💻 Кодинг • 2.5-flash</div>
       <div class="tab" id="t-image" onclick="switchTab('image')">🎨 Изображения</div>
       <div class="tab" id="t-video" onclick="switchTab('video')">🎬 Видео</div>
-      <div class="tab" id="t-tools" onclick="switchTab('tools'); setTimeout(()=>{const p=document.getElementById('pane-tools'); if(p){p.style.display='block'; p.style.opacity='1';}},150)">🔧 Тулзы</div>
-      <div class="tab" id="t-research" onclick="switchTab('research'); setTimeout(()=>{const p=document.getElementById('pane-research'); if(p){p.style.display='block'; p.style.opacity='1';}},150)">🔍 Research</div>
-      <div class="tab" id="t-agent" onclick="switchTab('agent'); setTimeout(()=>{const p=document.getElementById('pane-agent'); if(p){p.style.display='block'; p.style.opacity='1';}},150)">🤖 Агент</div>
+
     </div>
 
     <!-- CHAT -->
@@ -442,76 +440,7 @@ async function runDeepResearch(){
       </div>
       <div id="vidList" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
-    <!-- TOOLS -->
-    <div class="pane" id="pane-tools" style="border:2px solid var(--accent); background:rgba(10,20,40,.9)">
-      <div style="margin:-14px -14px 12px;padding:8px 14px;background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.15));border-bottom:1px solid var(--line);font-size:10px;color:var(--accent);font-weight:800;text-align:center">↓ Пиши задачу здесь — поле ниже</div>
-      <div style="padding:14px">
-        <div style="font-size:13px;font-weight:800">🔧 Tool Calling • безлимит • Agnes 2.5-flash</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">AI сам вызывает инструменты: <b>web_search</b>, <b>web_fetch</b>, <b>code_run</b>, <b>image/video gen</b>, <b>memory</b>. Всё локально, безлимит.</div>
-        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-          <button class="btn primary" onclick="demoTool('web_search')">🔍 web_search демо</button>
-          <button class="btn" onclick="demoTool('web_fetch')">🌐 web_fetch демо</button>
-          <button class="btn" onclick="demoTool('code_run')">💻 code_run демо</button>
-          <button class="btn" onclick="clearToolLog()">Очистить</button>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input id="toolInput" placeholder="Попроси: найди последние новости про Iron Man и сделай сводку" style="flex:1;height:38px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px">
-          <button class="btn primary" onclick="runToolCalling()">▶️ Запустить</button>
-        </div>
-        <div id="toolLog" style="margin-top:10px;max-height:320px;overflow:auto;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:11px;white-space:pre-wrap"></div>
-        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-          <span style="font-size:10px;color:var(--muted)">Интеграции (безлимит, через твой браузер):</span>
-          <span style="font-size:10px;padding:4px 8px;border-radius:999px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3)">GitHub (твой токен)</span>
-          <span style="font-size:10px;padding:4px 8px;border-radius:999px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3)">Telegram (Webhook)</span>
-          <span style="font-size:10px;padding:4px 8px;border-radius:999px;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.3)">Web Search (DuckDuckGo + Jina)</span>
-        </div>
-      </div>
-    </div>
-    <!-- RESEARCH -->
-    <div class="pane" id="pane-research" style="border:2px solid var(--accent); background:rgba(10,20,40,.9)">
-      <div style="margin:-14px -14px 12px;padding:8px 14px;background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.15));border-bottom:1px solid var(--line);font-size:10px;color:var(--accent);font-weight:800;text-align:center">↓ Пиши задачу здесь — поле ниже</div>
-      <div style="padding:14px">
-        <div style="font-size:13px;font-weight:800">🔍 Deep Research • безлимит</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Многошаговый ресёрч: AI делает 3-5 поисков, читает страницы, синтезирует отчёт с источниками. Всё бесплатно, через твой ключ Agnes.</div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input id="researchInput" placeholder="Тема: последние прорывы в ядерном синтезе 2026" style="flex:1;height:38px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px">
-          <button class="btn primary" onclick="runDeepResearch()">🔍 Исследовать</button>
-          <button class="btn" onclick="document.getElementById('researchOut').innerHTML=''">Очистить</button>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('researchInput').value='Iron Man костюм в реальной жизни 2026 прогресс'; runDeepResearch()">🦾 Iron Man</button>
-          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('researchInput').value='Agnes AI vs Claude Opus сравнение'; runDeepResearch()">Agnes vs Claude</button>
-          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('researchInput').value='Душанбе IT стартапы 2026'; runDeepResearch()">Душанбе IT</button>
-        </div>
-        <div id="researchOut" style="margin-top:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:120px;font-size:12px;line-height:1.5"></div>
-        <div id="researchLog" style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);white-space:pre-wrap"></div>
-      </div>
-    </div>
 
-    <!-- AGENT MODE -->
-    <div class="pane" id="pane-agent" style="border:2px solid var(--accent); background:rgba(10,20,40,.9)">
-      <div style="margin:-14px -14px 12px;padding:8px 14px;background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.15));border-bottom:1px solid var(--line);font-size:10px;color:var(--accent);font-weight:800;text-align:center">↓ Пиши задачу здесь — поле ниже</div>
-      <div style="padding:14px">
-        <div style="display:flex;align-items:center;gap:10px"><div style="font-size:15px;font-weight:900">🤖 Агент MODE • безлимит</div><span style="font-size:10px;padding:4px 8px;border-radius:999px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);color:#34d399;font-weight:800">FREE • CONNECTIONS</span></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Как у меня: агент сам планирует, вызывает тулзы по цепочке, дергает интеграции. Всё через твой Agnes, безлимит.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-          <div style="padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)"><div style="font-size:11px;font-weight:800">🔗 Connections</div><div style="font-size:10px;color:var(--muted);margin-top:4px">GitHub, Telegram, Discord, Notion, Weather, Search — добавь токен и агент дергает.</div><div style="display:flex;gap:6px;margin-top:8px"><input id="agentToken" placeholder="Токен (опционально)" style="flex:1;height:32px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:white;padding:0 8px;font-size:10px"><button class="btn" style="height:32px" onclick="saveAgentToken()">Сохранить</button></div></div>
-          <div style="padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)"><div style="font-size:11px;font-weight:800">⚡ Что умеет</div><div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.4">• web_search + web_fetch + code_run<br>• image/video gen + memory<br>• GitHub push + Telegram send<br>• deep research 3-5 шагов</div></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input id="agentInput" placeholder="Задача агенту: исследуй Iron Man, сгенери лендинг и запушь в GitHub" style="flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px">
-          <button class="btn primary" style="height:40px" onclick="runAgent()">🚀 Запустить агента</button>
-        </div>
-        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('agentInput').value='Найди 3 новости про Душанбе IT, сделай сводку и сгенери картинку'; runAgent()">📰 Новости Душанбе</button>
-          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('agentInput').value='Сделай лендинг кофейни и покажи превью'; runAgent()">☕ Лендинг</button>
-          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('agentInput').value='Исследуй Agnes AI и сравни с Claude'; runAgent()">🔍 Agnes vs Claude</button>
-        </div>
-        <div id="agentLog" style="margin-top:10px;max-height:360px;overflow:auto;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:11px;white-space:pre-wrap"></div>
-        <div id="agentOut" style="margin-top:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:80px;font-size:12px;line-height:1.5"></div>
-      </div>
-    </div>
-    </div>
   </div>
 </div>
 
