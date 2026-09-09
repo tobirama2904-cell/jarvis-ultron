@@ -3,39 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>JARVIS • FRIDAY • ULTRON for AMIN — Real Voice + Hands</title>
+<title>JARVIS • FRIDAY • ULTRON for AMIN — FIXED 2026</title>
 <meta name="theme-color" content="#00D9FF">
 <link rel="manifest" href="manifest.json">
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@600&display=swap');
-  :root{--bg:#04060D;--panel:#0E1730;--line:rgba(130,160,255,.14);--cyan:#00D9FF;--orange:#FF8A00;--red:#FF2336;--vio:#7C3AED;--green:#00FF9D;--gold:#F5C518;--text:#EAF1FF;--muted:#7E8AB3;--accent:var(--cyan)}
+  :root{--bg:#04060D;--panel:#0E1730;--line:rgba(130,160,255,.15);--cyan:#00D9FF;--orange:#FF8A00;--red:#FF2336;--vio:#7C3AED;--green:#00FF9D;--gold:#F5C518;--text:#EAF1FF;--muted:#7E8AB3;--accent:var(--cyan)}
   .theme-friday{--accent:var(--orange)} .theme-ultron{--accent:var(--red)} .theme-jarvis{--accent:var(--cyan)}
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:#04060D;color:var(--text);font-family:'Space Grotesk',system-ui,sans-serif;min-height:100dvh;overflow-x:hidden}
+  body{background:#04060D;color:var(--text);font-family:'Space Grotesk',system-ui,sans-serif;min-height:100dvh}
   .bg{position:fixed;inset:0;z-index:0;background:radial-gradient(620px 420px at 18% 8%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 62%), radial-gradient(700px 500px at 88% 14%, rgba(124,58,237,.13), transparent 62%), linear-gradient(180deg,#050816,#04060D)}
-  nav{position:sticky;top:0;z-index:30;background:rgba(7,11,24,.96);backdrop-filter:blur(18px);border-bottom:1px solid var(--line);padding:10px 12px; padding-top:max(10px,env(safe-area-inset-top))}
+  nav{position:sticky;top:0;z-index:30;background:rgba(7,11,24,.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);padding:10px 12px; padding-top:max(10px,env(safe-area-inset-top))}
   .nav-row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;max-width:1280px;margin:0 auto}
   .brand{display:flex;gap:10px;align-items:center}
-  .mark{width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--vio));display:grid;place-items:center;font-family:'Syne',sans-serif;font-weight:800;box-shadow:0 0 22px color-mix(in srgb, var(--accent) 38%, transparent);transition:.3s}
+  .mark{width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--vio));display:grid;place-items:center;font-family:'Syne',sans-serif;font-weight:800;box-shadow:0 0 22px color-mix(in srgb, var(--accent) 38%, transparent)}
   .modes{display:flex;gap:6px;padding:4px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
-  .mode{padding:7px 13px;border-radius:999px;font-weight:800;font-size:11px;cursor:pointer;border:1px solid transparent;transition:.18s}
+  .mode{padding:7px 14px;border-radius:999px;font-weight:800;font-size:11px;cursor:pointer;transition:.18s;border:1px solid transparent}
   .mode.active{background:var(--accent);color:#061018;box-shadow:0 0 16px color-mix(in srgb, var(--accent) 35%, transparent)}
   .pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px}
   .dot{width:7px;height:7px;border-radius:50%;background:#5A6A95} .dot.on{background:var(--green);box-shadow:0 0 8px var(--green)} .dot.wait{background:var(--gold);animation:blink 1s infinite} @keyframes blink{50%{opacity:.35}}
-  .wrap{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:12px;display:grid;grid-template-columns:400px 1fr;gap:12px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
-  .card{background:rgba(14,23,48,.84);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+  .wrap{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:12px;display:grid;grid-template-columns:390px 1fr;gap:12px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .card{background:rgba(14,23,48,.88);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:18px;overflow:hidden}
   .head{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
   .head b{font-family:'Syne',sans-serif;font-size:11px}
-  .stage{height:380px;position:relative;overflow:hidden;background:radial-gradient(420px 320px at 50% 28%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%), linear-gradient(180deg,#0A1230,#060A18)}
-  #orb{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
-  .face-box{position:absolute;right:10px;bottom:10px;width:168px;height:126px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.16);background:#000;box-shadow:0 10px 28px rgba(0,0,0,.6)}
-  .face-box video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block}
+  .stage{height:360px;position:relative;overflow:hidden;background:radial-gradient(420px 320px at 50% 28%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%), linear-gradient(180deg,#0A1230,#060A18);display:block}
+  #orb{width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+  .face-box{position:absolute;right:10px;bottom:10px;width:162px;height:122px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.16);background:#000;box-shadow:0 10px 28px rgba(0,0,0,.6)}
+  .face-box video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block;background:#000}
   .face-box canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
   .face-label{position:absolute;left:6px;top:6px;padding:3px 7px;border-radius:999px;background:rgba(0,0,0,.7);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--accent)}
-  .face-off{display:grid;place-items:center;height:100%;font-size:11px;color:var(--muted);text-align:center;padding:8px;background:linear-gradient(180deg,#0B1024,#060A14)}
+  .face-off{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(180deg,#0B1024,#060A14);font-size:11px;color:var(--muted);text-align:center;padding:8px}
   .hud{position:absolute;left:10px;bottom:10px;display:flex;gap:6px;flex-wrap:wrap;max-width:58%}
   .hud span{padding:4px 8px;border-radius:999px;background:rgba(0,0,0,.62);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--accent)}
   .controls{padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -46,13 +43,11 @@
   .voice-wave i{width:3px;height:6px;background:var(--accent);border-radius:99px;animation:wave .55s infinite alternate}
   .voice-wave i:nth-child(2){animation-delay:.14s;height:10px} .voice-wave i:nth-child(3){animation-delay:.28s}
   @keyframes wave{to{height:14px}}
-  .gesture-hint{position:absolute;left:50%;top:8px;transform:translateX(-50%);padding:5px 10px;border-radius:999px;background:rgba(0,0,0,.6);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--accent);display:none}
-  .gesture-hint.on{display:flex;gap:6px;align-items:center}
+  .log{padding:8px 10px;border-top:1px solid var(--line);background:rgba(0,0,0,.18);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);min-height:28px;max-height:70px;overflow:auto}
   .chat{display:flex;flex-direction:column;height:640px}
   .agnes{padding:10px 11px;background:rgba(245,197,24,.07);border-bottom:1px solid rgba(245,197,24,.14)}
   .agnes input{width:100%;height:38px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 13px;font-size:12px;margin-top:7px;outline:none}
-  .agnes small{font-size:10px;color:var(--muted)}
-  .msgs{flex:1;overflow:auto;padding:11px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+  .msgs{flex:1;overflow:auto;padding:11px;display:flex;flex-direction:column;gap:10px}
   .msg{max-width:88%;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
   .msg.user{align-self:end;background:var(--accent);color:#061018;font-weight:600;border-bottom-right-radius:6px}
   .msg.bot{align-self:start;background:rgba(255,255,255,.06);border:1px solid var(--line);border-bottom-left-radius:6px}
@@ -60,49 +55,48 @@
   .media{padding:8px;border-top:1px solid var(--line);display:none}
   .media.show{display:block}
   .media img{width:100%;border-radius:12px;border:1px solid var(--line)}
-  .composer{padding:10px;border-top:1px solid var(--line);display:flex;gap:8px;background:rgba(0,0,0,.18);position:sticky;bottom:0}
+  .composer{padding:10px;border-top:1px solid var(--line);display:flex;gap:8px;background:rgba(0,0,0,.18)}
   .composer input{flex:1;height:42px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 14px;outline:none;font-size:14px}
-  @media(max-width:900px){.wrap{grid-template-columns:1fr;gap:10px;padding:10px} .stage{height:300px} .face-box{width:130px;height:98px} .chat{height:auto;min-height:520px} .msgs{max-height:44vh} .nav-row{justify-content:center} .brand{width:100%;justify-content:center}}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr;gap:10px;padding:10px} .stage{height:300px} .face-box{width:132px;height:100px} .chat{height:auto;min-height:520px} .msgs{max-height:42vh} .nav-row{justify-content:center} .brand{width:100%;justify-content:center}}
 </style>
 </head>
-<body class="theme-friday">
+<body class="theme-jarvis">
 <div class="bg"></div>
 <nav>
   <div class="nav-row">
     <div class="brand">
       <div class="mark">◈</div>
       <div>
-        <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap"><b id="whoName" style="font-family:'Syne',sans-serif;font-size:17px">FRIDAY</b><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">FOR AMIN • <span id="modeWord">FRIDAY</span> • VOICE+HANDS</span></div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.13em">ONLY AGNES AI • REAL VOICE • HAND TRACKING</div>
+        <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap"><b id="whoName" style="font-family:'Syne',sans-serif;font-size:17px">JARVIS</b><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">FOR AMIN • <span id="modeWord">JARVIS</span></span></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.13em">ONLY AGNES AI • REAL VOICE • HANDS</div>
       </div>
     </div>
     <div class="modes">
-      <div class="mode" data-m="jarvis" onclick="setMode('jarvis')">JARVIS</div>
-      <div class="mode active" data-m="friday" onclick="setMode('friday')">FRIDAY</div>
+      <div class="mode active" data-m="jarvis" onclick="setMode('jarvis')">JARVIS</div>
+      <div class="mode" data-m="friday" onclick="setMode('friday')">FRIDAY</div>
       <div class="mode" data-m="ultron" onclick="setMode('ultron')">ULTRON</div>
     </div>
     <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:center">
       <span class="pill"><i class="dot wait" id="dAgnes"></i><span id="dotText">Agnes</span></span>
       <span class="pill" id="sysClock" style="color:var(--accent)">--:--</span>
-      <span class="pill" id="handStat" style="color:var(--muted)">✋ hand: off</span>
+      <span class="pill" id="handStat">✋ off</span>
     </div>
   </div>
 </nav>
 
 <div class="wrap">
   <div class="card">
-    <div class="head"><b id="orbTitle">HOLO-ORB • FRIDAY</b><div style="display:flex;gap:6px;align-items:center"><span id="fps" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">60 FPS</span><div class="voice-wave" id="wave" style="display:none"><i></i><i></i><i></i></div></div></div>
-    <div class="stage">
+    <div class="head"><b id="orbTitle">HOLO-ORB • JARVIS</b><div style="display:flex;gap:6px;align-items:center"><span id="fps" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">● LIVE</span><div class="voice-wave" id="wave" style="display:none"><i></i><i></i><i></i></div></div></div>
+    <div class="stage" id="stage">
       <canvas id="orb"></canvas>
-      <div class="gesture-hint" id="gestHint">✋ pinch = zoom • rotate palm = spin • open hand = pause</div>
       <div class="face-box" id="faceBox">
         <video id="cam" autoplay muted playsinline></video>
         <canvas id="faceOv"></canvas>
         <div class="face-label" id="faceLabel">FACE • OFF</div>
-        <div class="face-off" id="faceOff">Камера выкл<br><span style="font-size:10px;opacity:.7">📷 + ✋ для жестов</span></div>
+        <div class="face-off" id="faceOff">Камера выкл<br><span style="font-size:10px;opacity:.7">Нажми 📷</span></div>
       </div>
       <div class="hud">
-        <span id="hudState">FRIDAY • STANDBY</span>
+        <span id="hudState">JARVIS • STANDBY</span>
         <span id="hudVoice">VOICE: OFF</span>
         <span id="hudHand">HAND: OFF</span>
       </div>
@@ -111,33 +105,25 @@
       <button class="btn" id="camBtn" onclick="toggleCam()">📷 Камера + руки</button>
       <button class="btn" id="micBtn" onclick="toggleMic()">🎙️ Слушать</button>
       <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="voiceToggle" checked> Озвучка</label>
-      <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="gestureToggle" checked> Жесты ✋</label>
-      <button class="btn" onclick="demoSpeak()">🔊 Тест голоса</button>
+      <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="gestureToggle" checked> Жесты</label>
+      <button class="btn" onclick="testVoice()">🔊 Тест</button>
     </div>
     <div style="padding:0 10px 10px;display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn primary" onclick="quick('Привет, кто ты?')">Кто ты?</button>
       <button class="btn" onclick="quick('Нарисуй Тони Старка в Душанбе, закат 4K')">🎨 Нарисуй</button>
-      <button class="btn" onclick="quick('Сгенерируй видео: полет над Душанбе на закате, cinematic')">🎬 Видео</button>
-      <button class="btn" onclick="unlockAudio()">🔓 Вкл звук</button>
+      <button class="btn" onclick="quick('Сгенерируй видео: полет над Душанбе на закате')">🎬 Видео</button>
+      <button class="btn" onclick="unlockAudio(true)">🔓 Вкл звук</button>
     </div>
-    <details style="margin:0 10px 10px;padding:8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03)">
-      <summary style="cursor:pointer;font-size:11px;font-weight:700">🎙️ Реальные голоса JARVIS/FRIDAY/ULTRON — как включить</summary>
-      <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-top:6px">
-        Без ключа — браузерные голоса (Chrome/Edge): JARVIS = британский мужской, FRIDAY = женский, ULTRON = низкий + эхо (WebAudio).<br>
-        Для <b style="color:var(--text)">реальных</b> как в фильме — вставь <b>ElevenLabs API Key</b> ниже (бесплатно 10к символов). Тогда JARVIS = Adam, FRIDAY = Bella, ULTRON = Arnold с эффектом.
-        <input id="elevenKey" placeholder="elevenlabs sk_... (опционально)" style="width:100%;height:32px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 10px;margin-top:6px;font-size:11px">
-        <div style="display:flex;gap:6px;margin-top:6px"><button class="btn" style="height:30px" onclick="saveEleven()">Сохранить Eleven</button><span style="font-size:10px;color:var(--muted);align-self:center">или оставь пустым — будет браузер</span></div>
-      </div>
-    </details>
+    <div class="log" id="log">лог: готов для Амина...</div>
   </div>
 
   <div class="card chat">
     <div class="agnes">
       <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center">
-        <b style="font-size:12px">🔑 Agnes AI — один движок для Амина</b>
+        <b style="font-size:12px">🔑 Agnes AI — один движок</b>
         <span id="agnesStat" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">проверка...</span>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:3px">Base <code>https://apihub.agnes-ai.com/v1</code> • <code>agnes-2.5-flash→3.0→2.0</code> / <code>image2.1/2.0</code> / <code>video-v2.0</code></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">Base <code>https://apihub.agnes-ai.com/v1</code> • <code>2.5-flash→3.0→2.0</code> / <code>image 2.1/2.0</code> / <code>video-v2.0</code></div>
       <input id="agnesKey" placeholder="sk-... Agnes ключ">
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="btn primary" style="height:32px" onclick="saveAgnes()">💾 Сохранить</button>
@@ -149,21 +135,23 @@
     <div class="media" id="imgBox"><img id="genImg"><div id="imgCap" style="font-size:11px;color:var(--muted);margin-top:6px"></div></div>
     <div class="media" id="vidBox" style="font-size:12px"></div>
     <div class="composer">
-      <input id="inp" placeholder="Скажи ‘Джарвис сделай...’ или пиши">
+      <input id="inp" placeholder="Напиши или скажи ‘Джарвис сделай...’">
       <button class="btn primary" style="min-width:52px" onclick="send()">→</button>
     </div>
   </div>
 </div>
 
 <script>
+// helpers
+function log(t){ const el=document.getElementById('log'); el.textContent=(new Date().toLocaleTimeString()+' • '+t).slice(0,160); console.log(t); }
 // clock
 setInterval(()=>{ document.getElementById('sysClock').textContent=new Date().toLocaleString('ru-RU',{timeZone:'Asia/Dushanbe',hour:'2-digit',minute:'2-digit',second:'2-digit'})+' DSH' },1000);
-// mode + persona
-let currentMode='friday';
+// mode
+let currentMode='jarvis';
 const greetings={
-  jarvis:'Добрый день, сэр Амин. JARVIS к вашим услугам. Все системы в норме, сэр. Чем могу помочь?',
-  friday:'Привет, Амин! FRIDAY на связи — готова помочь, босс! Что создадим?',
-  ultron:'Амин. ULTRON активирован. Ты создал меня. Приказывай.'
+  jarvis:'Добрый день, сэр Амин. JARVIS к вашим услугам. Все системы в норме.',
+  friday:'Привет, Амин! FRIDAY на связи — готова помочь, босс!',
+  ultron:'Амин. ULTRON активирован. Приказывай, создатель.'
 };
 const pColors={jarvis:'00D9FF',friday:'FF8A00',ultron:'FF2336'};
 function setMode(m, speak=true){
@@ -175,275 +163,248 @@ function setMode(m, speak=true){
   document.getElementById('orbTitle').textContent='HOLO-ORB • '+m.toUpperCase();
   document.getElementById('hudState').textContent=m.toUpperCase()+' • STANDBY';
   document.querySelector('meta[name="theme-color"]').content='#'+pColors[m];
-  document.getElementById('dotText').textContent=m.toUpperCase()+' • Agnes';
-  if(speak){ addMsg('bot', m==='jarvis'?'🇬🇧 JARVIS включён, сэр Амин.': m==='friday'?'🎧 FRIDAY на связи, Амин!':'🔴 ULTRON: я проснулся, Амин.'); speakText(greetings[m]); }
+  document.getElementById('dotText').textContent=m.toUpperCase();
+  log('режим '+m);
+  if(speak){ addMsg('bot', m==='jarvis'?'🇬🇧 JARVIS включён, сэр Амин.':'FRIDAY на связи, Амин!'+(m==='ultron'?' ULTRON проснулся.':'')); speakText(greetings[m]); }
 }
-// orb
+// ORB - надёжный без DPR глюков
 const orb=document.getElementById('orb'); const octx=orb.getContext('2d');
-let rot=0, scale=1, dragging=false, lastX=0, pulse=0, speaking=false, autoRot=0.004;
-function resizeOrb(){ orb.width=orb.clientWidth*devicePixelRatio; orb.height=orb.clientHeight*devicePixelRatio; octx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
-resizeOrb(); addEventListener('resize',resizeOrb);
-orb.addEventListener('pointerdown',e=>{dragging=true; lastX=e.clientX; orb.setPointerCapture(e.pointerId)});
-orb.addEventListener('pointerup',()=>dragging=false);
-orb.addEventListener('pointermove',e=>{ if(dragging){ rot+=(e.clientX-lastX)*0.008; lastX=e.clientX; }});
-orb.addEventListener('wheel',e=>{ scale=Math.max(0.6,Math.min(1.7, scale + e.deltaY*-0.0015)); e.preventDefault();},{passive:false});
+let rot=0, scale=1, dragging=false, lastX=0, pulse=0, speaking=false, autoRot=0.006;
+function resizeOrb(){
+  const rect=document.getElementById('stage').getBoundingClientRect();
+  const dpr=Math.min(2, window.devicePixelRatio||1);
+  orb.width=Math.max(200, rect.width)*dpr;
+  orb.height=Math.max(200, rect.height)*dpr;
+  orb.style.width=rect.width+'px'; orb.style.height=rect.height+'px';
+  octx.setTransform(dpr,0,0,dpr,0,0);
+  log('orb '+Math.round(rect.width)+'x'+Math.round(rect.height));
+}
+function initOrb(){
+  resizeOrb();
+  window.addEventListener('resize', resizeOrb);
+  // mouse
+  orb.addEventListener('pointerdown',e=>{dragging=true; lastX=e.clientX; orb.setPointerCapture(e.pointerId)});
+  orb.addEventListener('pointerup',()=>dragging=false);
+  orb.addEventListener('pointermove',e=>{ if(dragging){ rot+=(e.clientX-lastX)*0.01; lastX=e.clientX; }});
+  orb.addEventListener('wheel',e=>{ scale=Math.max(0.6,Math.min(1.7, scale + e.deltaY*-0.0015)); e.preventDefault();},{passive:false});
+  requestAnimationFrame(drawOrb);
+}
 function drawOrb(){
-  const w=orb.clientWidth, h=orb.clientHeight; if(!w) return requestAnimationFrame(drawOrb);
+  const w=orb.clientWidth||400, h=orb.clientHeight||360;
   octx.clearRect(0,0,w,h);
   const cx=w/2, cy=h/2, R=Math.min(w,h)*0.28*scale;
   const col=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#00D9FF';
   // glow
-  const g=octx.createRadialGradient(cx,cy,R*0.2,cx,cy,R*1.95);
-  g.addColorStop(0, col+'30'); g.addColorStop(1,'transparent');
-  octx.fillStyle=g; octx.beginPath(); octx.arc(cx,cy,R*1.95,0,Math.PI*2); octx.fill();
+  const g=octx.createRadialGradient(cx,cy,R*0.2,cx,cy,R*1.9);
+  g.addColorStop(0, col+'33'); g.addColorStop(1,'transparent');
+  octx.fillStyle=g; octx.beginPath(); octx.arc(cx,cy,R*1.9,0,Math.PI*2); octx.fill();
   octx.save(); octx.translate(cx,cy); if(!dragging && !handActive) rot+=autoRot;
   octx.rotate(rot);
   for(let i=0;i<3;i++){
-    octx.beginPath(); octx.strokeStyle=col + (i===0?'':'92'); octx.lineWidth=1.3 + (speaking? Math.sin(Date.now()*0.01+i)*1.2:0);
-    const r=R*(0.68+i*0.16); octx.ellipse(0,0,r,R*0.56,0,0,Math.PI*2); octx.stroke();
+    octx.beginPath(); octx.strokeStyle=col + (i===0?'':'99'); octx.lineWidth=1.4 + (speaking? Math.sin(Date.now()*0.012+i)*1.3:0);
+    const r=R*(0.68+i*0.16); octx.ellipse(0,0,r,R*0.58,0,0,Math.PI*2); octx.stroke();
   }
-  pulse+= speaking?0.2:0.05;
-  const coreR=R*0.19 + Math.sin(pulse)*(speaking?7:2);
+  pulse+= speaking?0.22:0.06;
+  const coreR=R*0.20 + Math.sin(pulse)*(speaking?7:2);
   const cg=octx.createRadialGradient(0,0,coreR*0.3,0,0,coreR);
   cg.addColorStop(0,'white'); cg.addColorStop(1,col);
   octx.fillStyle=cg; octx.beginPath(); octx.arc(0,0,coreR,0,Math.PI*2); octx.fill();
-  octx.strokeStyle='rgba(255,255,255,.16)'; octx.lineWidth=1; octx.beginPath(); octx.arc(0,0,R*1.16, -0.4, 1.0); octx.stroke();
   octx.restore();
+  // fallback text if not drawn
+  octx.fillStyle='rgba(255,255,255,.06)'; octx.font='10px JetBrains Mono'; octx.textAlign='center'; octx.fillText('◈ '+currentMode.toUpperCase(), cx, cy+R+28);
   requestAnimationFrame(drawOrb);
 }
-drawOrb();
+initOrb();
 
-// CAMERA + HANDS
+// CAMERA + HANDS - надёжно
 let camStream=null, hands=null, camera=null, handActive=false, lastPinchDist=0;
 async function toggleCam(){
   const v=document.getElementById('cam'), off=document.getElementById('faceOff'), label=document.getElementById('faceLabel'), btn=document.getElementById('camBtn');
   if(camStream){
-    if(camera) try{camera.stop()}catch{}
-    if(hands) try{hands.close()}catch{}
+    try{ if(camera) camera.stop(); }catch{}
+    try{ if(hands) hands.close(); }catch{}
     camStream.getTracks().forEach(t=>t.stop()); camStream=null; v.srcObject=null;
     off.style.display='grid'; label.textContent='FACE • OFF'; btn.textContent='📷 Камера + руки';
-    document.getElementById('handStat').textContent='✋ hand: off'; document.getElementById('hudHand').textContent='HAND: OFF';
-    document.getElementById('gestHint').classList.remove('on'); handActive=false; return;
+    document.getElementById('handStat').textContent='✋ off'; document.getElementById('hudHand').textContent='HAND: OFF'; handActive=false; log('камера выкл'); return;
   }
   try{
+    log('запрос камеры...');
     camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:{ideal:640}, height:{ideal:480}}, audio:false});
-    v.srcObject=camStream; off.style.display='none'; label.textContent='FACE • ON • AMIN'; btn.textContent='📷 Выкл';
-    document.getElementById('gestHint').classList.add('on');
-    await initHands(v);
-  }catch(e){ alert('Камера не дана: '+e.message+'\nРазреши в браузере (иконка замка → Камера). Нужен HTTPS.'); }
+    v.srcObject=camStream; await v.play().catch(()=>{});
+    off.style.display='none'; label.textContent='FACE • ON • AMIN'; btn.textContent='📷 Выкл';
+    log('камера ок, пробую руки...');
+    // пробуем руки, но не ломаем если нет
+    try{ await initHands(v); }catch(e){ log('hands не загрузились: '+e.message+' — камера без жестов'); document.getElementById('handStat').textContent='✋ камера без рук'; document.getElementById('hudHand').textContent='HAND: CAM ONLY'; }
+  }catch(e){
+    log('камера ошибка: '+e.name+' '+e.message);
+    // показываем в UI а не alert чтобы не блочить
+    document.getElementById('faceOff').innerHTML='<span style="color:#FF8A00">Нет доступа<br><span style="font-size:10px">'+e.message.slice(0,50)+'</span><br><span style="font-size:9px">Chrome → замок → Камера → Разрешить, нужен HTTPS</span></span>';
+    document.getElementById('faceOff').style.display='grid';
+  }
 }
 async function initHands(video){
-  if(!window.Hands){ console.warn('Hands not loaded'); return; }
+  // динамически грузим если не было
+  if(!window.Hands){
+    log('гружу hands.js...');
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'; s.onload=res; s.onerror=()=>rej(new Error('hands.js cdn fail')); document.head.appendChild(s);
+    });
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s);
+    });
+  }
   hands=new Hands({locateFile:(f)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-  hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.7, minTrackingConfidence:0.7});
+  hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.68, minTrackingConfidence:0.68});
   hands.onResults(onHandResults);
   camera=new Camera(video,{onFrame:async()=>{ await hands.send({image:video}); }, width:640, height:480});
   camera.start();
-  document.getElementById('handStat').textContent='✋ hand: tracking'; document.getElementById('hudHand').textContent='HAND: TRACKING';
+  document.getElementById('handStat').textContent='✋ tracking'; document.getElementById('hudHand').textContent='HAND: TRACKING';
+  log('hands tracking on');
 }
 function onHandResults(res){
   const canvas=document.getElementById('faceOv'), ctx=canvas.getContext('2d');
   const box=document.getElementById('faceBox');
-  canvas.width=box.clientWidth*devicePixelRatio; canvas.height=box.clientHeight*devicePixelRatio;
+  canvas.width=box.clientWidth*2; canvas.height=box.clientHeight*2;
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  // если жест выключен — только рамка лица
-  if(!document.getElementById('gestureToggle').checked){
-    drawFaceFrame(ctx); handActive=false; return;
-  }
+  ctx.setTransform(2,0,0,2,0,0);
+  if(!document.getElementById('gestureToggle').checked){ drawFaceFrame(ctx, box); handActive=false; return; }
   if(res.multiHandLandmarks && res.multiHandLandmarks.length>0){
     handActive=true;
     const lm=res.multiHandLandmarks[0];
-    // draw skeleton
-    ctx.save(); ctx.scale(devicePixelRatio,devicePixelRatio);
-    for(const c of window.HAND_CONNECTIONS||[]){
-      const a=lm[c[0]], b=lm[c[1]];
-      ctx.beginPath(); ctx.moveTo(a.x*box.clientWidth, a.y*box.clientHeight); ctx.lineTo(b.x*box.clientWidth, b.y*box.clientHeight);
-      ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent'); ctx.lineWidth=2; ctx.stroke();
-    }
-    lm.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x*box.clientWidth, p.y*box.clientHeight, 3,0,Math.PI*2); ctx.fillStyle='white'; ctx.fill(); });
-    ctx.restore();
-    // pinch: thumb tip 4 - index tip 8
-    const th=lm[4], ix=lm[8];
+    // skeleton
+    const conn=window.HAND_CONNECTIONS||[];
+    ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent'); ctx.lineWidth=2;
+    for(const c of conn){ const a=lm[c[0]], b=lm[c[1]]; ctx.beginPath(); ctx.moveTo(a.x*box.clientWidth, a.y*box.clientHeight); ctx.lineTo(b.x*box.clientWidth, b.y*box.clientHeight); ctx.stroke(); }
+    ctx.fillStyle='white'; lm.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x*box.clientWidth, p.y*box.clientHeight, 3,0,Math.PI*2); ctx.fill(); });
+    const th=lm[4], ix=lm[8], wr=lm[0], mid=lm[9];
     const dist=Math.hypot(th.x-ix.x, th.y-ix.y);
-    const mid=lm[9], wr=lm[0];
     const angle=Math.atan2(mid.y-wr.y, mid.x-wr.x);
-    // pinch controls zoom
-    if(dist<0.05){
-      if(lastPinchDist===0) lastPinchDist=dist;
-      const delta=(dist-lastPinchDist)*8; // small
-      scale=Math.max(0.6,Math.min(1.7, scale - delta*2));
-      document.getElementById('hudHand').textContent='HAND: PINCH ZOOM';
-    } else {
-      lastPinchDist=0;
-      // rotate by palm angle
-      rot+= (angle*0.02);
-      document.getElementById('hudHand').textContent='HAND: ROTATE';
-    }
-    // open hand = pause rotation
-    const open=isOpenHand(lm);
-    autoRot= open?0:0.004;
-    document.getElementById('handStat').textContent=open?'✋ hand: open':'✋ hand: tracking';
-  } else {
-    handActive=false; drawFaceFrame(ctx);
-    document.getElementById('hudHand').textContent='HAND: NO HAND';
-    document.getElementById('handStat').textContent='✋ hand: no hand';
-  }
+    if(dist<0.05){ if(lastPinchDist===0) lastPinchDist=dist; const d=(dist-lastPinchDist); scale=Math.max(0.6,Math.min(1.7, scale - d*4)); document.getElementById('hudHand').textContent='HAND: PINCH'; }
+    else{ lastPinchDist=0; rot+=angle*0.015; document.getElementById('hudHand').textContent='HAND: ROTATE'; }
+    const open=isOpen(lm); document.getElementById('handStat').textContent=open?'✋ open':'✋ tracking'; autoRot=open?0:0.006;
+  }else{ handActive=false; drawFaceFrame(ctx, box); document.getElementById('hudHand').textContent='HAND: NO HAND'; document.getElementById('handStat').textContent='✋ no hand'; }
 }
-function isOpenHand(lm){
-  // fingers extended: tip y < pip y for 4 fingers
-  const tips=[8,12,16,20], pips=[6,10,14,18];
-  let open=0; for(let i=0;i<4;i++) if(lm[tips[i]].y < lm[pips[i]].y) open++;
-  return open>=3;
-}
-function drawFaceFrame(ctx){
-  const box=document.getElementById('faceBox');
-  const w=86*devicePixelRatio, h=64*devicePixelRatio;
-  const x=(canvas.width-w)/2 + Math.sin(Date.now()*0.002)*6*devicePixelRatio;
-  const y=(canvas.height-h)/2 + Math.cos(Date.now()*0.002*1.3)*4*devicePixelRatio;
-  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent');
-  ctx.lineWidth=2*devicePixelRatio;
-  const s=9*devicePixelRatio;
-  ctx.beginPath();
+function isOpen(lm){ let o=0; [8,12,16,20].forEach((t,i)=>{ const p=[6,10,14,18][i]; if(lm[t].y < lm[p].y) o++; }); return o>=3; }
+function drawFaceFrame(ctx, box){
+  const w=80, h=60, x=(box.clientWidth-w)/2 + Math.sin(Date.now()*0.002)*5, y=(box.clientHeight-h)/2 + Math.cos(Date.now()*0.0026)*4;
+  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent'); ctx.lineWidth=2;
+  const s=9; ctx.beginPath();
   ctx.moveTo(x,y+s); ctx.lineTo(x,y); ctx.lineTo(x+s,y);
   ctx.moveTo(x+w-s,y); ctx.lineTo(x+w,y); ctx.lineTo(x+w,y+s);
   ctx.moveTo(x+w,y+h-s); ctx.lineTo(x+w,y+h); ctx.lineTo(x+w-s,y+h);
-  ctx.moveTo(x+s,y+h); ctx.lineTo(x,y+h); ctx.lineTo(x,y+h-s);
-  ctx.stroke();
+  ctx.moveTo(x+s,y+h); ctx.lineTo(x,y+h); ctx.lineTo(x,y+h-s); ctx.stroke();
   const sy=y + ((Math.sin(Date.now()*0.0011)+1)/2*h);
-  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent')+'66';
-  ctx.fillRect(x,sy,w,1.5*devicePixelRatio);
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent')+'66'; ctx.fillRect(x,sy,w,1.5);
 }
 
-// AUDIO - unlock + per persona
-let audioCtx=null, voices=[];
-function unlockAudio(){
-  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  if(audioCtx.state==='suspended') audioCtx.resume();
-  speechSynthesis.getVoices(); // trigger load
-  const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u);
-  addMsg('sys','🔊 Звук разблокирован для Амина — теперь JARVIS заговорит');
+// AUDIO - unlock надёжно
+let audioUnlocked=false;
+function unlockAudio(manual=false){
+  try{
+    if(!window.speechSynthesis) { log('speechSynthesis нет'); return; }
+    speechSynthesis.getVoices();
+    const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u);
+    // также WebAudio
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(AC){ const ac=new AC(); if(ac.state==='suspended') ac.resume(); if(manual){ const o=ac.createOscillator(); const g=ac.createGain(); g.gain.value=0.0001; o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+0.05); } }
+    audioUnlocked=true; log('звук разблокирован'+(manual?' (кнопка)':'')); document.getElementById('hudVoice').textContent='VOICE: READY';
+  }catch(e){ log('unlock fail '+e.message); }
 }
-document.addEventListener('click', ()=>{ if(!audioCtx) unlockAudio(); }, {once:true});
+['click','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ if(!audioUnlocked) unlockAudio(); },{once:true}));
+let voices=[];
 function loadVoices(){ voices=speechSynthesis.getVoices(); }
 speechSynthesis.onvoiceschanged=loadVoices; loadVoices();
-function pickVoice(mode){
+function pickVoice(m){
   loadVoices();
-  // реальные: пробуем подобрать
-  const maps={
-    jarvis:['Google UK English Male','Daniel','Arthur','Microsoft George','en-GB'],
-    friday:['Google UK English Female','Samantha','Aria','Jenny','Microsoft Hazel','Google US English','en-GB','en-IE'],
-    ultron:['Google UK English Male','Microsoft David','Alex','en-GB']
-  };
-  for(const w of maps[mode]){
-    const v=voices.find(x=>x.name.includes(w) || x.lang===w);
-    if(v) return v;
-  }
+  const want={jarvis:['Google UK English Male','Daniel','Arthur','Microsoft George','en-GB'], friday:['Google UK English Female','Samantha','Aria','Jenny','en-IE','en-GB'], ultron:['Google UK English Male','Alex','David','en-GB']}[m];
+  for(const w of want){ const v=voices.find(x=>x.name.includes(w)||x.lang===w); if(v) return v; }
   return voices.find(x=>x.lang.startsWith('en-'))||voices[0];
 }
-let elevenKey=localStorage.getItem('eleven_key')||'';
-document.getElementById('elevenKey').value=elevenKey;
-function saveEleven(){ elevenKey=document.getElementById('elevenKey').value.trim(); if(elevenKey) localStorage.setItem('eleven_key',elevenKey); else localStorage.removeItem('eleven_key'); addMsg('sys', elevenKey?'ElevenLabs сохранён — теперь реальные голоса':'ElevenLabs ключ очищен — браузерные голоса'); }
-
 async function speakText(text){
-  if(!document.getElementById('voiceToggle').checked) return;
-  const clean=text.slice(0,700);
+  if(!document.getElementById('voiceToggle').checked){ log('озвучка выкл'); return; }
+  if(!audioUnlocked) unlockAudio();
+  const clean=text.slice(0,650);
   speaking=true; document.getElementById('wave').style.display='flex';
   document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • SPEAKING';
-  // если есть ElevenLabs — используем его для реального голоса
-  if(elevenKey){
-    const voiceMap={jarvis:'pNInz6obpgDQGcFmaJgB', friday:'EXAVITQu4vr4xnSDxMaL', ultron:'VR6AewLTigWG4xSOukaG'};
-    const vid=voiceMap[currentMode];
+  log('говорю '+currentMode+': '+clean.slice(0,30)+'...');
+  // пробуем ElevenLabs если есть ключ
+  const eleven=localStorage.getItem('eleven_key')||'';
+  if(eleven){
     try{
-      const r=await fetch('https://api.elevenlabs.io/v1/text-to-speech/'+vid+'?optimize_streaming_latency=0',{method:'POST', headers:{'xi-api-key':elevenKey,'Content-Type':'application/json'}, body: JSON.stringify({text:clean, model_id:'eleven_multilingual_v2', voice_settings:{stability:0.5, similarity_boost:0.8, style:0.2}})});
-      if(r.ok){
-        const blob=await r.blob(); const url=URL.createObjectURL(blob); const audio=new Audio(url);
-        if(currentMode==='ultron' && audioCtx){
-          // ULTRON — добавим эхо через WebAudio
-          const src=audioCtx.createMediaElementSource(audio);
-          const delay=audioCtx.createDelay(1.0); delay.delayTime.value=0.18;
-          const gain=audioCtx.createGain(); gain.gain.value=0.32;
-          const filter=audioCtx.createBiquadFilter(); filter.type='lowpass'; filter.frequency.value=900;
-          src.connect(filter); filter.connect(audioCtx.destination);
-          filter.connect(delay); delay.connect(gain); gain.connect(audioCtx.destination);
-        }
-        audio.onended=()=>{ speaking=false; document.getElementById('wave').style.display='none'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; URL.revokeObjectURL(url); };
-        audio.play(); return;
-      }
-    }catch(e){ console.warn('eleven fail',e); }
+      const map={jarvis:'pNInz6obpgDQGcFmaJgB',friday:'EXAVITQu4vr4xnSDxMaL',ultron:'VR6AewLTigWG4xSOukaG'};
+      const r=await fetch('https://api.elevenlabs.io/v1/text-to-speech/'+map[currentMode],{method:'POST', headers:{'xi-api-key':eleven,'Content-Type':'application/json'}, body: JSON.stringify({text:clean, model_id:'eleven_multilingual_v2'})});
+      if(r.ok){ const blob=await r.blob(); const url=URL.createObjectURL(blob); const a=new Audio(url); a.onended=()=>{ speaking=false; document.getElementById('wave').style.display='none'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; URL.revokeObjectURL(url); log('eleven done'); }; await a.play(); return; }
+      else log('eleven '+r.status);
+    }catch(e){ log('eleven err '+e.message); }
   }
-  // браузерный фолбэк с эффектом ULTRON
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(clean);
-  const v=pickVoice(currentMode); if(v) u.voice=v;
-  u.lang=v?.lang||(currentMode==='friday'?'en-GB':'en-GB');
-  u.rate= currentMode==='ultron'?0.86: currentMode==='friday'?1.04:0.94;
-  u.pitch= currentMode==='ultron'?0.62: currentMode==='friday'?1.18:0.92;
-  u.volume=1;
-  u.onend=()=>{ speaking=false; document.getElementById('wave').style.display='none'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; };
-  u.onerror=()=>{ speaking=false; document.getElementById('wave').style.display='none'; };
-  // ULTRON — WebAudio фильтр если есть audioCtx и это SpeechSynthesis? К сожалению SpeechSynthesis не идёт через AudioContext, делаем просто низкий pitch
-  speechSynthesis.speak(u);
+  // браузер
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(clean);
+    const v=pickVoice(currentMode); if(v){ u.voice=v; log('voice '+v.name+' '+v.lang); } else log('voice default');
+    u.lang=v?.lang||'en-GB'; u.rate=currentMode==='ultron'?0.84: currentMode==='friday'?1.06:0.94; u.pitch=currentMode==='ultron'?0.62: currentMode==='friday'?1.2:0.9; u.volume=1;
+    u.onend=()=>{ speaking=false; document.getElementById('wave').style.display='none'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; log('speech done'); };
+    u.onerror=e=>{ speaking=false; document.getElementById('wave').style.display='none'; log('speech error '+e.error); };
+    speechSynthesis.speak(u);
+    // если через 1.2с не заговорил — фолбэк
+    setTimeout(()=>{ if(speaking && !speechSynthesis.speaking){ log('speech не стартовал, пробую снова'); speechSynthesis.speak(u); } },1200);
+  }catch(e){ log('speak fail '+e.message); speaking=false; document.getElementById('wave').style.display='none'; }
 }
-function demoSpeak(){ unlockAudio(); speakText(greetings[currentMode] + ' Я слышу тебя, Амин. Скажи: Пятница, нарисуй что-нибудь.'); }
+function testVoice(){ unlockAudio(true); speakText(greetings[currentMode]+' Амин, проверка голоса '+currentMode+'. Скажи Джарвис сделай что-нибудь.'); }
 
-// VOICE CONTROL - шарит и без wake если хочешь
+// MIC - надёжно
 let rec=null, listening=false;
 function initRec(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR) return null;
+  if(!SR){ log('SpeechRecognition нет'); return null; }
   const r=new SR(); r.lang='ru-RU'; r.continuous=true; r.interimResults=false; r.maxAlternatives=1;
+  r.onstart=()=>{ log('микрофон старт'); document.getElementById('hudVoice').textContent='VOICE: LISTENING'; };
   r.onresult=e=>{
     const t=e.results[e.results.length-1][0].transcript.trim();
-    console.log('heard',t);
+    log('услышал: '+t);
     document.getElementById('hudVoice').textContent='VOICE: "'+t.slice(0,22)+'"';
     const hasWake=/джарвис|пятниц|ультрон|jarvis|friday|ultron/i.test(t);
-    const wakeOn=document.getElementById('voiceToggle')?true:false;
-    if(document.getElementById('voiceToggle') && document.getElementById('wakeToggle')?.checked){
+    if(document.getElementById('wakeToggle')?.checked){
+      // если есть чек wake — требуем имя, иначе подсказка
       if(hasWake){
+        if(/пятниц/i.test(t)) setMode('friday',false);
+        else if(/ультрон/i.test(t)) setMode('ultron',false);
+        else if(/джарвис/i.test(t)) setMode('jarvis',false);
         const cmd=t.replace(/джарвис|пятниц.*|ультрон|jarvis|friday|ultron/gi,'').trim()||'привет';
-        // авто переключение режима по имени
-        if(/пятниц/i.test(t)) setMode('friday', false);
-        else if(/джарвис/i.test(t)) setMode('jarvis', false);
-        else if(/ультрон/i.test(t)) setMode('ultron', false);
         addMsg('user','🎙️ '+t); handle(cmd);
-      } else {
-        // если уже слушаем и сказали без имени но громко — тоже берём
-        // показываем подсказку
-        document.getElementById('hudVoice').textContent='VOICE: скажи имя';
+      }else{
+        log('скажи имя: Джарвис/Пятница/Ультрон');
+        document.getElementById('hudVoice').textContent='скажи "Джарвис..."';
       }
-    } else {
+    }else{
       addMsg('user','🎙️ '+t); handle(t);
     }
   };
-  r.onerror=e=>{
-    console.warn('rec error',e);
-    if(e.error==='not-allowed') addMsg('sys','🎙️ Микрофон запрещён — разреши в браузере (замок → Микрофон → Разрешить) и перезагрузи. Нужен HTTPS и Chrome/Edge.');
-    if(e.error==='no-speech') document.getElementById('hudVoice').textContent='VOICE: не слышу...';
-  };
-  r.onend=()=>{ if(listening) try{r.start()}catch{} };
+  r.onerror=e=>{ log('mic error '+e.error); if(e.error==='not-allowed') addMsg('sys','🎙️ Микрофон запрещён — нажми замок в адресе → Разрешить микрофон → Перезагрузи. Нужен HTTPS и Chrome.'); if(e.error==='audio-capture') addMsg('sys','🎙️ Нет микрофона'); };
+  r.onend=()=>{ log('mic end, listening='+listening); if(listening) try{r.start()}catch{ setTimeout(()=>{ if(listening) try{r.start()}catch{} },600);} };
   return r;
 }
 function toggleMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const btn=document.getElementById('micBtn');
-  if(!SR){ addMsg('sys','🎙️ Голос работает в Chrome/Edge на Android/ПК по HTTPS. На iPhone — пиши текстом, я отвечу голосом.'); return; }
+  if(!SR){ addMsg('sys','🎙️ Голос только в Chrome/Edge на HTTPS. На iPhone — пиши текстом, отвечу голосом.'); log('no SR'); return; }
   if(!rec) rec=initRec();
   listening=!listening;
   if(listening){
     unlockAudio();
-    try{ rec.start(); }catch(e){ console.log(e); }
-    btn.classList.add('live'); btn.textContent='■ Стоп'; document.getElementById('hudVoice').textContent='VOICE: LISTENING... скажи "Джарвис..."'; document.getElementById('wave').style.display='flex'; speaking=true;
-    addMsg('sys','🎙️ Слушаю, Амин... скажи "Джарвис сделай ..." или "Пятница нарисуй ..."');
-  } else {
+    try{ rec.start(); log('rec.start ok'); }catch(e){ log('rec.start fail '+e.message); }
+    btn.classList.add('live'); btn.textContent='■ Стоп'; document.getElementById('hudVoice').textContent='VOICE: LISTENING...'; document.getElementById('wave').style.display='flex'; speaking=true;
+    addMsg('sys','🎙️ Слушаю, Амин — скажи "Джарвис сделай..." или "Пятница нарисуй..."');
+  }else{
     try{ rec.stop(); }catch{}
-    btn.classList.remove('live'); btn.textContent='🎙️ Слушать'; document.getElementById('hudVoice').textContent='VOICE: OFF'; document.getElementById('wave').style.display='none'; speaking=false;
+    btn.classList.remove('live'); btn.textContent='🎙️ Слушать'; document.getElementById('hudVoice').textContent='VOICE: OFF'; document.getElementById('wave').style.display='none'; speaking=false; log('mic стоп');
   }
 }
 
 // Agnes
 function getKey(){ return (localStorage.getItem('agnes_key')||'').trim(); }
 function setDot(s){ const el=document.getElementById('dAgnes'); el.className='dot '+(s==='on'?'on':s==='off'?'':'wait'); document.getElementById('dotText').textContent=s==='on'?'Agnes OK ✓':'Agnes'; }
-function saveAgnes(){ const k=document.getElementById('agnesKey').value.trim(); if(!k) return alert('Вставь sk-...'); localStorage.setItem('agnes_key',k); document.getElementById('agnesStat').textContent='сохранён ✓'; testAgnes(); }
+function saveAgnes(){ const k=document.getElementById('agnesKey').value.trim(); if(!k) return alert('Вставь sk-...'); localStorage.setItem('agnes_key',k); document.getElementById('agnesStat').textContent='сохранён ✓'; testAgnes(); log('agnes saved'); }
 function clearAgnes(){ localStorage.removeItem('agnes_key'); document.getElementById('agnesKey').value=''; document.getElementById('agnesStat').textContent='нет ключа'; setDot('wait'); }
 async function testAgnes(){
   const k=(document.getElementById('agnesKey').value.trim()||getKey());
@@ -451,14 +412,13 @@ async function testAgnes(){
   if(document.getElementById('agnesKey').value.trim()) localStorage.setItem('agnes_key',k);
   document.getElementById('agnesStat').textContent='проверяю...';
   for(const m of ['agnes-2.5-flash','agnes-3.0-flash','agnes-2.0-flash']){
-    try{ const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:m, messages:[{role:'user',content:'ping'}], max_tokens:10})}); const j=await r.json().catch(()=>({})); if(r.ok&&j.choices){ document.getElementById('agnesStat').textContent='Agnes OK ✓ ('+m+')'; setDot('on'); return;} if(r.status===429) continue; if(!r.ok){ document.getElementById('agnesStat').textContent='ошибка '+r.status; setDot('off'); return; } }catch{}
-  }
+    try{ const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:m, messages:[{role:'user',content:'ping'}], max_tokens:10})}); const j=await r.json().catch(()=>({})); if(r.ok&&j.choices){ document.getElementById('agnesStat').textContent='Agnes OK ✓ ('+m+')'; setDot('on'); log('agnes ok '+m); return;} if(r.status===429) continue; if(!r.ok){ document.getElementById('agnesStat').textContent='ошибка '+r.status; setDot('off'); log('agnes err '+r.status); return; } }catch(e){ log('agnes net '+e.message);} }
   document.getElementById('agnesStat').textContent='429 — подожди 20с'; setDot('off');
 }
 document.getElementById('agnesKey').value=getKey()||'sk-22J77EfguZlFo2k8dIGSwmrRrRWmI8IvTeZawIBRtZ9gI23d';
 if(getKey()||document.getElementById('agnesKey').value) testAgnes();
 
-// Chat
+// chat
 function addMsg(role, text){
   const box=document.getElementById('msgs'); const d=document.createElement('div'); d.className='msg '+role; d.textContent=text; box.appendChild(d); box.scrollTop=box.scrollHeight;
   if(role==='bot') speakText(text);
@@ -467,33 +427,30 @@ function addMsg(role, text){
 function quick(t){ document.getElementById('inp').value=t; send(); }
 async function agnesChat(prompt){
   const k=getKey(); if(!k) return '🔑 Амин, вставь ключ Agnes сверху и нажми Сохранить.';
-  const sys=`Ты ${currentMode.toUpperCase()} для Амина. JARVIS — британский дворецкий, сухой юмор, точный, называет "сэр Амин". FRIDAY — ирландская девушка, энергичная, дружеская, "Амин"/"босс". ULTRON — холодный сверхразум, философский, уважает Амина как создателя. Отвечай по-русски, коротко до 5 предложений, с характером, не забывай имя Амин.`;
+  const sys=`Ты ${currentMode.toUpperCase()} для Амина. JARVIS — британский дворецкий, сухой юмор, "сэр Амин". FRIDAY — ирландская, "Амин/босс". ULTRON — холодный, уважает Амина как создателя. По-русски, до 5 предложений, с характером.`;
   for(const model of ['agnes-2.5-flash','agnes-3.0-flash','agnes-2.0-flash']){
     try{
       const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model, messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:750, temperature:0.78})});
-      const j=await r.json(); if(!r.ok){ if(r.status===429) continue; return `⚠️ Agnes ${r.status}: ${(j.error?.message||'').slice(0,150)}`; }
+      const j=await r.json(); if(!r.ok){ if(r.status===429) continue; return `⚠️ Agnes ${r.status}: ${(j.error?.message||'').slice(0,140)}`; }
       let txt=(j.choices?.[0]?.message?.content||'').trim(); if(!txt) txt=(j.choices?.[0]?.message?.reasoning_content||'').trim(); txt=txt.replace(/^\n+/,'').trim(); if(txt){ setDot('on'); return txt; }
     }catch{ continue; }
   }
   return '⚠️ Амин, лимит Agnes RPM 20 — подожди 25 сек.';
 }
 async function handle(prompt){
-  // wow команды голосом
   const low=prompt.toLowerCase();
-  if(/включи.*камер/i.test(low)){ toggleCam(); addMsg('bot','📷 Камера — выполняю, Амин.'); return; }
-  if(/выключи.*камер/i.test(low)){ if(camStream) toggleCam(); addMsg('bot','📷 Выключила.'); return; }
+  if(/включи.*камер/i.test(low)){ toggleCam(); addMsg('bot','📷 Выполняю, Амин.'); return; }
+  if(/выключи.*камер/i.test(low)){ if(camStream) toggleCam(); addMsg('bot','📷 Выкл.'); return; }
   if(/слушай|микрофон/i.test(low) && !listening){ toggleMic(); return; }
-  if(/тише|молчи|стоп/i.test(low)){ speechSynthesis.cancel(); speaking=false; document.getElementById('wave').style.display='none'; addMsg('bot','🤫 Понял, молчу, Амин.'); return; }
-  if(/джарвис|пятниц|ультрон/i.test(low) && low.split(' ').length<=3){ // просто позвали
-    speakText(greetings[currentMode]); addMsg('bot', currentMode==='jarvis'?'Да, сэр Амин?':'Да, Амин, слушаю!'); return;
-  }
+  if(/тише|молчи|стоп/i.test(low)){ speechSynthesis.cancel(); speaking=false; document.getElementById('wave').style.display='none'; addMsg('bot','🤫 Молчу, Амин.'); return; }
+  if(low.trim().length<=12 && /джарвис|пятниц|ультрон|привет/i.test(low)){ addMsg('bot', greetings[currentMode]); speakText(greetings[currentMode]); return; }
   if(/нарисуй|сгенери|картинк|изображ/i.test(low)){ const p=prompt.replace(/нарисуй|сгенерируй|сделай/gi,'').trim()||prompt; await generateImage(p); return; }
   if(/видео|video/i.test(low)){ const p=prompt.replace(/сгенерируй видео:?|видео:?/gi,'').trim()||prompt; await generateVideo(p); return; }
   const last=addMsg('bot','…думаю…');
   const ans=await agnesChat(prompt);
   last.textContent=ans; speakText(ans);
 }
-async function send(){ const inp=document.getElementById('inp'); const t=inp.value.trim(); if(!t) return; addMsg('user',t); inp.value=''; await handle(t); }
+async function send(){ const inp=document.getElementById('inp'); const t=inp.value.trim(); if(!t) return; log('send '+t.slice(0,30)); addMsg('user',t); inp.value=''; await handle(t); }
 document.getElementById('inp').addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
 
 async function generateImage(prompt){
@@ -501,7 +458,7 @@ async function generateImage(prompt){
   const box=document.getElementById('imgBox'), img=document.getElementById('genImg'), cap=document.getElementById('imgCap');
   box.classList.add('show'); img.src=''; cap.textContent='⏳ Генерю: "'+prompt.slice(0,60)+'"...'; addMsg('bot','🎨 Генерю для тебя, Амин: "'+prompt.slice(0,70)+'"');
   for(const model of ['agnes-image-2.1-flash','agnes-image-2.0-flash']){
-    try{ const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model, prompt, n:1, size:'1024x1024'})}); const j=await r.json(); if(!r.ok){ if(r.status===429) continue; cap.textContent='Ошибка '+r.status; continue; } const url=j.data?.[0]?.url || (j.data?.[0]?.b64_json && 'data:image/png;base64,'+j.data[0].b64_json); if(url){ img.src=url; cap.textContent='✅ Готово ('+model+')'; setDot('on'); speakText('Готово, Амин. Картинка создана.'); return; } }catch{}
+    try{ const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model, prompt, n:1, size:'1024x1024'})}); const j=await r.json(); if(!r.ok){ if(r.status===429) continue; cap.textContent='Ошибка '+r.status; continue; } const url=j.data?.[0]?.url || (j.data?.[0]?.b64_json && 'data:image/png;base64,'+j.data[0].b64_json); if(url){ img.src=url; cap.textContent='✅ Готово ('+model+')'; setDot('on'); speakText('Готово, Амин. Картинка создана.'); return; } }catch(e){ log('img err '+e.message);}
   }
   cap.textContent='429 — подожди 20с';
 }
@@ -527,18 +484,12 @@ async function generateVideo(prompt){
     },4000);
   }catch(e){ box.textContent='Ошибка: '+e.message; }
 }
-
 // boot
-const boot=`Привет, Амин! Я — ${currentMode.toUpperCase()}, твой MARVEL-ассистент с руками и голосом. Включи 📷 — управляй орбитой щипком и поворотом ладони. Нажми 🎙️ и скажи: “Джарвис, включи камеру” или “Пятница, нарисуй Тони Старка”.`;
-document.getElementById('msgs').innerHTML=`<div class="msg bot">${boot}</div><div class="msg sys">💡 ВАУ-ФИШКИ АМИНА: ✋ щипок = зум, поворот ладони = вращение, открытая ладонь = пауза • 🎙️ “Джарвис сделай...” работает голосом • 🔊 реальные голоса через ElevenLabs (опционально)</div>`;
-// автопривет только после взаимодействия (браузер)
-let welcomed=false;
-function welcomeOnce(){ if(welcomed) return; welcomed=true; speakText(greetings[currentMode]); }
-['click','touchstart','keydown'].forEach(ev=>addEventListener(ev,welcomeOnce,{once:true}));
-// проактивность
-let lastActive=Date.now();
-['click','keydown','touchstart'].forEach(ev=>addEventListener(ev,()=>lastActive=Date.now()));
-setInterval(()=>{ if(Date.now()-lastActive>95000 && !speaking && document.getElementById('voiceToggle').checked){ const lines={jarvis:'Сэр Амин, я всё ещё здесь. Прикажете?', friday:'Амин, я заскучала! Давай создадим что-нибудь?', ultron:'Амин. Тишина неэффективна.'}; speakText(lines[currentMode]); lastActive=Date.now(); } },30000);
+const boot=`Привет, Амин! Я — ${currentMode.toUpperCase()}, твой MARVEL-ассистент. Включи 📷 — управляй щипком и поворотом. Нажми 🎙️ и скажи “Джарвис сделай...” — я отвечу голосом.`;
+document.getElementById('msgs').innerHTML=`<div class="msg bot">${boot}</div><div class="msg sys">💡 Нажми 🔓 Вкл звук → 🔊 Тест → потом 🎙️ Слушать. На телефоне — разреши микрофон и камеру в замке адреса. Щипок = зум, ладонь = вращение.</div>`;
+let welcomed=false; function welcomeOnce(){ if(welcomed) return; welcomed=true; speakText(greetings[currentMode]); }
+['click','touchstart'].forEach(ev=>document.addEventListener(ev,welcomeOnce,{once:true}));
+log('готов. нажми 🔊 Тест для проверки голоса, 📷 для камеры, 🎙️ для микрофона');
 </script>
 </body>
 </html>
