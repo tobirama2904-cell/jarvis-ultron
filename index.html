@@ -14,13 +14,14 @@
   body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',system-ui,sans-serif;min-height:100dvh;overflow-x:hidden}
   /* HERO BG */
   .glow{position:fixed;inset:0;z-index:0;pointer-events:none;background:
-    radial-gradient(900px 600px at 15% 10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 65%),
-    radial-gradient(800px 500px at 85% 15%, rgba(124,58,237,.14), transparent 65%),
-    radial-gradient(700px 400px at 50% 95%, rgba(0,255,157,.06), transparent 70%),
-    linear-gradient(180deg,#070B1E 0%, #05070F 70%)}
+    radial-gradient(900px 600px at 15% 10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 65%),
+    radial-gradient(800px 500px at 85% 15%, rgba(124,58,237,.18), transparent 65%),
+    radial-gradient(700px 400px at 50% 95%, rgba(0,255,157,.08), transparent 70%),
+    linear-gradient(180deg,#070B1E 0%, #05070F 70%);animation:glowPulse 8s ease-in-out infinite}
+  @keyframes glowPulse{0%,100%{opacity:1}50%{opacity:.85}}
   .grid{position:fixed;inset:0;z-index:0;opacity:.06;background-image:linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg,var(--line) 1px, transparent 1px);background-size:40px 40px}
   /* NAV */
-  nav{position:sticky;top:0;z-index:30;background:rgba(7,11,26,.88);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+  nav{position:sticky;top:0;z-index:30;background:rgba(7,11,26,.96);backdrop-filter:blur(18px);border-bottom:1px solid var(--line);will-change:transform}
   .nav-inner{max-width:1440px;margin:0 auto;padding:12px 16px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
   .brand{display:flex;gap:12px;align-items:center}
   .mark{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--vio));display:grid;place-items:center;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;box-shadow:0 0 28px color-mix(in srgb, var(--accent) 38%, transparent)}
@@ -32,7 +33,8 @@
   .dot{width:7px;height:7px;border-radius:50%;background:#5A6A95} .dot.on{background:var(--green);box-shadow:0 0 8px var(--green)} .dot.wait{background:var(--gold);animation:blink 1s infinite} @keyframes blink{50%{opacity:.4}}
   /* LAYOUT — один большой сайт */
   .shell{position:relative;z-index:2;max-width:1440px;margin:0 auto;padding:16px;display:grid;grid-template-columns:420px 1fr;gap:16px}
-  .card{background:rgba(14,23,48,.78);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:20px;overflow:visible;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+  .card{background:rgba(14,23,48,.82);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:20px;overflow:visible;box-shadow:0 12px 48px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.04) inset;transition:.3s}
+  .card:hover{box-shadow:0 16px 56px rgba(0,0,0,.45), 0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent) inset;transform:translateY(-1px)}
   .card-head{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
   .card-head b{font-family:'Syne',sans-serif;font-size:12px;letter-spacing:.04em}
   /* HERO LEFT */
@@ -46,7 +48,7 @@
   .hud span{padding:5px 9px;border-radius:999px;background:rgba(0,0,0,.6);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--accent)}
   .controls{padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .btn{height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;white-space:nowrap}
-  .btn:hover{transform:translateY(-1px);border-color:color-mix(in srgb, var(--accent) 40%, var(--line))}
+  .btn:hover{transform:translateY(-1px) scale(1.02);border-color:color-mix(in srgb, var(--accent) 45%, var(--line));box-shadow:0 6px 18px color-mix(in srgb, var(--accent) 18%, transparent)}
   .btn.primary{background:var(--accent);color:#061018;border-color:var(--accent);font-weight:800;box-shadow:0 8px 20px color-mix(in srgb, var(--accent) 22%, transparent)}
   .btn.live{background:var(--red);border-color:var(--red);animation:pulse 1.1s infinite} @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,35,54,.5)}100%{box-shadow:0 0 0 12px rgba(255,35,54,0)}}
   .wave{display:flex;gap:3px;align-items:center;height:14px}
@@ -339,23 +341,12 @@ async function runDeepResearch(){
       <div class="hud"><span id="hudState">JARVIS • STANDBY</span><span id="hudVoice">VOICE: OFF</span><span id="hudHand">HAND: OFF</span></div>
     </div>
     <div class="controls">
-      <button class="btn" id="camBtn" onclick="toggleCam()">📷 Камера</button><button class="btn" id="camFlip" onclick="flipCam()" style="padding:0 10px">🔄 Зад</button>
+      <button class="btn" id="camBtn" onclick="toggleCam()">📷 Камера</button>
       <button class="btn" id="micBtn" onclick="toggleMic()">🎙️ Слушать</button>
       <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="voiceToggle" checked> Озвучка</label>
       <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="gestureToggle" checked> Жесты</label>
     </div>
-    <div style="padding:0 12px 8px;display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn" onclick="switchTab('code'); document.getElementById('codePrompt').focus()">💻 Кодить</button>
-      <button class="btn" onclick="switchTab('image')">🎨 Рисовать</button>
-      <button class="btn" onclick="switchTab('video')">🎬 Видео</button>
-      <button class="btn" onclick="unlockAudio(true)">🔓 Звук</button>
-      <label class="btn" style="cursor:pointer"><input type="file" id="visionFile" accept="image/*,video/*,.pdf,.txt,.md,.json" style="display:none" onchange="handleVisionFile(this.files[0])">📷 Анализ фото/видео</label>
-      <label class="btn" style="cursor:pointer"><input type="file" id="anyFile" accept="*/*" style="display:none" onchange="handleAnyFile(this.files[0])">📄 Любой файл</label>
-      <button class="btn" onclick="toggleWakeWord()" id="wakeBtn">👂 Wake: off</button>
-      <button class="btn" onclick="startVisionQuest()">💬 VisionQuest (3 ИИ спорят)</button>
-      <button class="btn" onclick="startLegion()">🦾 Legion (рой)</button>
-    </div>
-    <div style="padding:0 12px 10px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px">
+        <div style="padding:0 12px 10px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px">
       <button class="btn" onclick="rot-=0.4">↺</button><button class="btn" onclick="rot+=0.4">↻</button>
       <button class="btn" onclick="scale=Math.min(1.7,scale+0.12)">＋</button><button class="btn" onclick="scale=Math.max(0.6,scale-0.12)">－</button>
       <span style="font-size:10px;color:var(--muted);align-self:center">тащи 3D пальцем</span><button class="btn" style="height:26px;font-size:10px" onclick="toggleDisassemble()">🦾 Разбор</button>
@@ -479,7 +470,7 @@ async function runDeepResearch(){
         <div style="font-size:13px;font-weight:800">🦾 Iron Legion • рой</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px">JARVIS план + FRIDAY действия + ULTRON риски → один финальный план. Живее, координированно.</div>
         <div style="display:flex;gap:8px;margin-top:10px">
-          <input id="legionInput" placeholder="Задача для роя: сделай план кофейни в Душанбе" style="flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px">
+          <input id="legionInput" placeholder="Задача для роя: сделай план кофейни в Душанбе" style="flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px" onkeydown="if(event.key==='Enter') runLegionPane()">
           <button class="btn primary" onclick="runLegionPane()">🚀 Запустить рой</button>
         </div>
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
@@ -497,7 +488,7 @@ async function runDeepResearch(){
         <div style="font-size:13px;font-weight:800">💬 VisionQuest • диалог 3</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px">JARVIS vs FRIDAY vs ULTRON спорят 2 круга, каждый со своим голосом — не перебивают, по очереди.</div>
         <div style="display:flex;gap:8px;margin-top:10px">
-          <input id="questInput" placeholder="Тема спора: стоит ли запускать стартап сейчас?" style="flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px">
+          <input id="questInput" placeholder="Тема спора: стоит ли запускать стартап сейчас?" style="flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px" onkeydown="if(event.key==='Enter') runQuestPane()">
           <button class="btn primary" onclick="runQuestPane()">💬 Запустить спор</button>
         </div>
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
@@ -1278,7 +1269,7 @@ function initHolo3D(){
   try{
     scene3d=new THREE.Scene();
     cam3d=new THREE.PerspectiveCamera(48, stage.clientWidth/stage.clientHeight, 0.1, 100);
-    cam3d.position.set(0,0.2,3.2);
+    cam3d.position.set(0,0,2.8);
     ren3d=new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
     ren3d.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
     ren3d.setSize(stage.clientWidth, stage.clientHeight);
@@ -1343,7 +1334,7 @@ function buildParticleSun(){
   geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
   geo.setAttribute('color', new THREE.BufferAttribute(col,3));
   geo.setAttribute('size', new THREE.BufferAttribute(sizes,1));
-  const mat=new THREE.PointsMaterial({size:0.028, vertexColors:true, transparent:true, opacity:0.92, blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true});
+  const mat=new THREE.PointsMaterial({size:0.042, vertexColors:true, transparent:true, opacity:1, blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true});
   sunPoints=new THREE.Points(geo, mat);
   sunGroup.add(sunPoints);
   // corona rings
@@ -1354,7 +1345,7 @@ function buildParticleSun(){
     sunGroup.add(ring);
   }
   // core glow
-  const core=new THREE.Mesh(new THREE.SphereGeometry(0.52,32,32), new THREE.MeshBasicMaterial({color:0xfff2a0, transparent:true, opacity:0.18, blending:THREE.AdditiveBlending}));
+  const core=new THREE.Mesh(new THREE.SphereGeometry(0.58,32,32), new THREE.MeshBasicMaterial({color:0xffd54f, transparent:true, opacity:0.35, blending:THREE.AdditiveBlending}));
   sunGroup.add(core);
   document.getElementById('disBadge').textContent='☀️ SUN • PARTICLES';
 }
@@ -1486,17 +1477,29 @@ async function handleAnalysisFile(file){
     let dataUrl=null;
     let textContent='';
     if(isImg || isVid){
-      const reader=new FileReader();
-      dataUrl=await new Promise((res,rej)=>{ reader.onload=()=>res(reader.result); reader.onerror=rej; reader.readAsDataURL(file); });
-      if(isImg) dataUrl=await compressImage(dataUrl, 1024);
-      // for video, take first frame via canvas? Simplify: use image placeholder, but we can still send as image (first frame)
-      if(isVid){
-        // try to capture first frame
+      if(isImg){
+        const reader=new FileReader();
+        dataUrl=await new Promise((res,rej)=>{ reader.onload=()=>res(reader.result); reader.onerror=rej; reader.readAsDataURL(file); });
+        dataUrl=await compressImage(dataUrl, 1024);
+      } else if(isVid){
+        // Large video (100MB+) — use object URL, not dataURL, to avoid memory blow
+        const objUrl=URL.createObjectURL(file);
         try{
-          const v=document.createElement('video'); v.src=dataUrl; v.muted=true; await new Promise(r=>{ v.onloadeddata=r; v.onerror=r; setTimeout(r,800); });
-          const c=document.createElement('canvas'); c.width=640; c.height=360; const ctx=c.getContext('2d'); ctx.drawImage(v,0,0,c.width,c.height);
-          dataUrl=c.toDataURL('image/jpeg',0.72);
-        }catch{}
+          const v=document.createElement('video'); v.src=objUrl; v.muted=true; v.playsInline=true; v.preload='metadata';
+          await new Promise((res)=>{ v.onloadedmetadata=res; v.onerror=res; setTimeout(res,1000); });
+          // Seek to 1s or 10% for long videos
+          const seekTime=Math.min(1.2, (v.duration||4)/5);
+          try{ v.currentTime=seekTime; await new Promise(r=>{ v.onseeked=r; setTimeout(r,800); }); }catch{}
+          const c=document.createElement('canvas'); c.width=640; c.height=360;
+          const ctx=c.getContext('2d'); ctx.drawImage(v,0,0,c.width,c.height);
+          dataUrl=c.toDataURL('image/jpeg',0.68);
+          URL.revokeObjectURL(objUrl);
+        }catch(e){
+          try{ URL.revokeObjectURL(objUrl); }catch{}
+          // Fallback: still try dataURL for small videos, but for large we already have text hint
+          dataUrl=null;
+          textContent=`Видео ${file.name} • ${(file.size/1024/1024).toFixed(1)}MB • длительность ~${Math.round(file.size/1024/1024/2)}с (оценка) — кадр не захвачен, анализирую по имени.`;
+        }
       }
     } else if(isPdf){
       try{
