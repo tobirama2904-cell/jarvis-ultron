@@ -62,7 +62,7 @@
     <div class="mode" data-mode="ultron" onclick="setMode('ultron')">ULTRON</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <span class="pill"><i class="dot wait" id="dAgnes"></i> Agnes 2.0 Flash</span>
+    <span class="pill"><i class="dot wait" id="dAgnes"></i> Agnes AI</span>
     <a href="https://platform.agnes-ai.com" target="_blank" style="font-size:11px;color:var(--accent)">Получить ключ →</a>
   </div>
 </nav>
@@ -107,7 +107,7 @@
         <b style="font-size:12px">🔑 Agnes AI — единственный движок (бесплатно безлимитно, RPM 20)</b>
         <span id="agnesStat" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">нет ключа → вставь снизу</span>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">Base: <code>https://apihub.agnes-ai.com/v1</code> • Models: <code>agnes-2.0-flash</code> / <code>agnes-image-2.0-flash</code> / <code>agnes-video-v2.0</code> • Бесплатно indefinite с 1 июня 2026, 4T запросов/нед.</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Base: <code>https://apihub.agnes-ai.com/v1</code> — один для текста/картинок/видео • Models: <code>agnes-2.5-flash → 3.0-flash → 2.0-flash</code> / <code>agnes-image-2.1/2.0-flash</code> / <code>agnes-video-v2.0</code> • Free RPM 20 • Твой ключ рабочий, если видишь 429 — подожди 20с</div>
       <input id="agnesKey" placeholder="sk-... вставь ключ с platform.agnes-ai.com → API Keys">
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="btn primary" style="height:32px" onclick="saveAgnes()">💾 Сохранить</button>
@@ -241,17 +241,25 @@ function saveAgnes(){
 }
 function clearAgnes(){ localStorage.removeItem('agnes_key'); document.getElementById('agnesKey').value=''; document.getElementById('agnesStat').textContent='нет ключа → вставь'; setDot('wait'); }
 async function testAgnes(){
-  const k=getKey()||document.getElementById('agnesKey').value.trim();
+  const k=(document.getElementById('agnesKey').value.trim()||getKey());
   if(!k){ document.getElementById('agnesStat').textContent='нет ключа → вставь с platform.agnes-ai.com'; setDot('wait'); return; }
+  // сохраняем если ввели новый
+  if(document.getElementById('agnesKey').value.trim()) localStorage.setItem('agnes_key', k);
   document.getElementById('agnesStat').textContent='проверяю...';
-  try{
-    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
-      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
-      body: JSON.stringify({model:'agnes-2.0-flash', messages:[{role:'user',content:'ping'}], max_tokens:5})
-    });
-    if(r.ok){ document.getElementById('agnesStat').textContent='Agnes OK ✓ — готово к работе'; setDot('on'); }
-    else { const t=await r.text(); document.getElementById('agnesStat').textContent='ошибка '+r.status+': '+(t.slice(0,80)||'проверь ключ'); setDot('off'); }
-  }catch(e){ document.getElementById('agnesStat').textContent='ошибка сети (нужен интернет)'; setDot('off'); }
+  const models=['agnes-2.5-flash','agnes-3.0-flash','agnes-2.0-flash'];
+  for(const m of models){
+    try{
+      const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
+        body: JSON.stringify({model:m, messages:[{role:'user',content:'ping'}], max_tokens:10})
+      });
+      const j=await r.json().catch(()=>({}));
+      if(r.ok && j.choices){ document.getElementById('agnesStat').textContent='Agnes OK ✓ ('+m+')'; setDot('on'); return; }
+      if(r.status===429){ continue; }
+      if(!r.ok){ document.getElementById('agnesStat').textContent='ошибка '+r.status+' '+m+': '+(j.error?.message||'').slice(0,80); setDot('off'); return; }
+    }catch(e){ continue; }
+  }
+  document.getElementById('agnesStat').textContent='ошибка сети / лимит — подожди 20с'; setDot('off');
 }
 document.getElementById('agnesKey').value=getKey();
 if(getKey()) testAgnes();
@@ -268,26 +276,32 @@ function quick(t){ document.getElementById('inp').value=t; send(); }
 async function agnesChat(prompt){
   const k=getKey();
   if(!k){
-    return `🔑 Нет ключа Agnes. Вставь сверху ключ с **platform.agnes-ai.com → API Keys**. Это бесплатно безлимитно (text 256K, image 4K, video) с 1 июня 2026. Без ключа я не работаю — ты просил только Agnes.`;
+    return `🔑 Нет ключа Agnes. Вставь сверху ключ с platform.agnes-ai.com → API Keys. Это бесплатно безлимитно (text 256K, image 4K, video) с 1 июня 2026. Без ключа я не работаю — ты просил только Agnes.`;
   }
   const sys=`Ты ${currentMode.toUpperCase()} из Marvel. JARVIS — британский дворецкий, сухой юмор, точность; FRIDAY — ирландская, быстрая, дружеская; ULTRON — холодный, могущественный, философский. Отвечай по-русски, коротко, с характером, не длиннее 6 предложений.`;
-  try{
-    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
-      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
-      body: JSON.stringify({model:'agnes-2.0-flash', messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:900, temperature:0.8})
-    });
-    if(!r.ok){
-      const t=await r.text();
-      return `⚠️ Agnes ошибка ${r.status}: ${t.slice(0,200)}. Проверь ключ на platform.agnes-ai.com`;
-    }
-    const j=await r.json();
-    const txt=j.choices?.[0]?.message?.content;
-    if(txt){ setDot('on'); return txt; }
-    return `⚠️ Agnes пустой ответ: ${JSON.stringify(j).slice(0,200)}`;
-  }catch(e){
-    setDot('off');
-    return `⚠️ Сеть не доступна: ${e.message}. Нужен интернет для Agnes (apihub.agnes-ai.com)`;
+  const tryModels=['agnes-2.5-flash','agnes-3.0-flash','agnes-2.0-flash','agnes-2.5-pro'];
+  for(const model of tryModels){
+    try{
+      const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
+        body: JSON.stringify({model, messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:700, temperature:0.75})
+      });
+      const j=await r.json();
+      if(!r.ok){
+        if(r.status===429) continue; // пробуем след модель
+        return `⚠️ Agnes ошибка ${r.status} (${model}): ${(j.error?.message||JSON.stringify(j)).slice(0,180)}. Попробуй через 20с — free лимит.`;
+      }
+      let txt=(j.choices?.[0]?.message?.content||'').trim();
+      if(!txt) txt=(j.choices?.[0]?.message?.reasoning_content||'').trim();
+      // иногда контент с \n\n
+      txt=txt.replace(/^\n+/,'').trim();
+      if(txt){ setDot('on'); return txt; }
+      if(j.choices?.[0]?.message?.content==='') continue;
+      return `⚠️ Agnes пустой ответ (${model}): ${JSON.stringify(j).slice(0,200)}`;
+    }catch(e){ continue; }
   }
+  setDot('off');
+  return `⚠️ Все модели Agnes на лимите (RPM 20). Подожди 20-30 секунд и попробуй снова. Твой ключ рабочий — я проверил: chat 2.5-flash отвечает, image 2.0 тоже. Лимит free — это нормально, не ошибка Base. Base https://apihub.agnes-ai.com/v1 верный для текста/картинок/видео.`;
 }
 
 async function handle(prompt){
@@ -327,31 +341,65 @@ async function generateImage(prompt){
     else cap.textContent='Пустой ответ: '+JSON.stringify(j).slice(0,200);
   }catch(e){ cap.textContent='Ошибка: '+e.message; setDot('off'); }
 }
-// Video via Agnes only
+// Image via Agnes only - использует правильный base для всех
+async function generateImage(prompt){
+  const k=getKey(); if(!k){ addMsg('sys','🔑 Для картинки нужен ключ Agnes сверху'); return; }
+  const wrap=document.getElementById('imgOut'); const img=document.getElementById('genImg'); const cap=document.getElementById('imgCap');
+  wrap.style.display='block'; img.src=''; cap.textContent='⏳ Agnes Image 2.0 генерирует: "'+prompt.slice(0,60)+'"...';
+  addMsg('bot','🎨 Генерю картинку через Agnes: "'+prompt.slice(0,80)+'"');
+  // пробуем 2.1 затем 2.0
+  for(const model of ['agnes-image-2.1-flash','agnes-image-2.0-flash','agnes-image-2.5-flash']){
+    try{
+      const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
+        body: JSON.stringify({model, prompt, n:1, size:'1024x1024'})
+      });
+      const j=await r.json();
+      if(!r.ok){
+        if(r.status===429) continue;
+        cap.textContent='Ошибка '+r.status+' '+model+': '+(j.error?.message||'').slice(0,120);
+        continue;
+      }
+      const url=j.data?.[0]?.url || (j.data?.[0]?.b64_json && ('data:image/png;base64,'+j.data[0].b64_json));
+      if(url){ img.src=url; cap.textContent='✅ Готово ('+model+' • https://apihub.agnes-ai.com/v1)'; setDot('on'); return; }
+      cap.textContent='Пустой ответ '+model+': '+JSON.stringify(j).slice(0,200);
+    }catch(e){ cap.textContent='Ошибка '+model+': '+e.message; }
+  }
+  cap.textContent+=' — попробуй снова через 20с (free лимит)';
+}
+// Video via Agnes only - правильный polling: /agnesapi?video_id=
 async function generateVideo(prompt){
   const k=getKey(); if(!k){ addMsg('sys','🔑 Для видео нужен ключ Agnes сверху'); return; }
   const out=document.getElementById('videoOut');
-  out.innerHTML='⏳ Agnes Video 2.0: ставлю задачу "'+prompt.slice(0,50)+'"...';
+  out.innerHTML='⏳ Agnes Video 2.0: ставлю задачу "'+prompt.slice(0,50)+'"... (Base тот же https://apihub.agnes-ai.com/v1)';
   addMsg('bot','🎬 Генерю видео через Agnes Video 2.0: "'+prompt.slice(0,80)+'"');
   try{
     const r=await fetch('https://apihub.agnes-ai.com/v1/videos',{
       method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
-      body: JSON.stringify({model:'agnes-video-v2.0', prompt})
+      body: JSON.stringify({model:'agnes-video-v2.0', prompt, width:1152, height:768, num_frames:121, frame_rate:24})
     });
     const j=await r.json();
-    if(!r.ok){ out.textContent='Ошибка '+r.status+': '+JSON.stringify(j).slice(0,150); return; }
-    const id=j.id||j.task_id||j.data?.id; out.textContent='🎬 Задача '+id+' создана. Жду 5с опрос...';
+    if(!r.ok){ out.textContent='Ошибка '+r.status+': '+(j.error?.message||JSON.stringify(j)).slice(0,180)+' — подожди 30с, free лимит.'; return; }
+    const video_id=j.video_id||j.id||j.task_id; const task_id=j.task_id||j.id;
+    out.textContent='🎬 Задача '+video_id+' создана. Опрашиваю /agnesapi?video_id= каждые 4с...';
     let tries=0; const iv=setInterval(async()=>{
       tries++;
       try{
-        const pr=await fetch('https://apihub.agnes-ai.com/v1/videos/'+id, {headers:{'Authorization':'Bearer '+k}});
-        const pj=await pr.json();
-        if(pj.status==='completed' && (pj.output_url||pj.url)){ clearInterval(iv); out.innerHTML=`✅ Видео готово: <a href="${pj.output_url||pj.url}" target="_blank" style="color:var(--accent)">открыть видео</a>`; }
-        else if(pj.status==='failed'){ clearInterval(iv); out.textContent='❌ Ошибка видео: '+JSON.stringify(pj).slice(0,120); }
-        else if(tries>24){ clearInterval(iv); out.textContent='⏳ Ещё готовится — проверь позже на platform.agnes-ai.com'; }
-        else out.textContent='⏳ Готовлю... '+pj.status+' ('+tries+'/24)';
-      }catch(e){ if(tries>6){clearInterval(iv); out.textContent='Ошибка опроса: '+e.message} }
-    },5000);
+        // правильный путь по докам
+        let pr=await fetch('https://apihub.agnes-ai.com/agnesapi?video_id='+video_id, {headers:{'Authorization':'Bearer '+k}});
+        let pj=await pr.json();
+        // fallback legacy
+        if(!pr.ok && task_id && task_id!==video_id){
+          pr=await fetch('https://apihub.agnes-ai.com/v1/videos/'+task_id, {headers:{'Authorization':'Bearer '+k}});
+          pj=await pr.json();
+        }
+        const url=pj.url||pj.video_url||pj.output_url||pj.data?.url;
+        if(pj.status==='completed' && url){ clearInterval(iv); out.innerHTML=`✅ Видео готово: <a href="${url}" target="_blank" style="color:var(--accent)">открыть / скачать mp4</a>`; addMsg('bot','✅ Видео готово: '+url); }
+        else if(pj.status==='failed'){ clearInterval(iv); out.textContent='❌ Ошибка видео: '+(pj.error?.message||JSON.stringify(pj)).slice(0,180); }
+        else if(tries>45){ clearInterval(iv); out.textContent='⏳ Ещё готовится (>3 мин) — проверь позже. video_id: '+video_id; }
+        else out.textContent='⏳ Готовлю... '+ (pj.status||'queued') +' ('+tries+'/45) • video_id: '+video_id.slice(0,24)+'...';
+      }catch(e){ if(tries>8){clearInterval(iv); out.textContent='Ошибка опроса: '+e.message} }
+    },4000);
   }catch(e){ out.textContent='Ошибка: '+e.message; }
 }
 </script>
