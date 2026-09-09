@@ -137,6 +137,12 @@
       <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="voiceToggle" checked> Озвучка</label>
       <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="gestureToggle" checked> Жесты</label>
     </div>
+    <div style="padding:0 14px 10px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.06);padding-top:10px">
+      <button class="btn" id="wakeBtn" onclick="toggleWake()">🎙️ WAKE</button>
+      <button class="btn" id="liveBtn" onclick="toggleLiveVision()">👁️ LIVE</button>
+      <button class="btn" id="coachBtn" onclick="toggleGameCoach()">🎮 Коуч</button>
+      <span id="wakeStat" style="font-size:10px;color:var(--muted);align-self:center"></span>
+    </div>
     <div style="padding:0 14px 10px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
       <button class="btn" onclick="rot-=0.4">↺</button><button class="btn" onclick="rot+=0.4">↻</button>
       <button class="btn" onclick="scale=Math.min(1.7,scale+0.12)">＋</button><button class="btn" onclick="scale=Math.max(0.6,scale-0.12)">－</button>
@@ -536,9 +542,16 @@ async function genImg2(){
   const size=document.getElementById('imgSize').value; const k=getKey(); if(!k) return addMsg('sys','🔑 Ключ');
   addMsg('bot','🎨 Рисую: '+prompt.slice(0,60)); log('img '+prompt.slice(0,30));
   try{
-    const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-image-2.1', prompt, size, n:1})});
-    const j=await r.json(); if(!r.ok) throw new Error(j.error?.message||r.status);
-    const url=j.data?.[0]?.url; if(!url) throw new Error('no url');
+    let url=null, lastErr=null;
+    for(let model of ['agnes-image-2.1','agnes-image-2.5-flash','agnes-image-2.0-flash','agnes-image-2.1-flash']){
+      try{
+        const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model, prompt, size, n:1})});
+        const j=await r.json(); if(!r.ok) throw new Error(j.error?.message||r.status);
+        const u=j.data?.[0]?.url; if(!u) throw new Error('no url');
+        url=u; log('img ok via '+model); break;
+      }catch(e){ lastErr=e; log('img '+e.message+' try next'); continue; }
+    }
+    if(!url) throw lastErr||new Error('no channel');
     imgHistory.unshift({prompt, url, ts:Date.now()}); localStorage.setItem('amin_img_hist', JSON.stringify(imgHistory.slice(0,20))); renderImgHist();
     document.getElementById('imgBox').style.display='block'; document.getElementById('genImg').src=url; document.getElementById('imgCap').textContent=prompt;
     addMsg('bot','✅ Готово'); speakText('Готово, Амин.'); addProject('image', prompt);
@@ -1005,9 +1018,23 @@ function initWake(){
   };
   wakeRec.onend=()=>{ if(wakeActive){ try{ wakeRec.start(); }catch{} } };
   wakeRec.onerror=(e)=>{ log('wake err '+e.error); if(wakeActive) setTimeout(()=>{ try{ wakeRec.start(); }catch{} }, 1500); };
-  try{ wakeRec.start(); log('WAKE active — скажи "Эй Джарвис"'); document.getElementById('handStat').textContent='🎙️ WAKE on'; }catch(e){ log('wake start fail '+e.message); }
+  try{
+    wakeRec.start();
+    log('WAKE active — скажи "Эй Джарвис"');
+    document.getElementById('handStat').textContent='🎙️ WAKE on';
+    const b=document.getElementById('wakeBtn'); if(b){ b.classList.add('primary'); b.textContent='🎙️ WAKE ●'; }
+    const s=document.getElementById('wakeStat'); if(s) s.textContent='слушает...';
+    addMsg('sys','🎙️ WAKE включён — скажи "Эй Джарвис" + команда');
+  }catch(e){
+    log('wake start fail '+e.message);
+    addMsg('sys','🎙️ WAKE ошибка: '+e.message+' — проверь разрешение микрофона');
+    const s=document.getElementById('wakeStat'); if(s) s.textContent='ошибка';
+  }
 }
-function stopWake(){ wakeActive=false; try{ if(wakeRec) wakeRec.stop(); }catch{} document.getElementById('handStat').textContent='🖐️ off'; log('WAKE off'); }
+function stopWake(){ wakeActive=false; try{ if(wakeRec) wakeRec.stop(); }catch{} document.getElementById('handStat').textContent='🖐️ off'; const b=document.getElementById('wakeBtn'); if(b){ b.classList.remove('primary'); b.textContent='🎙️ WAKE'; } const s=document.getElementById('wakeStat'); if(s) s.textContent='off'; log('WAKE off'); }
+function toggleWake(){ if(wakeActive) stopWake(); else initWake(); }
+function toggleLiveVision(){ if(liveVisionActive) stopLiveVision(); else startLiveVision(); }
+function toggleGameCoach(){ if(gameCoachActive) stopGameCoach(); else startGameCoach(); }
 function handleVoiceCommand(cmd, raw){
   const low=cmd.toLowerCase();
   if(/увеличь.*солнце|больше солнце|увеличь/i.test(low) && low.includes('солнце')){ scale=Math.min(1.7, scale+0.22); log('voice: scale up'); return; }
@@ -1031,7 +1058,16 @@ function startLiveVision(){
   if(liveVisionActive) return;
   liveVisionActive=true;
   log('LIVE vision on (1 запрос/4с, RPM-safe)');
-  if(!camStream) toggleCam();
+  const b=document.getElementById('liveBtn'); if(b){ b.classList.add('primary'); b.textContent='👁️ LIVE ●'; }
+  (async()=>{
+    if(!camStream){
+      addMsg('sys','👁️ LIVE нужен доступ к камере...');
+      await toggleCam();
+      await new Promise(r=>setTimeout(r,900));
+      if(!camStream){ addMsg('sys','❌ Камера не доступна для LIVE'); stopLiveVision(); return; }
+    }
+    addMsg('sys','👁️ LIVE включён — анализирую каждые 4с');
+  })();
   liveVisionTimer=setInterval(async()=>{
     if(!camStream || !liveVisionActive) return;
     try{
@@ -1055,7 +1091,7 @@ function startLiveVision(){
   }, 4000);
   document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • LIVE';
 }
-function stopLiveVision(){ liveVisionActive=false; clearInterval(liveVisionTimer); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; log('LIVE off'); }
+function stopLiveVision(){ liveVisionActive=false; clearInterval(liveVisionTimer); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; const b=document.getElementById('liveBtn'); if(b){ b.classList.remove('primary'); b.textContent='👁️ LIVE'; } log('LIVE off'); addMsg('sys','👁️ LIVE выкл'); }
 
 // Legion x10 upgrade
 window.runLegionPane = async function(){
@@ -1149,6 +1185,16 @@ function startGameCoach(){
   if(gameCoachActive) return;
   gameCoachActive=true;
   log('Game Coach LIVE on');
+  const b=document.getElementById('coachBtn'); if(b){ b.classList.add('primary'); b.textContent='🎮 Коуч ●'; }
+  (async()=>{
+    if(!camStream){
+      addMsg('sys','🎮 Коуч нужен экран/камера...');
+      await toggleCam();
+      await new Promise(r=>setTimeout(r,900));
+      if(!camStream){ addMsg('sys','❌ Камера нужна для коуча'); stopGameCoach(); return; }
+    }
+    addMsg('sys','🎮 Коуч включён — подсказки каждые 3.5с');
+  })();
   gameCoachTimer=setInterval(async()=>{
     try{
       const v=document.getElementById('cam');
@@ -1165,28 +1211,13 @@ function startGameCoach(){
     }catch(e){ console.warn('coach',e); }
   }, 3500);
 }
-function stopGameCoach(){ gameCoachActive=false; clearInterval(gameCoachTimer); log('Coach off'); }
+function stopGameCoach(){ gameCoachActive=false; clearInterval(gameCoachTimer); const b=document.getElementById('coachBtn'); if(b){ b.classList.remove('primary'); b.textContent='🎮 Коуч'; } log('Coach off'); addMsg('sys','🎮 Коуч выкл'); }
 
-// Auto-add controls to left card
-setTimeout(()=>{
-  const controls=document.querySelector('.controls');
-  if(controls && !document.getElementById('wakeBtn')){
-    const wakeBtn=document.createElement('button'); wakeBtn.id='wakeBtn'; wakeBtn.className='btn'; wakeBtn.textContent='🎙️ WAKE'; wakeBtn.onclick=()=>{ if(wakeActive) stopWake(); else initWake(); };
-    const liveBtn=document.createElement('button'); liveBtn.className='btn'; liveBtn.textContent='👁️ LIVE'; liveBtn.onclick=()=>{ if(liveVisionActive) stopLiveVision(); else startLiveVision(); };
-    const coachBtn=document.createElement('button'); coachBtn.className='btn'; coachBtn.textContent='🎮 Коуч'; coachBtn.onclick=()=>{ if(gameCoachActive) stopGameCoach(); else startGameCoach(); };
-    controls.appendChild(wakeBtn); controls.appendChild(liveBtn); controls.appendChild(coachBtn);
-    log('JARVIS full controls added');
-  }
-  // File agent quick input in coding pane
-  const codePane=document.getElementById('pane-code');
-  if(codePane && !document.getElementById('fileAgentInput')){
-    const div=document.createElement('div'); div.style.cssText='margin-top:10px;display:flex;gap:8px';
-    div.innerHTML='<input id="fileAgentInput" placeholder="Файловый агент: создай index.html лендинг..." style="flex:1;height:38px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 14px"><button class="btn primary" onclick="fileAgentChat(document.getElementById(\'fileAgentInput\').value)">📁 Создать</button>';
-    codePane.appendChild(div);
-  }
-}, 1200);
+// Controls static — no auto-add needed
 
 
+
+setTimeout(()=>{ log('WAKE/LIVE/COACH ready — жми кнопки'); }, 800);
 
 // LEGION / QUEST with queued distinct voices — не перекрывают, с паузой
 let voiceQueue=[], voicePlaying=false;
