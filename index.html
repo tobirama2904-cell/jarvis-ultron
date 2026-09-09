@@ -126,143 +126,10 @@ setTimeout(()=>{
   // wrap after genCode defined
 },500);
 
-// ===== 3D HOLOGRAM — IRON MAN per persona =====
-let scene3d, cam3d, ren3d, armorGroup, tonyHead, isDisassembled=false, raf3d=null;
-let matHelm, matFace, matEye, matChest, matReact;
-function initHolo3D(){
-  const canvas=document.getElementById('holo3d');
-  const stage=document.getElementById('stage');
-  if(!canvas || !stage || !window.THREE){ log('3D: THREE not loaded, fallback orb'); return; }
-  try{
-    const {THREE: T} = window;
-    scene3d = new THREE.Scene();
-    cam3d = new THREE.PerspectiveCamera(42, stage.clientWidth/stage.clientHeight, 0.1, 100);
-    cam3d.position.set(0,0.6,4.2);
-    ren3d = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
-    ren3d.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
-    ren3d.setSize(stage.clientWidth, stage.clientHeight);
-    ren3d.setClearColor(0x000000, 0);
-    // lights
-    const amb=new THREE.AmbientLight(0xffffff, 1.0); scene3d.add(amb);
-    const dir=new THREE.DirectionalLight(0xffffff, 1.2); dir.position.set(2,3,4); scene3d.add(dir);
-    const rim=new THREE.PointLight(0x60a5fa, 2.2, 10); rim.position.set(-2,1,2); scene3d.add(rim);
-    const back=new THREE.PointLight(0xff3840, 1.2, 10); back.position.set(2,-1,-2); scene3d.add(back);
-    buildArmor(currentMode);
-    // drag
-    let drag=false, lx=0, rotY=0, rotX=0;
-    canvas.addEventListener('pointerdown', e=>{drag=true; lx=e.clientX; canvas.setPointerCapture(e.pointerId)});
-    canvas.addEventListener('pointerup', ()=>drag=false);
-    canvas.addEventListener('pointermove', e=>{ if(drag){ rotY+=(e.clientX-lx)*0.008; lx=e.clientX; } });
-    canvas.addEventListener('wheel', e=>{ cam3d.position.z=Math.max(2.5, Math.min(6, cam3d.position.z + e.deltaY*0.004)); e.preventDefault();},{passive:false});
-    canvas.addEventListener('click', ()=>{ if(!drag) toggleDisassemble(); });
-    canvas.addEventListener('dblclick', ()=>{ toggleDisassemble(true); });
-    window.addEventListener('resize', ()=>{
-      const r=stage.getBoundingClientRect(); cam3d.aspect=r.width/r.height; cam3d.updateProjectionMatrix(); ren3d.setSize(r.width,r.height);
-    });
-    // expose for setMode
-    window._holoDrag = ()=> rotY;
-    animate3D();
-    log('3D HOLO ready '+currentMode);
-  }catch(e){ log('3D fail '+e.message); console.error(e); }
-}
-function colorsFor(m){
-  if(m==='jarvis') return {helm:0x1a2b4a, face:0x2a4d8a, eye:0x00e5ff, chest:0x0e2a5a, react:0x00e5ff, emiss:0x00e5ff};
-  if(m==='friday') return {helm:0x4a2d12, face:0x8a5a1f, eye:0xffb000, chest:0x5a2e0a, react:0xffb000, emiss:0xff8a00};
-  return {helm:0x2b0e14, face:0x5a1420, eye:0xff2336, chest:0x2e0a12, react:0xff2336, emiss:0xff2336}; // ultron
-}
-function buildArmor(mode){
-  if(!scene3d) return;
-  if(armorGroup){ scene3d.remove(armorGroup); }
-  const c=colorsFor(mode);
-  armorGroup=new THREE.Group();
-  // materials
-  matHelm=new THREE.MeshStandardMaterial({color:c.helm, metalness:0.82, roughness:0.22});
-  matFace=new THREE.MeshStandardMaterial({color:c.face, metalness:0.78, roughness:0.24});
-  matChest=new THREE.MeshStandardMaterial({color:c.chest, metalness:0.75, roughness:0.28});
-  matEye=new THREE.MeshStandardMaterial({color:c.eye, emissive:c.emiss, emissiveIntensity:1.2});
-  matReact=new THREE.MeshStandardMaterial({color:c.react, emissive:c.emiss, emissiveIntensity:1.6});
-  // helmet dome
-  const dome=new THREE.Mesh(new THREE.SphereGeometry(0.72, 32, 32, 0, Math.PI*2, 0, Math.PI*0.72), matHelm);
-  dome.position.y=0.62; dome.scale.set(1,0.82,1); dome.userData.baseY=0.62; dome.name='dome'; armorGroup.add(dome);
-  // faceplate
-  const face=new THREE.Mesh(new THREE.BoxGeometry(0.86,0.48,0.18), matFace);
-  face.position.set(0,0.44,0.62); face.rotation.x=-0.08; face.userData.basePos=face.position.clone(); face.name='face'; armorGroup.add(face);
-  // eyes
-  const eyeL=new THREE.Mesh(new THREE.PlaneGeometry(0.18,0.07), matEye); eyeL.position.set(-0.19,0.49,0.73); eyeL.rotation.z=0.12; eyeL.name='eyeL'; armorGroup.add(eyeL);
-  const eyeR=new THREE.Mesh(new THREE.PlaneGeometry(0.18,0.07), matEye); eyeR.position.set(0.19,0.49,0.73); eyeR.rotation.z=-0.12; eyeR.name='eyeR'; armorGroup.add(eyeR);
-  // brow
-  const brow=new THREE.Mesh(new THREE.BoxGeometry(0.54,0.06,0.08), matHelm); brow.position.set(0,0.58,0.71); brow.name='brow'; armorGroup.add(brow);
-  // cheek plates
-  const cheekL=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.34,0.12), matHelm); cheekL.position.set(-0.38,0.38,0.58); cheekL.name='cheekL'; armorGroup.add(cheekL);
-  const cheekR=cheekL.clone(); cheekR.position.set(0.38,0.38,0.58); cheekR.name='cheekR'; armorGroup.add(cheekR);
-  // neck
-  const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.32,0.22, 24), matHelm); neck.position.y=0.18; neck.name='neck'; armorGroup.add(neck);
-  // chest
-  const chest=new THREE.Mesh(new THREE.BoxGeometry(1.42,1.02,0.56), matChest); chest.position.y=-0.38; chest.name='chest'; armorGroup.add(chest);
-  // arc reactor
-  const reactor=new THREE.Mesh(new THREE.CircleGeometry(0.18,32), matReact); reactor.position.set(0,-0.38,0.29); reactor.name='reactor'; armorGroup.add(reactor);
-  const ring=new THREE.Mesh(new THREE.RingGeometry(0.20,0.24,32), new THREE.MeshStandardMaterial({color:0xffffff, emissive:0xffffff, emissiveIntensity:0.4, side:THREE.DoubleSide})); ring.position.set(0,-0.38,0.285); armorGroup.add(ring);
-  // shoulder pads
-  const shL=new THREE.Mesh(new THREE.SphereGeometry(0.34,24,24), matHelm); shL.position.set(-0.92,-0.24,0.08); shL.scale.set(1,0.8,0.9); shL.name='shL'; armorGroup.add(shL);
-  const shR=shL.clone(); shR.position.set(0.92,-0.24,0.08); shR.name='shR'; armorGroup.add(shR);
-  // Tony head inside (revealed when disassembled)
-  const headGeo=new THREE.SphereGeometry(0.36,24,24); const headMat=new THREE.MeshStandardMaterial({color:0xe8c7a8, roughness:0.7}); tonyHead=new THREE.Mesh(headGeo, headMat); tonyHead.position.set(0,0.42,0.22); tonyHead.scale.set(1,1.15,0.9); tonyHead.visible=false; tonyHead.name='tony'; armorGroup.add(tonyHead);
-  // beard hint
-  const beard=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.08,0.05), new THREE.MeshStandardMaterial({color:0x2b1a0a})); beard.position.set(0,0.28,0.42); armorGroup.add(beard);
-  armorGroup.position.y=-0.06;
-  armorGroup.scale.set(1.08,1.08,1.08);
-  scene3d.add(armorGroup);
-  document.getElementById('disBadge').textContent='3D • '+mode.toUpperCase()+' • СБОРКА';
-}
-function animate3D(){
-  if(!scene3d || !ren3d || !armorGroup) return;
-  raf3d=requestAnimationFrame(animate3D);
-  const t=Date.now()*0.001;
-  if(!isDisassembled){
-    armorGroup.rotation.y += 0.006 + Math.sin(t*0.2)*0.002;
-    armorGroup.position.y = -0.06 + Math.sin(t*1.1)*0.06;
-    if(tonyHead) tonyHead.visible=false;
-    // reactor pulse
-    if(matReact) matReact.emissiveIntensity = 1.4 + Math.sin(t*3)*0.5;
-  } else {
-    // slow rotation when exploded
-    armorGroup.rotation.y += 0.003;
-  }
-  ren3d.render(scene3d, cam3d);
-}
-function toggleDisassemble(force){
-  if(!armorGroup) return;
-  if(typeof force==='boolean') isDisassembled=force; else isDisassembled=!isDisassembled;
-  const badge=document.getElementById('disBadge');
-  if(isDisassembled){
-    if(badge) badge.textContent='🦾 РАЗБОР • ТОНИ ВНУТРИ';
-    // explode parts
-    const moves={dome:[0,0.55,0.18], face:[0,0.12,0.9], eyeL:[-0.12,0.05,0.18], eyeR:[0.12,0.05,0.18], cheekL:[-0.32,0.05,0.18], cheekR:[0.32,0.05,0.18], chest:[0,-0.08,0.22], shL:[-0.42,0,0.12], shR:[0.42,0,0.12], neck:[0,0.12,0], reactor:[0,0,0.18]};
-    armorGroup.children.forEach(ch=>{
-      if(moves[ch.name]){
-        const m=moves[ch.name];
-        // animate via simple lerp
-        const target=new THREE.Vector3().fromArray(m);
-        // store base
-        if(!ch.userData.orig) ch.userData.orig=ch.position.clone();
-        // lerp
-        ch.position.lerpVectors(ch.userData.orig, ch.userData.orig.clone().add(target), 1);
-      }
-      if(ch.name==='chest') ch.position.y += -0.06;
-    });
-    if(tonyHead){ tonyHead.visible=true; tonyHead.position.y=0.42; }
-    log('3D разбор');
-    speakText(currentMode==='ultron'?'Костюм снят. Тони Старк внутри.':'Броня разобрана, сэр Амин. Тони Старк к вашим услугам.');
-  } else {
-    if(badge) badge.textContent='3D • СБОРКА';
-    armorGroup.children.forEach(ch=>{
-      if(ch.userData.orig) ch.position.copy(ch.userData.orig);
-    });
-    if(tonyHead) tonyHead.visible=false;
-    log('3D сборка');
-  }
-}
+
+
 // hook persona
+
 const _origSetMode=setMode;
 setMode=function(m,speak){
   _origSetMode(m,speak);
@@ -560,7 +427,31 @@ function onHandResults(res){
     const th=lm[4], ix=lm[8], wr=lm[0], mid=lm[9];
     const dist=Math.hypot(th.x-ix.x, th.y-ix.y);
     const angle=Math.atan2(mid.y-wr.y, mid.x-wr.x);
-    if(dist<0.05){ if(lastPinchDist===0) lastPinchDist=dist; const d=(dist-lastPinchDist); scale=Math.max(0.6,Math.min(1.7, scale - d*4)); document.getElementById('hudHand').textContent='HAND: PINCH'; }
+    if(dist<0.05){ if(lastPinchDist===0) lastPinchDist=dist; const d=(dist-lastPinchDist); scale=Math.max(0.6,Math.min(1.7, scale - d*4)); document.getElementById('hudHand').textContent='HAND: PINCH';
+    // ——— 3D HAND LINK ———
+    try{
+      // обновляем 3D управление теми же руками
+      const cx=mid.x, cy=mid.y;
+      if(window.handControl3d){
+        const c=window.handControl3d;
+        if(c.lastX){ c.dx=(cx - c.lastX)*18; c.dy=(cy - c.lastY)*18; } else c.dx=0, c.dy=0;
+        c.lastX=cx; c.lastY=cy;
+        const pinch=dist<0.05;
+        const open=[8,12,16,20].every(i=> lm[i].y < lm[i-2].y);
+        const fist=[8,12,16,20].every(i=> lm[i].y > lm[i-2].y);
+        c.pinching=pinch; c.openPalm=open;
+        if(pinch && window.armorGroup){ window.armorGroup.rotation.y += c.dx*0.012; window.armorGroup.position.x += c.dx*0.005; }
+        if(open && !isDisassembled){
+          if(!c._openT) c._openT=Date.now();
+          if(Date.now()-c._openT>700){ toggleDisassemble(true); c._openT=null; }
+        } else if(fist && isDisassembled){
+          if(!c._fistT) c._fistT=Date.now();
+          if(Date.now()-c._fistT>700){ toggleDisassemble(false); c._fistT=null; }
+        } else { c._openT=null; c._fistT=null; }
+        if(pinch) document.getElementById('disBadge').textContent='✋ ЗАХВАТ 3D • тяни';
+      }
+    }catch{}
+ }
     else{ lastPinchDist=0; rot+=angle*0.015; document.getElementById('hudHand').textContent='HAND: ROTATE'; }
     const open=isOpen(lm); document.getElementById('handStat').textContent=open?'✋ open':'✋ tracking'; autoRot=open?0:0.006;
   }else{ handActive=false; drawFaceFrame(ctx, box); document.getElementById('hudHand').textContent='HAND: NO HAND'; document.getElementById('handStat').textContent='✋ no hand'; }
@@ -1146,107 +1037,156 @@ setTimeout(()=>{
   // wrap after genCode defined
 },500);
 
-// ===== 3D HOLOGRAM — IRON MAN per persona =====
+// ===== 3D HOLOGRAM — REAL FIGURES + HAND CONTROL =====
 let scene3d, cam3d, ren3d, armorGroup, tonyHead, isDisassembled=false, raf3d=null;
-let matHelm, matFace, matEye, matChest, matReact;
+let mixer3d=null, clock3d=new THREE.Clock();
+let realModels={}; // cache per persona
+let handControl={pinching:false, openPalm:false, lastX:0};
+const MODEL_URLS={
+  jarvis: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb', // реальный шлем Iron Man — металл PBR, самый близкий к Марку
+  ultron: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/RobotExpressive/glTF-Binary/RobotExpressive.glb', // реальный робот как Альтрон
+  friday: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb' // для Пятницы — голограмма агента, подкрасим в оранжевый
+};
+// Fallback если модель не грузится — примитив (чтобы не пусто)
+let fallbackBuilt=false;
 function initHolo3D(){
   const canvas=document.getElementById('holo3d');
   const stage=document.getElementById('stage');
-  if(!canvas || !stage || !window.THREE){ log('3D: THREE not loaded, fallback orb'); return; }
+  if(!canvas || !stage || !window.THREE){ log('3D: THREE not loaded'); return; }
   try{
-    const {THREE: T} = window;
     scene3d = new THREE.Scene();
     cam3d = new THREE.PerspectiveCamera(42, stage.clientWidth/stage.clientHeight, 0.1, 100);
-    cam3d.position.set(0,0.6,4.2);
+    cam3d.position.set(0,0.55,3.8);
     ren3d = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
     ren3d.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
     ren3d.setSize(stage.clientWidth, stage.clientHeight);
     ren3d.setClearColor(0x000000, 0);
-    // lights
-    const amb=new THREE.AmbientLight(0xffffff, 1.0); scene3d.add(amb);
-    const dir=new THREE.DirectionalLight(0xffffff, 1.2); dir.position.set(2,3,4); scene3d.add(dir);
-    const rim=new THREE.PointLight(0x60a5fa, 2.2, 10); rim.position.set(-2,1,2); scene3d.add(rim);
-    const back=new THREE.PointLight(0xff3840, 1.2, 10); back.position.set(2,-1,-2); scene3d.add(back);
-    buildArmor(currentMode);
-    // drag
-    let drag=false, lx=0, rotY=0, rotX=0;
+    ren3d.outputEncoding = THREE.sRGBEncoding;
+    ren3d.toneMapping = THREE.ACESFilmicToneMapping;
+    // lights — киношно
+    const amb=new THREE.AmbientLight(0xffffff, 0.9); scene3d.add(amb);
+    const dir=new THREE.DirectionalLight(0xffffff, 1.4); dir.position.set(2,3,4); scene3d.add(dir);
+    const rim=new THREE.PointLight(0x60a5fa, 2.4, 12); rim.position.set(-2,1.2,2.5); scene3d.add(rim);
+    const back=new THREE.PointLight(0xff2a3a, 1.0, 12); back.position.set(2,-1,-2.5); scene3d.add(back);
+    // ground reflection
+    const grid=new THREE.GridHelper(6,12, 0x1a2a4a, 0x0a1a3a); grid.position.y=-0.95; grid.material.opacity=0.22; grid.material.transparent=true; scene3d.add(grid);
+    loadRealModel(currentMode);
+    // mouse / touch drag — руками тоже
+    let drag=false, lx=0;
     canvas.addEventListener('pointerdown', e=>{drag=true; lx=e.clientX; canvas.setPointerCapture(e.pointerId)});
     canvas.addEventListener('pointerup', ()=>drag=false);
-    canvas.addEventListener('pointermove', e=>{ if(drag){ rotY+=(e.clientX-lx)*0.008; lx=e.clientX; } });
-    canvas.addEventListener('wheel', e=>{ cam3d.position.z=Math.max(2.5, Math.min(6, cam3d.position.z + e.deltaY*0.004)); e.preventDefault();},{passive:false});
+    canvas.addEventListener('pointermove', e=>{ if(drag && armorGroup){ armorGroup.rotation.y+=(e.clientX-lx)*0.008; lx=e.clientX; } });
+    canvas.addEventListener('wheel', e=>{ cam3d.position.z=Math.max(2.2, Math.min(6.2, cam3d.position.z + e.deltaY*0.004)); e.preventDefault();},{passive:false});
     canvas.addEventListener('click', ()=>{ if(!drag) toggleDisassemble(); });
-    canvas.addEventListener('dblclick', ()=>{ toggleDisassemble(true); });
+    canvas.addEventListener('dblclick', ()=> toggleDisassemble(true));
     window.addEventListener('resize', ()=>{
       const r=stage.getBoundingClientRect(); cam3d.aspect=r.width/r.height; cam3d.updateProjectionMatrix(); ren3d.setSize(r.width,r.height);
     });
-    // expose for setMode
-    window._holoDrag = ()=> rotY;
+    // hand linked via main onHandResults — no separate init
     animate3D();
-    log('3D HOLO ready '+currentMode);
+    log('3D REAL ready '+currentMode);
   }catch(e){ log('3D fail '+e.message); console.error(e); }
 }
 function colorsFor(m){
-  if(m==='jarvis') return {helm:0x1a2b4a, face:0x2a4d8a, eye:0x00e5ff, chest:0x0e2a5a, react:0x00e5ff, emiss:0x00e5ff};
-  if(m==='friday') return {helm:0x4a2d12, face:0x8a5a1f, eye:0xffb000, chest:0x5a2e0a, react:0xffb000, emiss:0xff8a00};
-  return {helm:0x2b0e14, face:0x5a1420, eye:0xff2336, chest:0x2e0a12, react:0xff2336, emiss:0xff2336}; // ultron
+  if(m==='jarvis') return {tint:0x2b6cff, emiss:0x00e5ff};
+  if(m==='friday') return {tint:0xff8a1a, emiss:0xffb000};
+  return {tint:0xff1a2e, emiss:0xff2336};
 }
-function buildArmor(mode){
+function loadRealModel(mode){
   if(!scene3d) return;
-  if(armorGroup){ scene3d.remove(armorGroup); }
+  if(realModels[mode] && realModels[mode].scene){
+    if(armorGroup) scene3d.remove(armorGroup);
+    armorGroup=realModels[mode].scene; scene3d.add(armorGroup); applyTint(mode); document.getElementById('disBadge').textContent='3D • '+mode.toUpperCase()+' • ГОТОВ'; return;
+  }
+  if(armorGroup) scene3d.remove(armorGroup);
+  armorGroup=new THREE.Group(); scene3d.add(armorGroup);
+  document.getElementById('disBadge').textContent='3D • '+mode.toUpperCase()+' • ЗАГРУЗКА...';
+  const url=MODEL_URLS[mode];
+  const loader=new THREE.GLTFLoader();
+  loader.load(url, (gltf)=>{
+    const model=gltf.scene;
+    model.traverse(o=>{ if(o.isMesh){ o.castShadow=false; o.receiveShadow=false; if(o.material){ o.material.envMapIntensity=0.9; } } });
+    // normalize scale/pos per model
+    let s=1, y=-0.35;
+    if(mode==='jarvis'){ s=1.55; model.rotation.y=Math.PI; y=-0.12; } // шлем
+    if(mode==='ultron'){ s=0.42; y=-0.88; model.position.y=0.1; } // робот
+    if(mode==='friday'){ s=0.88; y=-0.88; }
+    model.scale.set(s,s,s);
+    model.position.y=y;
+    // cache clone
+    const group=new THREE.Group(); group.add(model);
+    // store per mode
+    realModels[mode]={scene:group, gltf, mixer: gltf.animations && gltf.animations.length ? new THREE.AnimationMixer(model) : null};
+    if(armorGroup) scene3d.remove(armorGroup);
+    armorGroup=group; scene3d.add(armorGroup);
+    applyTint(mode);
+    if(realModels[mode].mixer && gltf.animations.length){
+      const act=realModels[mode].mixer.clipAction(gltf.animations[0]); act.play();
+    }
+    // add Tony head for jarvis (under helmet)
+    if(mode==='jarvis' && !tonyHead){
+      const hg=new THREE.SphereGeometry(0.34,24,24); const hm=new THREE.MeshStandardMaterial({color:0xe8c7a8, roughness:0.6});
+      tonyHead=new THREE.Mesh(hg, hm); tonyHead.position.set(0,0.02,0.05); tonyHead.scale.set(1,1.15,0.9); tonyHead.visible=false; armorGroup.add(tonyHead);
+      const beard=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.07,0.04), new THREE.MeshStandardMaterial({color:0x2b1a0a})); beard.position.set(0,-0.14,0.22); tonyHead.add(beard);
+    }
+    document.getElementById('disBadge').textContent='3D • '+mode.toUpperCase()+' • REAL';
+    log('3D loaded '+mode+' '+url.slice(-18));
+  }, (e)=>{
+    // progress
+    if(e.lengthComputable) document.getElementById('disBadge').textContent='3D • '+Math.round(e.loaded/e.total*100)+'%';
+  }, (err)=>{
+    console.warn('3D load fail', err);
+    document.getElementById('disBadge').textContent='3D • ОФФЛАЙН';
+    buildFallback(mode);
+  });
+}
+function applyTint(mode){
+  if(!armorGroup) return;
   const c=colorsFor(mode);
+  armorGroup.traverse(o=>{
+    if(o.isMesh && o.material && o.material.color){
+      // не трогаем шлем сильно, лишь подсветку
+      if(mode==='ultron' && o.material.metalness!==undefined){ o.material.emissive=new THREE.Color(c.emiss); o.material.emissiveIntensity=0.18; }
+      if(mode==='friday'){ o.material.emissive=new THREE.Color(c.emiss); o.material.emissiveIntensity=0.12; }
+    }
+  });
+  // rim light color per persona
+  if(scene3d){
+    scene3d.children.forEach(l=>{ if(l.isPointLight && l.position.x<0) l.color=new THREE.Color(c.emiss); });
+  }
+}
+function buildFallback(mode){
+  if(fallbackBuilt) return; fallbackBuilt=true;
+  // minimal fallback if net fails — тот же шлем примитив но без глаз-сфер
   armorGroup=new THREE.Group();
-  // materials
-  matHelm=new THREE.MeshStandardMaterial({color:c.helm, metalness:0.82, roughness:0.22});
-  matFace=new THREE.MeshStandardMaterial({color:c.face, metalness:0.78, roughness:0.24});
-  matChest=new THREE.MeshStandardMaterial({color:c.chest, metalness:0.75, roughness:0.28});
-  matEye=new THREE.MeshStandardMaterial({color:c.eye, emissive:c.emiss, emissiveIntensity:1.2});
-  matReact=new THREE.MeshStandardMaterial({color:c.react, emissive:c.emiss, emissiveIntensity:1.6});
-  // helmet dome
-  const dome=new THREE.Mesh(new THREE.SphereGeometry(0.72, 32, 32, 0, Math.PI*2, 0, Math.PI*0.72), matHelm);
-  dome.position.y=0.62; dome.scale.set(1,0.82,1); dome.userData.baseY=0.62; dome.name='dome'; armorGroup.add(dome);
-  // faceplate
-  const face=new THREE.Mesh(new THREE.BoxGeometry(0.86,0.48,0.18), matFace);
-  face.position.set(0,0.44,0.62); face.rotation.x=-0.08; face.userData.basePos=face.position.clone(); face.name='face'; armorGroup.add(face);
-  // eyes
-  const eyeL=new THREE.Mesh(new THREE.PlaneGeometry(0.18,0.07), matEye); eyeL.position.set(-0.19,0.49,0.73); eyeL.rotation.z=0.12; eyeL.name='eyeL'; armorGroup.add(eyeL);
-  const eyeR=new THREE.Mesh(new THREE.PlaneGeometry(0.18,0.07), matEye); eyeR.position.set(0.19,0.49,0.73); eyeR.rotation.z=-0.12; eyeR.name='eyeR'; armorGroup.add(eyeR);
-  // brow
-  const brow=new THREE.Mesh(new THREE.BoxGeometry(0.54,0.06,0.08), matHelm); brow.position.set(0,0.58,0.71); brow.name='brow'; armorGroup.add(brow);
-  // cheek plates
-  const cheekL=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.34,0.12), matHelm); cheekL.position.set(-0.38,0.38,0.58); cheekL.name='cheekL'; armorGroup.add(cheekL);
-  const cheekR=cheekL.clone(); cheekR.position.set(0.38,0.38,0.58); cheekR.name='cheekR'; armorGroup.add(cheekR);
-  // neck
-  const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.32,0.22, 24), matHelm); neck.position.y=0.18; neck.name='neck'; armorGroup.add(neck);
-  // chest
-  const chest=new THREE.Mesh(new THREE.BoxGeometry(1.42,1.02,0.56), matChest); chest.position.y=-0.38; chest.name='chest'; armorGroup.add(chest);
-  // arc reactor
-  const reactor=new THREE.Mesh(new THREE.CircleGeometry(0.18,32), matReact); reactor.position.set(0,-0.38,0.29); reactor.name='reactor'; armorGroup.add(reactor);
-  const ring=new THREE.Mesh(new THREE.RingGeometry(0.20,0.24,32), new THREE.MeshStandardMaterial({color:0xffffff, emissive:0xffffff, emissiveIntensity:0.4, side:THREE.DoubleSide})); ring.position.set(0,-0.38,0.285); armorGroup.add(ring);
-  // shoulder pads
-  const shL=new THREE.Mesh(new THREE.SphereGeometry(0.34,24,24), matHelm); shL.position.set(-0.92,-0.24,0.08); shL.scale.set(1,0.8,0.9); shL.name='shL'; armorGroup.add(shL);
-  const shR=shL.clone(); shR.position.set(0.92,-0.24,0.08); shR.name='shR'; armorGroup.add(shR);
-  // Tony head inside (revealed when disassembled)
-  const headGeo=new THREE.SphereGeometry(0.36,24,24); const headMat=new THREE.MeshStandardMaterial({color:0xe8c7a8, roughness:0.7}); tonyHead=new THREE.Mesh(headGeo, headMat); tonyHead.position.set(0,0.42,0.22); tonyHead.scale.set(1,1.15,0.9); tonyHead.visible=false; tonyHead.name='tony'; armorGroup.add(tonyHead);
-  // beard hint
-  const beard=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.08,0.05), new THREE.MeshStandardMaterial({color:0x2b1a0a})); beard.position.set(0,0.28,0.42); armorGroup.add(beard);
-  armorGroup.position.y=-0.06;
-  armorGroup.scale.set(1.08,1.08,1.08);
+  const c=colorsFor(mode);
+  const mat=new THREE.MeshStandardMaterial({color:0x1e2a44, metalness:0.82, roughness:0.22});
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(0.72,32,32,0,Math.PI*2,0,Math.PI*0.72), mat); dome.position.y=0.62; dome.scale.set(1,0.82,1); armorGroup.add(dome);
+  const chest=new THREE.Mesh(new THREE.BoxGeometry(1.3,0.9,0.5), mat); chest.position.y=-0.38; armorGroup.add(chest);
   scene3d.add(armorGroup);
-  document.getElementById('disBadge').textContent='3D • '+mode.toUpperCase()+' • СБОРКА';
 }
 function animate3D(){
-  if(!scene3d || !ren3d || !armorGroup) return;
+  if(!scene3d || !ren3d) return;
   raf3d=requestAnimationFrame(animate3D);
-  const t=Date.now()*0.001;
-  if(!isDisassembled){
-    armorGroup.rotation.y += 0.006 + Math.sin(t*0.2)*0.002;
-    armorGroup.position.y = -0.06 + Math.sin(t*1.1)*0.06;
+  const dt=clock3d.getDelta();
+  if(mixer3d) mixer3d.update(dt);
+  // per persona mixer
+  Object.values(realModels).forEach(v=>{ if(v.mixer) v.mixer.update(dt); });
+  if(armorGroup && !isDisassembled){
+    // hand control overrides auto
+    if(!handControl.pinching){
+      armorGroup.rotation.y += 0.004;
+      armorGroup.position.y = -0.06 + Math.sin(Date.now()*0.0011)*0.05;
+    }
     if(tonyHead) tonyHead.visible=false;
-    // reactor pulse
-    if(matReact) matReact.emissiveIntensity = 1.4 + Math.sin(t*3)*0.5;
-  } else {
-    // slow rotation when exploded
-    armorGroup.rotation.y += 0.003;
+  } else if(armorGroup){
+    armorGroup.rotation.y += 0.002;
+  }
+  // hand-driven move
+  if(handControl.pinching && armorGroup){
+    armorGroup.rotation.y += handControl.dx*0.015;
+    armorGroup.position.x += handControl.dx*0.006;
+    armorGroup.position.y = Math.max(-0.9, Math.min(0.6, armorGroup.position.y + handControl.dy*0.006));
   }
   ren3d.render(scene3d, cam3d);
 }
@@ -1256,33 +1196,33 @@ function toggleDisassemble(force){
   const badge=document.getElementById('disBadge');
   if(isDisassembled){
     if(badge) badge.textContent='🦾 РАЗБОР • ТОНИ ВНУТРИ';
-    // explode parts
-    const moves={dome:[0,0.55,0.18], face:[0,0.12,0.9], eyeL:[-0.12,0.05,0.18], eyeR:[0.12,0.05,0.18], cheekL:[-0.32,0.05,0.18], cheekR:[0.32,0.05,0.18], chest:[0,-0.08,0.22], shL:[-0.42,0,0.12], shR:[0.42,0,0.12], neck:[0,0.12,0], reactor:[0,0,0.18]};
-    armorGroup.children.forEach(ch=>{
-      if(moves[ch.name]){
-        const m=moves[ch.name];
-        // animate via simple lerp
-        const target=new THREE.Vector3().fromArray(m);
-        // store base
-        if(!ch.userData.orig) ch.userData.orig=ch.position.clone();
-        // lerp
-        ch.position.lerpVectors(ch.userData.orig, ch.userData.orig.clone().add(target), 1);
-      }
-      if(ch.name==='chest') ch.position.y += -0.06;
+    // разбор: разносим модель по осям + показываем Тони
+    armorGroup.children.forEach((ch,i)=>{
+      if(!ch.userData.orig) ch.userData.orig={p:ch.position.clone(), r:ch.rotation.clone(), s:ch.scale.clone()};
+      const off=new THREE.Vector3((Math.random()-0.5)*1.1, (Math.random()*0.6), (Math.random()-0.5)*0.8);
+      ch.position.lerpVectors(ch.userData.orig.p, ch.userData.orig.p.clone().add(off), 0.9);
+      ch.rotation.x += (Math.random()-0.5)*0.6;
+      ch.rotation.y += (Math.random()-0.5)*0.6;
     });
-    if(tonyHead){ tonyHead.visible=true; tonyHead.position.y=0.42; }
+    if(tonyHead){ tonyHead.visible=true; tonyHead.scale.set(1.1,1.1,1.1); }
     log('3D разбор');
-    speakText(currentMode==='ultron'?'Костюм снят. Тони Старк внутри.':'Броня разобрана, сэр Амин. Тони Старк к вашим услугам.');
+    speakText(currentMode==='ultron'?'Ультрон раскрыт. Ядро обнажено.':'Броня разобрана, сэр Амин. Тони Старк к вашим услугам.');
+    if(handControl.openPalm) log('hand open → разбор');
   } else {
-    if(badge) badge.textContent='3D • СБОРКА';
+    if(badge) badge.textContent='3D • '+currentMode.toUpperCase()+' • СБОРКА';
     armorGroup.children.forEach(ch=>{
-      if(ch.userData.orig) ch.position.copy(ch.userData.orig);
+      if(ch.userData.orig){ ch.position.copy(ch.userData.orig.p); ch.rotation.copy(ch.userData.orig.r); ch.scale.copy(ch.userData.orig.s); }
     });
     if(tonyHead) tonyHead.visible=false;
     log('3D сборка');
   }
 }
+// ===== HAND CAMERA CONTROL for 3D =====
+// 3D hand linked to main hands — see onHandResults hook below
 // hook persona
+
+// hook persona
+
 const _origSetMode=setMode;
 setMode=function(m,speak){
   _origSetMode(m,speak);
