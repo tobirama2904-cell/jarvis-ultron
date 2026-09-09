@@ -745,31 +745,50 @@ async function genCode(){
   const prompt=document.getElementById('codePrompt').value.trim();
   const lang=document.getElementById('codeLang').value;
   if(!prompt) return addMsg('sys','💻 Напиши что накодить');
-  const k=getKey(); if(!k){ addMsg('sys','🔑 Вставь Agnes ключ сверху'); return; }
-  const sys=`Ты — топ-кодер уровня Claude Opus 4.7, но ты Agnes 2.5-flash free безлимит. Пиши чистый рабочий код без воды. Язык: ${lang}. Всегда отдавай ПОЛНЫЙ файл, готовый к запуску. Если html — отдавай один html-файл с <style> и <script> внутри, с красивым дизайном. Если python/js/react — отдавай полный код с примером. Отвечай ТОЛЬКО кодом в \`\`\` блоке, без лишнего текста.`;
-  document.getElementById('codeStat').textContent='⏳ Генерю через agnes-2.5-flash...';
-  addMsg('bot','💻 Кодю для Амина: "'+prompt.slice(0,60)+'" → agnes-2.5-flash');
+  const k=getKey(); if(!k) return addMsg('sys','🔑 Ключ Agnes');
+  const sys=`Ты — топ-кодер уровня Opus 4.7, Agnes 2.5-flash free безлимит. Пиши ПОЛНЫЙ рабочий файл без обрывов и без // ... . Язык ${lang}. Если html — один файл с <style> и <script> внутри, красивый, до </html>. Отвечай ТОЛЬКО кодом в \`\`\` блоке. Не обрывай.`;
+  document.getElementById('codeStat').textContent='⏳ Генерю 8000 токенов (без обрывов)...';
   log('coding '+lang+' "'+prompt.slice(0,30)+'"');
   try{
-    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
-      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
-      body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:6000, temperature:0.45})
-    });
-    const j=await r.json();
-    if(!r.ok){ document.getElementById('codeStat').textContent='Ошибка '+r.status; log('code err '+r.status); return; }
-    let txt=(j.choices?.[0]?.message?.content||'').trim();
-    // вытаскиваем ```code```
-    const m=txt.match(/```(?:\w+)?\n([\s\S]*?)```/);
-    if(m) txt=m[1].trim();
-    // если html без блока — берём как есть
+    let fullTxt='';
+    let msgs=[{role:'system',content:sys},{role:'user',content:prompt}];
+    for(let attempt=0; attempt<3; attempt++){
+      const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
+        body: JSON.stringify({model:'agnes-2.5-flash', messages:msgs, max_tokens:8000, temperature:0.36})
+      });
+      const j=await r.json();
+      if(!r.ok){ document.getElementById('codeStat').textContent='Ошибка '+r.status; log('code err '+r.status); return; }
+      let chunk=(j.choices?.[0]?.message?.content||'');
+      const finish=j.choices?.[0]?.finish_reason;
+      log('chunk '+chunk.length+' finish:'+finish);
+      fullTxt+=chunk;
+      if(finish!=='length') break;
+      document.getElementById('codeStat').textContent='✂️ Обрыв — доклеиваю '+(attempt+2)+'/3...';
+      log('length обрыв, доклейка '+(attempt+1));
+      msgs=[{role:'system',content:sys}, {role:'user',content:prompt}, {role:'assistant',content:fullTxt}, {role:'user',content:'Продолжи код СТРОГО с места где оборвался, не повторяй начало, не ставь ``` в начале, продолжай до </html>'}];
+      await new Promise(r=>setTimeout(r,700));
+    }
+    let txt=fullTxt.trim();
+    let mm=txt.match(/```(?:\w+)?\n([\s\S]*?)```/);
+    if(mm) txt=mm[1].trim();
+    else {
+      const open=txt.indexOf('```');
+      if(open!==-1){ const after=txt.indexOf('\n', open); if(after!==-1) txt=txt.slice(after+1).trim(); txt=txt.replace(/```\s*$/,'').trim(); }
+      txt=txt.replace(/^```\w*\n?/,'').replace(/```$/,'').trim();
+    }
+    if(txt.length<80){ document.getElementById('codeStat').textContent='⚠️ Пусто — повтори'; log('too short'); return; }
+    if((lang==='html' || prompt.toLowerCase().includes('лендинг') || prompt.toLowerCase().includes('сайт')) && !txt.includes('</html>')){
+      log('⚠️ без </html> после доклейки'); document.getElementById('codeStat').textContent='⚠️ Всё ещё обрезан — нажми ещё раз';
+    } else {
+      document.getElementById('codeStat').textContent='✅ Готово ('+txt.length+' симв) — без обрывов';
+    }
     document.getElementById('codeOut').value=txt;
-    document.getElementById('codeStat').textContent='✅ Готово ('+txt.length+' симв) — жми Запустить';
+    document.getElementById('codeLen').textContent=txt.length+' симв';
     log('code done '+txt.length);
-    speakText('Готово, Амин. Код сгенерирован agnes два пять.');
-    // авто-превью если html
-    if(lang==='html' || txt.trim().startsWith('<!DOCTYPE') || txt.includes('<html')){
+    if(txt.includes('<!DOCTYPE') || txt.includes('<html') || lang==='html'){
       document.getElementById('codePreview').srcdoc=txt;
-      document.getElementById('codeConsole').textContent='превью обновлено • html';
+      document.getElementById('codeConsole').textContent='превью обновлено • '+new Date().toLocaleTimeString();
     }
   }catch(e){ document.getElementById('codeStat').textContent='Ошибка '+e.message; log('code fail '+e.message); }
 }
