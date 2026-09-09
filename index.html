@@ -113,6 +113,7 @@
 </nav>
 
 <div class="shell">
+<div id="guestBanner" style="grid-column:1 / -1;background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(139,92,246,.12));border:1px solid rgba(59,130,246,.25);border-radius:14px;padding:10px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div style="font-size:12px;line-height:1.4"><b style="color:white">👋 Первый раз? Нужен ключ Agnes</b> <span style="color:var(--muted)">— без него чат/код/изо/видео не заведутся. 20 сек и безлимит бесплатно.</span></div><a href="https://apihub.agnes-ai.com" target="_blank" style="padding:7px 14px;border-radius:999px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:white;font-weight:800;font-size:12px;text-decoration:none;white-space:nowrap">🔑 Получить ключ →</a></div>
   <!-- LEFT HERO -->
   <div class="card">
     <div class="card-head"><b id="orbTitle">HOLO-ORB • JARVIS</b><div style="display:flex;gap:6px;align-items:center"><span id="fps" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">● LIVE</span><div class="wave" id="wave" style="display:none"><i></i><i></i><i></i></div></div></div>
@@ -141,9 +142,11 @@
     </div>
     <div class="log" id="log">готов для Амина... нажми 🔊 Тест</div>
     <div style="padding:10px;border-top:1px solid var(--line)">
-      <div style="font-size:11px;font-weight:700">🔑 Agnes один ключ на всё</div>
-      <input id="agnesKey" placeholder="sk-... (platform.agnes-ai.com)" style="width:100%;height:38px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;font-size:12px;margin-top:6px">
-      <div style="display:flex;gap:8px;margin-top:8px"><button class="btn primary" style="height:32px" onclick="saveAgnes()">💾 Сохранить</button><button class="btn" style="height:32px" onclick="testAgnes()">Проверить</button><button class="btn" style="height:32px" onclick="clearAgnes()">Очистить</button><span id="agnesStat" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);align-self:center">проверка...</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="font-size:11px;font-weight:800">🔑 Agnes один ключ на всё</div><span style="font-size:9px;padding:3px 7px;border-radius:999px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);color:#34d399;font-weight:700">FREE • БЕЗЛИМИТ</span></div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.45;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:8px">👋 <b>Гость?</b> Без ключа не генерит. <b>Где взять:</b> <a href="https://apihub.agnes-ai.com" target="_blank" style="color:#60a5fa;text-decoration:underline;font-weight:700">apihub.agnes-ai.com → Получить ключ</a> → копируешь <b>sk-...</b> → вставляешь сюда → <b>Сохранить</b>. Занимает 20 сек, дальше всё бесплатно.<br><span style="opacity:.8">Модели: <b>agnes-2.5-flash</b> (текст/код ≈ Opus 4.7), <b>agnes-image-2.1</b>, <b>agnes-video-v2.0</b> — один ключ.</span></div>
+      <input id="agnesKey" placeholder="sk-... вставь сюда (apihub.agnes-ai.com)" style="width:100%;height:38px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;font-size:12px;margin-top:8px">
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center"><button class="btn primary" style="height:32px" onclick="saveAgnes()">💾 Сохранить</button><a href="https://apihub.agnes-ai.com" target="_blank" style="height:32px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;border-radius:999px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:white;font-weight:800;font-size:12px;text-decoration:none;box-shadow:0 6px 18px rgba(59,130,246,.35)">🔗 Получить ключ</a><button class="btn" style="height:32px" onclick="testAgnes()">Проверить</button><button class="btn" style="height:32px" onclick="clearAgnes()">Очистить</button><span id="agnesStat" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);align-self:center">проверка...</span></div>
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><span style="font-size:9px;color:var(--muted)">Нет ключа? Нажми</span><a href="https://apihub.agnes-ai.com" target="_blank" style="font-size:9px;color:#60a5fa;text-decoration:underline">инструкцию за 20 сек</a><span style="font-size:9px;color:var(--muted)">— видео/код/картинки станут активны.</span></div>
     </div>
   </div>
 
@@ -648,6 +651,7 @@ async function testAgnes(){
   document.getElementById('agnesStat').textContent='429 — подожди 20с'; setDot('off');
 }
 document.getElementById('agnesKey').value=getKey()||'sk-22J77EfguZlFo2k8dIGSwmrRrRWmI8IvTeZawIBRtZ9gI23d';
+if(getKey()){ const b=document.getElementById('guestBanner'); if(b) b.style.display='none'; }
 if(getKey()||document.getElementById('agnesKey').value) testAgnes();
 
 // chat
