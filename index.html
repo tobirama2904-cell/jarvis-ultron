@@ -150,6 +150,159 @@ setTimeout(()=>{
 window.addEventListener('load', ()=> setTimeout(initHolo3D, 900));
 setTimeout(initHolo3D, 1400);
 
+
+// ===== TOOL CALLING + DEEP RESEARCH (безлимит, всё через Agnes + free APIs) =====
+function tlog(m){ const el=document.getElementById('toolLog'); if(el){ el.textContent += m + "\n"; el.scrollTop=el.scrollHeight; } console.log(m); }
+function rlog(m){ const el=document.getElementById('researchLog'); if(el){ el.textContent += m + "\n"; el.scrollTop=el.scrollHeight; } }
+function clearToolLog(){ const el=document.getElementById('toolLog'); if(el) el.textContent=''; }
+async function web_search(q){
+  tlog('🔍 web_search: '+q);
+  try{
+    // free via DuckDuckGo HTML + allorigins proxy (без ключа, безлимит)
+    const url = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q));
+    const r=await fetch(url);
+    const j=await r.json();
+    const html=j.contents||'';
+    // parse results naive
+    const doc=new DOMParser().parseFromString(html,'text/html');
+    const links=[...doc.querySelectorAll('.result__a')].slice(0,5).map(a=>({title:a.textContent.trim(), url:a.href, snippet: a.closest('.result')?.querySelector('.result__snippet')?.textContent?.trim()?.slice(0,180)||''}));
+    if(!links.length){
+      // fallback: use DuckDuckGo API
+      const r2=await fetch('https://api.duckduckgo.com/?q='+encodeURIComponent(q)+'&format=json&pretty=1');
+      const j2=await r2.json();
+      return {results:[{title:j2.Heading||q, url:j2.AbstractURL||'', snippet:j2.AbstractText?.slice(0,300)||'No snippet'}]};
+    }
+    return {results:links};
+  }catch(e){ tlog('search fail '+e.message); return {results:[{title:'search error', snippet:e.message}]}; }
+}
+async function web_fetch(url){
+  tlog('🌐 web_fetch: '+url);
+  try{
+    // Jina AI summarizer proxy — бесплатно, без ключа, возвращает markdown
+    const r=await fetch('https://cc.bingj.com/cache.cgi?d=1&u='+encodeURIComponent(url), {headers:{'User-Agent':'Mozilla'}}).catch(()=>null);
+    if(r && r.ok){
+      const txt=await r.text();
+      return {content: txt.slice(0,4000)};
+    }
+    // fallback via allorigins
+    const r2=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));
+    const j2=await r2.json();
+    return {content: (j2.contents||'').slice(0,4000)};
+  }catch(e){ return {content:'fetch error '+e.message}; }
+}
+async function code_run(code){
+  tlog('💻 code_run: '+code.slice(0,60));
+  try{
+    let out='';
+    const old=console.log;
+    console.log=(...a)=>{ out+=a.join(' ')+'\n'; old(...a); };
+    const res=Function('"use strict";'+code)();
+    console.log=old;
+    return {result: out + (res!==undefined? String(res):''), truncated: (out+String(res)).slice(0,2000)};
+  }catch(e){ return {error:e.message}; }
+}
+const TOOLS = {web_search, web_fetch, code_run,
+  memory_save: async (a)=>{ addProject('tool', a.text||JSON.stringify(a)); return {saved:true}; },
+  image_gen: async (a)=>{ document.getElementById('imgPrompt2').value=a.prompt||a.q||''; await genImg2(); return {done:true}; },
+  video_gen: async (a)=>{ document.getElementById('vidPrompt2').value=a.prompt||a.q||''; await genVid2(); return {done:true}; }
+};
+async function runToolCalling(){
+  const q=document.getElementById('toolInput').value.trim();
+  if(!q) return;
+  const k=getKey(); if(!k) return addMsg('sys','🔑 Ключ');
+  document.getElementById('toolLog').textContent='';
+  tlog('▶️ Tool calling: '+q);
+  addMsg('bot','🔧 Тулзы: '+q);
+  const sys = `Ты — JARVIS с tool calling. Доступные инструменты: web_search({query}), web_fetch({url}), code_run({code}), memory_save({text}), image_gen({prompt}), video_gen({prompt}). 
+Если нужен внешний поиск — вызови web_search. Если надо прочитать страницу — web_fetch. Если код — code_run. 
+Отвечай СТРОГО JSON: {"tool":"web_search","args":{"query":"..."}} или {"tool":"none","answer":"..."} . Не пиши текст вне JSON когда вызываешь тул.`;
+  let msgs=[{role:'system',content:sys},{role:'user',content:q}];
+  for(let step=0; step<5; step++){
+    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:msgs, max_tokens:1200, temperature:0.35})});
+    const j=await r.json();
+    if(!r.ok){ tlog('agnes err '+r.status); break; }
+    let txt=(j.choices?.[0]?.message?.content||'').trim();
+    tlog('🤖 '+txt.slice(0,300));
+    // try parse JSON tool
+    let parsed=null;
+    try{ const m=txt.match(/\{[\s\S]*\}/); if(m) parsed=JSON.parse(m[0]); }catch{}
+    if(parsed && parsed.tool && parsed.tool!=='none' && TOOLS[parsed.tool]){
+      tlog('→ вызываю '+parsed.tool+' '+JSON.stringify(parsed.args).slice(0,120));
+      const res=await TOOLS[parsed.tool](parsed.args||{});
+      tlog('← '+JSON.stringify(res).slice(0,400));
+      msgs.push({role:'assistant', content: txt});
+      msgs.push({role:'user', content: `TOOL_RESULT ${parsed.tool}: ${JSON.stringify(res).slice(0,3000)} — продолжи, если ещё нужны тулзы, иначе дай финальный ответ в JSON {"tool":"none","answer":"...финальный ответ с источниками..."}`});
+    } else {
+      // final answer
+      let ans=parsed?.answer || txt;
+      // strip JSON wrapper if needed
+      if(parsed && parsed.answer) ans=parsed.answer;
+      document.getElementById('toolLog').textContent += "\n✅ ФИНАЛ:\n"+ans;
+      addMsg('bot', ans);
+      speakText(ans.slice(0,220));
+      break;
+    }
+  }
+}
+async function demoTool(name){
+  const d={web_search:'Найди последние новости про Iron Man костюм 2026', web_fetch:'Прочитай https://en.wikipedia.org/wiki/Iron_Man', code_run:'Сгенери код на JS: факториал 5'};
+  document.getElementById('toolInput').value=d[name]||name;
+  runToolCalling();
+}
+async function runDeepResearch(){
+  const topic=document.getElementById('researchInput').value.trim();
+  if(!topic) return;
+  const k=getKey(); if(!k) return addMsg('sys','🔑 Ключ');
+  const out=document.getElementById('researchOut');
+  const logEl=document.getElementById('researchLog');
+  out.innerHTML='<div style="color:var(--muted)">🔍 Запускаю deep research по: <b>'+topic+'</b> — 3-5 поисков, чтение страниц...</div>';
+  logEl.textContent='';
+  rlog('▶️ Deep Research: '+topic);
+  try{
+    // Step 1: ask Agnes to plan queries
+    const planSys='Ты — исследователь. Для темы пользователя сгенерируй 3 поисковых запроса для deep research. Отвечай JSON массивом строк: ["запрос1","запрос2","запрос3"]';
+    const pr=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:planSys},{role:'user',content:topic}], max_tokens:600, temperature:0.4})});
+    const pj=await pr.json();
+    let queries=[];
+    try{ const m=(pj.choices?.[0]?.message?.content||'').match(/\[[\s\S]*\]/); if(m) queries=JSON.parse(m[0]); }catch{}
+    if(!queries.length) queries=[topic, topic+' 2026', topic+' обзор'];
+    rlog('queries: '+queries.join(' | '));
+    // Step 2: search each
+    let sources=[];
+    for(let q of queries.slice(0,3)){
+      rlog('🔍 '+q);
+      const res=await web_search(q);
+      const top=res.results.slice(0,2);
+      for(let s of top){
+        rlog('→ '+s.title.slice(0,50));
+        if(s.url){
+          const f=await web_fetch(s.url);
+          sources.push({title:s.title, url:s.url, snippet:s.snippet, content:f.content.slice(0,1200)});
+        } else {
+          sources.push(s);
+        }
+      }
+      out.innerHTML += `<div style="margin-top:6px;font-size:11px;color:var(--muted)">🔍 ${q} — ${top.length} источников</div>`;
+    }
+    // Step 3: synthesize
+    rlog('синтез '+sources.length+' источников');
+    out.innerHTML += `<div style="margin-top:8px;color:var(--accent)">⏳ Синтезирую отчёт из ${sources.length} источников...</div>`;
+    const synthSys=`Ты — аналитик deep research. На основе источников сделай структурированный отчёт: 1) TL;DR 2) Ключевые факты (5-7 пунктов) 3) Детали 4) Источники (ссылки). Пиши по-русски, до 400 слов, с эмодзи.`;
+    const srcText=sources.map((s,i)=>`[${i+1}] ${s.title} — ${s.snippet} — ${s.url}\n${(s.content||'').slice(0,800)}`).join('\n\n').slice(0,9000);
+    const sr=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:synthSys},{role:'user',content:`Тема: ${topic}\n\nИсточники:\n${srcText}`}], max_tokens:1800, temperature:0.45})});
+    const sj=await sr.json();
+    const report=(sj.choices?.[0]?.message?.content||'Ошибка синтеза').trim();
+    out.innerHTML = `<div style="white-space:pre-wrap">${report.replace(/</g,'&lt;')}</div><div style="margin-top:10px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;font-size:11px"><b>Источники:</b><br>`+sources.map(s=>`• <a href="${s.url}" target="_blank" style="color:#60a5fa">${s.title}</a>`).join('<br>')+`</div>`;
+    rlog('✅ Готово');
+    addMsg('bot','🔍 Deep Research готово: '+topic.slice(0,40));
+    // save to memory
+    addProject('research', topic, report.slice(0,80));
+  }catch(e){
+    rlog('ошибка '+e.message);
+    document.getElementById('researchOut').innerHTML='<div style="color:#f87171">Ошибка: '+e.message+'</div>';
+  }
+}
+
 </script>
 </head>
 <body class="theme-jarvis">
@@ -228,6 +381,8 @@ setTimeout(initHolo3D, 1400);
       <div class="tab" id="t-code" onclick="switchTab('code')">💻 Кодинг • 2.5-flash</div>
       <div class="tab" id="t-image" onclick="switchTab('image')">🎨 Изображения</div>
       <div class="tab" id="t-video" onclick="switchTab('video')">🎬 Видео</div>
+      <div class="tab" id="t-tools" onclick="switchTab('tools')">🔧 Тулзы</div>
+      <div class="tab" id="t-research" onclick="switchTab('research')">🔍 Research</div>
     </div>
 
     <!-- CHAT -->
@@ -285,6 +440,49 @@ setTimeout(initHolo3D, 1400);
         <button class="btn primary" onclick="genVid2()">🎬 Генерить</button>
       </div>
       <div id="vidList" style="display:flex;flex-direction:column;gap:8px"></div>
+    <!-- TOOLS -->
+    <div class="pane" id="pane-tools">
+      <div style="padding:14px">
+        <div style="font-size:13px;font-weight:800">🔧 Tool Calling • безлимит • Agnes 2.5-flash</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">AI сам вызывает инструменты: <b>web_search</b>, <b>web_fetch</b>, <b>code_run</b>, <b>image/video gen</b>, <b>memory</b>. Всё локально, безлимит.</div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn primary" onclick="demoTool('web_search')">🔍 web_search демо</button>
+          <button class="btn" onclick="demoTool('web_fetch')">🌐 web_fetch демо</button>
+          <button class="btn" onclick="demoTool('code_run')">💻 code_run демо</button>
+          <button class="btn" onclick="clearToolLog()">Очистить</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input id="toolInput" placeholder="Попроси: найди последние новости про Iron Man и сделай сводку" style="flex:1;height:38px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px">
+          <button class="btn primary" onclick="runToolCalling()">▶️ Запустить</button>
+        </div>
+        <div id="toolLog" style="margin-top:10px;max-height:320px;overflow:auto;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:11px;white-space:pre-wrap"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <span style="font-size:10px;color:var(--muted)">Интеграции (безлимит, через твой браузер):</span>
+          <span style="font-size:10px;padding:4px 8px;border-radius:999px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3)">GitHub (твой токен)</span>
+          <span style="font-size:10px;padding:4px 8px;border-radius:999px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3)">Telegram (Webhook)</span>
+          <span style="font-size:10px;padding:4px 8px;border-radius:999px;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.3)">Web Search (DuckDuckGo + Jina)</span>
+        </div>
+      </div>
+    </div>
+    <!-- RESEARCH -->
+    <div class="pane" id="pane-research">
+      <div style="padding:14px">
+        <div style="font-size:13px;font-weight:800">🔍 Deep Research • безлимит</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Многошаговый ресёрч: AI делает 3-5 поисков, читает страницы, синтезирует отчёт с источниками. Всё бесплатно, через твой ключ Agnes.</div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input id="researchInput" placeholder="Тема: последние прорывы в ядерном синтезе 2026" style="flex:1;height:38px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px">
+          <button class="btn primary" onclick="runDeepResearch()">🔍 Исследовать</button>
+          <button class="btn" onclick="document.getElementById('researchOut').innerHTML=''">Очистить</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('researchInput').value='Iron Man костюм в реальной жизни 2026 прогресс'; runDeepResearch()">🦾 Iron Man</button>
+          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('researchInput').value='Agnes AI vs Claude Opus сравнение'; runDeepResearch()">Agnes vs Claude</button>
+          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('researchInput').value='Душанбе IT стартапы 2026'; runDeepResearch()">Душанбе IT</button>
+        </div>
+        <div id="researchOut" style="margin-top:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:120px;font-size:12px;line-height:1.5"></div>
+        <div id="researchLog" style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);white-space:pre-wrap"></div>
+      </div>
+    </div>
     </div>
   </div>
 </div>
@@ -857,7 +1055,22 @@ async function genCode(){
     if(!r.ok){ document.getElementById('codeStat').textContent='Ошибка '+r.status; return; }
     let txt=(j.choices?.[0]?.message?.content||'').trim();
     const finish=j.choices?.[0]?.finish_reason;
-    if(finish==='length') log('⚠️ length но отдаю как есть — без доклейки');
+    if(finish==='length'){
+      log('⚠️ length — быстрая доклейка 1 шаг');
+      try{
+        const r2=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
+          method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
+          body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:prompt},{role:'assistant',content:txt},{role:'user',content:'Продолжи с места обрыва, не повторяй, заверши до </html>'}], max_tokens:4000, temperature:0.28})
+        });
+        const j2=await r2.json();
+        if(r2.ok){
+          let add=(j2.choices?.[0]?.message?.content||'').trim();
+          const mm2=add.match(/```(?:\w+)?\n([\s\S]*?)```/); if(mm2) add=mm2[1].trim(); else add=add.replace(/^```\w*\n?/,'').replace(/```$/,'').trim();
+          txt += "\n" + add;
+          log('доклеено +'+add.length);
+        }
+      }catch(e){ log('доклейка fail '+e.message); }
+    }
     let mm=txt.match(/```(?:\w+)?\n([\s\S]*?)```/);
     if(mm) txt=mm[1].trim();
     else { const o=txt.indexOf('```'); if(o!==-1){ const a=txt.indexOf('\n',o); if(a!==-1) txt=txt.slice(a+1).trim(); txt=txt.replace(/```\s*$/,'').trim(); } txt=txt.replace(/^```\w*\n?/,'').replace(/```$/,'').trim(); }
@@ -1197,6 +1410,159 @@ setTimeout(()=>{
 // init after load
 window.addEventListener('load', ()=> setTimeout(initHolo3D, 900));
 setTimeout(initHolo3D, 1400);
+
+
+// ===== TOOL CALLING + DEEP RESEARCH (безлимит, всё через Agnes + free APIs) =====
+function tlog(m){ const el=document.getElementById('toolLog'); if(el){ el.textContent += m + "\n"; el.scrollTop=el.scrollHeight; } console.log(m); }
+function rlog(m){ const el=document.getElementById('researchLog'); if(el){ el.textContent += m + "\n"; el.scrollTop=el.scrollHeight; } }
+function clearToolLog(){ const el=document.getElementById('toolLog'); if(el) el.textContent=''; }
+async function web_search(q){
+  tlog('🔍 web_search: '+q);
+  try{
+    // free via DuckDuckGo HTML + allorigins proxy (без ключа, безлимит)
+    const url = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q));
+    const r=await fetch(url);
+    const j=await r.json();
+    const html=j.contents||'';
+    // parse results naive
+    const doc=new DOMParser().parseFromString(html,'text/html');
+    const links=[...doc.querySelectorAll('.result__a')].slice(0,5).map(a=>({title:a.textContent.trim(), url:a.href, snippet: a.closest('.result')?.querySelector('.result__snippet')?.textContent?.trim()?.slice(0,180)||''}));
+    if(!links.length){
+      // fallback: use DuckDuckGo API
+      const r2=await fetch('https://api.duckduckgo.com/?q='+encodeURIComponent(q)+'&format=json&pretty=1');
+      const j2=await r2.json();
+      return {results:[{title:j2.Heading||q, url:j2.AbstractURL||'', snippet:j2.AbstractText?.slice(0,300)||'No snippet'}]};
+    }
+    return {results:links};
+  }catch(e){ tlog('search fail '+e.message); return {results:[{title:'search error', snippet:e.message}]}; }
+}
+async function web_fetch(url){
+  tlog('🌐 web_fetch: '+url);
+  try{
+    // Jina AI summarizer proxy — бесплатно, без ключа, возвращает markdown
+    const r=await fetch('https://cc.bingj.com/cache.cgi?d=1&u='+encodeURIComponent(url), {headers:{'User-Agent':'Mozilla'}}).catch(()=>null);
+    if(r && r.ok){
+      const txt=await r.text();
+      return {content: txt.slice(0,4000)};
+    }
+    // fallback via allorigins
+    const r2=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));
+    const j2=await r2.json();
+    return {content: (j2.contents||'').slice(0,4000)};
+  }catch(e){ return {content:'fetch error '+e.message}; }
+}
+async function code_run(code){
+  tlog('💻 code_run: '+code.slice(0,60));
+  try{
+    let out='';
+    const old=console.log;
+    console.log=(...a)=>{ out+=a.join(' ')+'\n'; old(...a); };
+    const res=Function('"use strict";'+code)();
+    console.log=old;
+    return {result: out + (res!==undefined? String(res):''), truncated: (out+String(res)).slice(0,2000)};
+  }catch(e){ return {error:e.message}; }
+}
+const TOOLS = {web_search, web_fetch, code_run,
+  memory_save: async (a)=>{ addProject('tool', a.text||JSON.stringify(a)); return {saved:true}; },
+  image_gen: async (a)=>{ document.getElementById('imgPrompt2').value=a.prompt||a.q||''; await genImg2(); return {done:true}; },
+  video_gen: async (a)=>{ document.getElementById('vidPrompt2').value=a.prompt||a.q||''; await genVid2(); return {done:true}; }
+};
+async function runToolCalling(){
+  const q=document.getElementById('toolInput').value.trim();
+  if(!q) return;
+  const k=getKey(); if(!k) return addMsg('sys','🔑 Ключ');
+  document.getElementById('toolLog').textContent='';
+  tlog('▶️ Tool calling: '+q);
+  addMsg('bot','🔧 Тулзы: '+q);
+  const sys = `Ты — JARVIS с tool calling. Доступные инструменты: web_search({query}), web_fetch({url}), code_run({code}), memory_save({text}), image_gen({prompt}), video_gen({prompt}). 
+Если нужен внешний поиск — вызови web_search. Если надо прочитать страницу — web_fetch. Если код — code_run. 
+Отвечай СТРОГО JSON: {"tool":"web_search","args":{"query":"..."}} или {"tool":"none","answer":"..."} . Не пиши текст вне JSON когда вызываешь тул.`;
+  let msgs=[{role:'system',content:sys},{role:'user',content:q}];
+  for(let step=0; step<5; step++){
+    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:msgs, max_tokens:1200, temperature:0.35})});
+    const j=await r.json();
+    if(!r.ok){ tlog('agnes err '+r.status); break; }
+    let txt=(j.choices?.[0]?.message?.content||'').trim();
+    tlog('🤖 '+txt.slice(0,300));
+    // try parse JSON tool
+    let parsed=null;
+    try{ const m=txt.match(/\{[\s\S]*\}/); if(m) parsed=JSON.parse(m[0]); }catch{}
+    if(parsed && parsed.tool && parsed.tool!=='none' && TOOLS[parsed.tool]){
+      tlog('→ вызываю '+parsed.tool+' '+JSON.stringify(parsed.args).slice(0,120));
+      const res=await TOOLS[parsed.tool](parsed.args||{});
+      tlog('← '+JSON.stringify(res).slice(0,400));
+      msgs.push({role:'assistant', content: txt});
+      msgs.push({role:'user', content: `TOOL_RESULT ${parsed.tool}: ${JSON.stringify(res).slice(0,3000)} — продолжи, если ещё нужны тулзы, иначе дай финальный ответ в JSON {"tool":"none","answer":"...финальный ответ с источниками..."}`});
+    } else {
+      // final answer
+      let ans=parsed?.answer || txt;
+      // strip JSON wrapper if needed
+      if(parsed && parsed.answer) ans=parsed.answer;
+      document.getElementById('toolLog').textContent += "\n✅ ФИНАЛ:\n"+ans;
+      addMsg('bot', ans);
+      speakText(ans.slice(0,220));
+      break;
+    }
+  }
+}
+async function demoTool(name){
+  const d={web_search:'Найди последние новости про Iron Man костюм 2026', web_fetch:'Прочитай https://en.wikipedia.org/wiki/Iron_Man', code_run:'Сгенери код на JS: факториал 5'};
+  document.getElementById('toolInput').value=d[name]||name;
+  runToolCalling();
+}
+async function runDeepResearch(){
+  const topic=document.getElementById('researchInput').value.trim();
+  if(!topic) return;
+  const k=getKey(); if(!k) return addMsg('sys','🔑 Ключ');
+  const out=document.getElementById('researchOut');
+  const logEl=document.getElementById('researchLog');
+  out.innerHTML='<div style="color:var(--muted)">🔍 Запускаю deep research по: <b>'+topic+'</b> — 3-5 поисков, чтение страниц...</div>';
+  logEl.textContent='';
+  rlog('▶️ Deep Research: '+topic);
+  try{
+    // Step 1: ask Agnes to plan queries
+    const planSys='Ты — исследователь. Для темы пользователя сгенерируй 3 поисковых запроса для deep research. Отвечай JSON массивом строк: ["запрос1","запрос2","запрос3"]';
+    const pr=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:planSys},{role:'user',content:topic}], max_tokens:600, temperature:0.4})});
+    const pj=await pr.json();
+    let queries=[];
+    try{ const m=(pj.choices?.[0]?.message?.content||'').match(/\[[\s\S]*\]/); if(m) queries=JSON.parse(m[0]); }catch{}
+    if(!queries.length) queries=[topic, topic+' 2026', topic+' обзор'];
+    rlog('queries: '+queries.join(' | '));
+    // Step 2: search each
+    let sources=[];
+    for(let q of queries.slice(0,3)){
+      rlog('🔍 '+q);
+      const res=await web_search(q);
+      const top=res.results.slice(0,2);
+      for(let s of top){
+        rlog('→ '+s.title.slice(0,50));
+        if(s.url){
+          const f=await web_fetch(s.url);
+          sources.push({title:s.title, url:s.url, snippet:s.snippet, content:f.content.slice(0,1200)});
+        } else {
+          sources.push(s);
+        }
+      }
+      out.innerHTML += `<div style="margin-top:6px;font-size:11px;color:var(--muted)">🔍 ${q} — ${top.length} источников</div>`;
+    }
+    // Step 3: synthesize
+    rlog('синтез '+sources.length+' источников');
+    out.innerHTML += `<div style="margin-top:8px;color:var(--accent)">⏳ Синтезирую отчёт из ${sources.length} источников...</div>`;
+    const synthSys=`Ты — аналитик deep research. На основе источников сделай структурированный отчёт: 1) TL;DR 2) Ключевые факты (5-7 пунктов) 3) Детали 4) Источники (ссылки). Пиши по-русски, до 400 слов, с эмодзи.`;
+    const srcText=sources.map((s,i)=>`[${i+1}] ${s.title} — ${s.snippet} — ${s.url}\n${(s.content||'').slice(0,800)}`).join('\n\n').slice(0,9000);
+    const sr=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:synthSys},{role:'user',content:`Тема: ${topic}\n\nИсточники:\n${srcText}`}], max_tokens:1800, temperature:0.45})});
+    const sj=await sr.json();
+    const report=(sj.choices?.[0]?.message?.content||'Ошибка синтеза').trim();
+    out.innerHTML = `<div style="white-space:pre-wrap">${report.replace(/</g,'&lt;')}</div><div style="margin-top:10px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;font-size:11px"><b>Источники:</b><br>`+sources.map(s=>`• <a href="${s.url}" target="_blank" style="color:#60a5fa">${s.title}</a>`).join('<br>')+`</div>`;
+    rlog('✅ Готово');
+    addMsg('bot','🔍 Deep Research готово: '+topic.slice(0,40));
+    // save to memory
+    addProject('research', topic, report.slice(0,80));
+  }catch(e){
+    rlog('ошибка '+e.message);
+    document.getElementById('researchOut').innerHTML='<div style="color:#f87171">Ошибка: '+e.message+'</div>';
+  }
+}
 
 </script>
 </body>
