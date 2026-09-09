@@ -369,6 +369,12 @@ function unlockAudio(force){ if(force) { const a=new SpeechSynthesisUtterance(' 
 async function agnesChat(prompt){
   const k=getKey(); if(!k) return addMsg('sys','🔑 Вставь ключ');
   // Detect internet request
+  if(/что видишь|что там/i.test(prompt) && window.lastLiveSeen){
+    const last=window.lastLiveSeen;
+    addMsg('bot','👁️ LIVE: '+last.text);
+    try{ if(document.getElementById('voiceToggle')?.checked) queueVoice(last.text.slice(0,160), currentMode); }catch{}
+    return last.text;
+  }
   const needSearch = /найди|поищи|интернет|гугл|сеть|ссылк|создай|сделай.*сайт|измени/i.test(prompt);
   let webResults='';
   if(needSearch && /найди|поищи|интернет|гугл/i.test(prompt)){
@@ -418,15 +424,40 @@ async function toggleMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR) return addMsg('sys','Микрофон не поддерживается — используй Chrome');
   if(micActive){ try{ rec.stop(); }catch{} return; }
+  // WAKE и Слушать не могут вместе — паузим WAKE
+  let wasWake=false;
+  if(typeof wakeActive !== 'undefined' && wakeActive){
+    wasWake=true;
+    try{ if(wakeRec) wakeRec.stop(); }catch{}
+    wakeActive=false;
+    log('WAKE paused for mic');
+  }
   try{
     const perm=await navigator.mediaDevices.getUserMedia({audio:true});
     perm.getTracks().forEach(t=>t.stop());
   }catch(e){ log('mic perm '+e.message); }
   rec=new SR(); rec.lang='ru-RU'; rec.continuous=false; rec.interimResults=false;
   rec.onstart=()=>{ micActive=true; document.getElementById('micBtn').classList.add('primary'); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • LISTENING'; log('mic on'); };
-  rec.onend=()=>{ micActive=false; document.getElementById('micBtn').classList.remove('primary'); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; };
+  rec.onend=()=>{
+    micActive=false; document.getElementById('micBtn').classList.remove('primary'); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY';
+    if(wasWake){
+      // Resume WAKE after mic done
+      setTimeout(()=>{ try{ initWake(); }catch{} }, 600);
+      log('WAKE resumed after mic');
+    }
+  };
   rec.onresult=(e)=>{ const t=e.results[0][0].transcript; document.getElementById('inp').value=t; send(); };
-  rec.onerror=(e)=>{ addMsg('sys','Mic error '+e.error); micActive=false; };
+  rec.onerror=(e)=>{
+    if(e.error==='aborted' || e.error==='no-speech'){
+      log('mic '+e.error+' — ignore');
+      micActive=false;
+      document.getElementById('micBtn').classList.remove('primary');
+      if(wasWake) setTimeout(()=>{ try{ initWake(); }catch{} }, 600);
+      return;
+    }
+    addMsg('sys','Mic error '+e.error); micActive=false;
+    if(wasWake) setTimeout(()=>{ try{ initWake(); }catch{} }, 800);
+  };
   rec.start();
 }
 
@@ -447,6 +478,17 @@ async function toggleCam(){
     off.style.display='none'; btn.textContent='📷 Выкл';
     try{ await initHands(v); }catch(e){ log('hands fail '+e.message); }
   }catch(e){ log('камера ошибка '+e.message); document.getElementById('faceOff').innerHTML='<span style="color:#FF8A00">Нет доступа<br><span style="font-size:10px">'+e.message.slice(0,50)+'</span></span>'; document.getElementById('faceOff').style.display='grid'; }
+}
+async function initHands(video){
+  if(!window.Hands){
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'; s.onload=res; s.onerror=()=>rej(new Error('hands.js fail')); document.head.appendChild(s); });
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+  hands=new Hands({locateFile:(f)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+  hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.68, minTrackingConfidence:0.68});
+  hands.onResults(onHandResults);
+  camera=new Camera(video,{onFrame:async()=>{ await hands.send({image:video}); }, width:640, height:480});
+  camera.start(); log('hands on');
 }
 async function flipCam(){
   window._camFacing = window._camFacing==='user' ? 'environment' : 'user';
@@ -692,6 +734,17 @@ function toggleSunBurst(){
     if(badge) badge.textContent='☀️ SUN • PARTICLES';
     sunGroup.children.forEach(ch=>{ if(ch.userData.orig){ ch.position.copy(ch.userData.orig.p); ch.scale.copy(ch.userData.orig.s); } if(ch.isPoints) buildParticleSun(); });
   }
+}
+async function initHands(video){
+  if(!window.Hands){
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'; s.onload=res; s.onerror=()=>rej(new Error('hands.js fail')); document.head.appendChild(s); });
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+  hands=new Hands({locateFile:(f)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+  hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.68, minTrackingConfidence:0.68});
+  hands.onResults(onHandResults);
+  camera=new Camera(video,{onFrame:async()=>{ await hands.send({image:video}); }, width:640, height:480});
+  camera.start(); log('hands on');
 }
 async function flipCam(){
   window._camFacing = window._camFacing==='user' ? 'environment' : 'user';
@@ -1048,8 +1101,12 @@ async function initWake(){
       }
     }
   };
-  wakeRec.onend=()=>{ if(wakeActive){ try{ wakeRec.start(); }catch{} } };
-  wakeRec.onerror=(e)=>{ log('wake err '+e.error); if(wakeActive) setTimeout(()=>{ try{ wakeRec.start(); }catch{} }, 1500); };
+  wakeRec.onend=()=>{ if(wakeActive){ setTimeout(()=>{ try{ wakeRec.start(); }catch(e){ log('wake restart fail '+e.message); } }, 600); } };
+  wakeRec.onerror=(e)=>{
+    if(e.error==='aborted' || e.error==='no-speech'){ log('wake '+e.error+' — restart'); if(wakeActive) setTimeout(()=>{ try{ wakeRec.start(); }catch{} }, 800); return; }
+    log('wake err '+e.error);
+    if(wakeActive) setTimeout(()=>{ try{ wakeRec.start(); }catch{} }, 1500);
+  };
   try{
     wakeRec.start();
     log('WAKE active — скажи "Эй Джарвис"');
@@ -1080,6 +1137,16 @@ function handleVoiceCommand(cmd, raw){
   if(/анализ|проанализируй/i.test(low)){ switchTab('analysis'); addMsg('sys','🎙️ Анализ: кинь файл'); return; }
   if(/легион|рой/i.test(low)){ switchTab('legion'); document.getElementById('legionInput').value=cmd; runLegionPane(); return; }
   if(/память|запомни/i.test(low)){ saveAboutMe(); return; }
+  if(/что видишь|что там|что видишь сейчас/i.test(low)){
+    const last=window.lastLiveSeen || JSON.parse(localStorage.getItem('lastLiveSeen')||'null');
+    if(last && last.text){
+      addMsg('bot','👁️ LIVE сейчас: '+last.text);
+      try{ if(document.getElementById('voiceToggle')?.checked) queueVoice(last.text.slice(0,160), currentMode); }catch{}
+    } else {
+      addMsg('bot','👁️ LIVE пока не видел — включи LIVE и камеру');
+    }
+    return;
+  }
   // Fallback: chat
   document.getElementById('inp').value=cmd; send();
 }
@@ -1120,9 +1187,12 @@ function startLiveVision(){
       const j=await r.json(); if(!r.ok) return;
       const txt=(j.choices?.[0]?.message?.content||'').trim();
       if(txt){
-        addMsg('bot','👁️ LIVE: '+txt);
-        try{ if(document.getElementById('voiceToggle')?.checked) queueVoice(txt.slice(0,180), currentMode); }catch{}
-        try{ const hud=document.getElementById('hudVoice'); if(hud) hud.textContent='VOICE: LIVE'; setTimeout(()=>{ if(hud) hud.textContent='VOICE: READY'; }, 1800); }catch{}
+        // SILENT live — не спамим в чат и не тратим RPM на голос, только храним для вопроса Тони
+        window.lastLiveSeen = {text: txt, ts: Date.now()};
+        try{ localStorage.setItem('lastLiveSeen', JSON.stringify(window.lastLiveSeen)); }catch{}
+        // Обновляем HUD тихо, без addMsg и без озвучки (экономим RPM)
+        try{ const hud=document.getElementById('hudState'); if(hud) hud.textContent=currentMode.toUpperCase()+' • LIVE 👁️ '+txt.slice(0,22); }catch{}
+        try{ const logEl=document.getElementById('log'); if(logEl) logEl.textContent=new Date().toLocaleTimeString()+' • LIVE: '+txt.slice(0,60); }catch{}
         // Proactive memory: store
         try{ addProject('live', txt.slice(0,60)); }catch{}
       }
