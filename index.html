@@ -638,7 +638,7 @@ function toggleSunBurst(){
 }
 function flipCam(){ window._camFacing=window._camFacing==='user'?'environment':'user'; const v=document.getElementById('cam'); if(v) v.style.transform=window._camFacing==='user'?'scaleX(-1)':'none'; if(window.camStream){ toggleCam(); setTimeout(toggleCam, 500);} log('flip '+window._camFacing); }
 
-// VISION + ANALYSIS — MULTI-FRAME VIDEO
+// VISION + ANALYSIS — PREMIUM v4: per-second frames, per-frame + synthesis, pattern
 async function compressImage(dataUrl, maxW=1024){
   return new Promise(res=>{
     const img=new Image(); img.onload=()=>{
@@ -649,125 +649,171 @@ async function compressImage(dataUrl, maxW=1024){
     }; img.onerror=()=>res(dataUrl); img.src=dataUrl;
   });
 }
-async function captureVideoFrames(file, count=5){
-  const previewUrl = URL.createObjectURL(file);
-  // we will revoke after capture; caller handles preview separately
-  return new Promise(async (resolve)=>{
-    const v=document.createElement('video');
-    v.src=previewUrl; v.muted=true; v.playsInline=true; v.preload='metadata'; v.crossOrigin='anonymous';
-    let duration=0;
+async function getVideoDuration(file){
+  const u=URL.createObjectURL(file);
+  const v=document.createElement('video');
+  v.src=u; v.muted=true; v.preload='metadata';
+  await new Promise(r=>{ v.onloadedmetadata=r; v.onerror=r; setTimeout(r,2200); });
+  const d=isFinite(v.duration)?v.duration:0;
+  URL.revokeObjectURL(u);
+  return d||0;
+}
+async function captureFramesPerSecond(file, maxFrames=40){
+  const duration=await getVideoDuration(file);
+  let N=Math.ceil(duration||0);
+  if(!N || N<1) N=5;
+  if(duration>60) N=40;
+  else if(duration>30) N=30;
+  else N=Math.min(N, 40);
+  // ensure at least 5 for very short
+  if(duration>0 && duration<3) N=Math.max(3, Math.ceil(duration*2));
+  if(N>40) N=40;
+  const interval=duration/N;
+  const u=URL.createObjectURL(file);
+  const v=document.createElement('video');
+  v.src=u; v.muted=true; v.playsInline=true; v.preload='auto'; v.crossOrigin='anonymous';
+  await new Promise(r=>{ v.onloadedmetadata=r; v.onerror=r; setTimeout(r,1500); });
+  const frames=[];
+  for(let i=0;i<N;i++){
+    let t = interval*(i+0.5);
+    if(t<0.25) t=0.25;
+    if(t>duration-0.15) t=Math.max(0.25, duration-0.15);
     try{
-      await new Promise(r=>{
-        v.onloadedmetadata=r; v.onerror=r; setTimeout(r,2200);
-      });
-      duration = isFinite(v.duration) ? v.duration : 5;
-      if(duration < 1) duration = 5;
-      const times=[];
-      for(let i=0;i<count;i++){
-        let t = duration * (i+0.5)/count;
-        t = Math.min(Math.max(0.35, t), Math.max(0.35, duration-0.15));
-        times.push(t);
-      }
-      const frames=[];
-      for(let t of times){
-        try{
-          v.currentTime=t;
-          await new Promise(r=>{ v.onseeked=r; setTimeout(r,700); });
-          // ensure frame ready
-          await new Promise(r=>setTimeout(r,80));
-          const c=document.createElement('canvas'); c.width=640; c.height=360;
-          const ctx=c.getContext('2d');
-          try{ ctx.drawImage(v,0,0,c.width,c.height); frames.push(c.toDataURL('image/jpeg',0.70)); }catch(e){ console.warn('draw',e) }
-        }catch(e){ console.warn('seek',e) }
-        await new Promise(r=>setTimeout(r,60));
-      }
-      URL.revokeObjectURL(previewUrl);
-      resolve({frames, duration});
-    }catch(e){
-      try{ URL.revokeObjectURL(previewUrl); }catch{}
-      resolve({frames:[], duration:0});
-    }
-  });
+      v.currentTime=t;
+      await new Promise(r=>{ v.onseeked=r; setTimeout(r,650); });
+      await new Promise(r=>setTimeout(r,60));
+      const c=document.createElement('canvas'); c.width=640; c.height=360;
+      const ctx=c.getContext('2d');
+      try{ ctx.drawImage(v,0,0,c.width,c.height); frames.push({dataUrl:c.toDataURL('image/jpeg',0.70), ts:t}); }catch(e){ console.warn('draw',e); }
+    }catch(e){ console.warn('seek',e); }
+  }
+  URL.revokeObjectURL(u);
+  return {frames, duration};
+}
+async function analyzeSingleFrame(dataUrl, idx, ts, total, fileName){
+  const k=getKey(); if(!k) throw new Error('no key');
+  const sys=enrichSys("Ты — аналитик "+currentMode.toUpperCase()+" для Амина. Рассмотри кадр "+(idx+1)+"/"+total+" видео на "+ts.toFixed(1)+"с. Опиши досконально: объекты, люди, позы, движение, стиль, паттерн этого момента. 2-3 предложения, по-русски, точно без выдумок.");
+  const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:"Кадр "+(idx+1)+"/"+total+" @"+ts.toFixed(1)+"с видео "+fileName+" — полный разбор этого момента."},{type:'image_url',image_url:{url:dataUrl}}]}], max_tokens:380, temperature:0.38})});
+  const j=await r.json(); if(!r.ok) throw new Error(j.error?.message||r.status);
+  return (j.choices?.[0]?.message?.content||'').trim();
+}
+async function synthesizeVideo(perFrameTexts, repFrames, fileName, duration){
+  const k=getKey(); if(!k) throw new Error('no key');
+  const sys=enrichSys("Ты — главный аналитик JARVIS+FRIDAY+ULTRON для Амина. Тебе даны покадровые разборы "+perFrameTexts.length+" кадров видео "+fileName+" ("+Math.round(duration)+"с, 1 кадр/сек). Сделай: 1) кратко по каждому кадру (учти тексты), 2) общий паттерн — динамика, стиль боя/танца/спорта если есть, ритм, композиция, эволюция, 3) составляющую и итоговое заключение + совет. Структурировано, до 10 предложений, по-русски, будь точным, не галлюцинируй.");
+  const perSummary=perFrameTexts.map(p=> "Кадр "+(p.idx+1)+" @"+p.ts.toFixed(1)+"с: "+p.txt).join("\n");
+  const content=[{type:'text',text:"Видео "+fileName+" • "+Math.round(duration)+"с • "+perFrameTexts.length+" кадров (1/сек). Покадровые разборы:\n"+perSummary+"\n\nНа основе разборов + кадров ниже найди общий паттерн, стиль (бой, танец, спорт и т.д.), динамику во времени и дай заключение. Если это бой — определи стиль боя, паттерны ударов/движений."}];
+  repFrames.forEach(f=> content.push({type:'image_url', image_url:{url:f.dataUrl}}));
+  const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content}], max_tokens:1200, temperature:0.42})});
+  const j=await r.json(); if(!r.ok) throw new Error(j.error?.message||r.status);
+  return (j.choices?.[0]?.message?.content||'').trim();
 }
 async function handleAnalysisFile(file){
   if(!file) return;
   const k=getKey(); if(!k) return addMsg('sys','🔑 Вставь ключ');
   const stat=document.getElementById('analysisStat'), out=document.getElementById('analysisOut'), logEl=document.getElementById('analysisLog'), preview=document.getElementById('analysisPreview'), imgEl=document.getElementById('analysisImg'), vidEl=document.getElementById('analysisVid'), nameEl=document.getElementById('analysisFileName'), drop=document.getElementById('analysisDrop');
   let thumbs=document.getElementById('analysisThumbs');
-  if(!thumbs){
-    thumbs=document.createElement('div'); thumbs.id='analysisThumbs'; thumbs.style.cssText='display:none;gap:6px;flex-wrap:wrap;margin-top:8px';
-    if(preview) preview.appendChild(thumbs);
-  }
-  if(stat) stat.textContent='⏳ Читаю...'; if(logEl) logEl.textContent=''; if(out) out.textContent='';
+  if(!thumbs){ thumbs=document.createElement('div'); thumbs.id='analysisThumbs'; thumbs.style.cssText='display:none;gap:6px;flex-wrap:wrap;margin-top:8px'; if(preview) preview.appendChild(thumbs); }
+  let perFrameBox=document.getElementById('perFrameBox');
+  if(!perFrameBox){ perFrameBox=document.createElement('div'); perFrameBox.id='perFrameBox'; perFrameBox.style.cssText='margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto'; if(out) out.parentNode.insertBefore(perFrameBox, out); }
+  if(stat) stat.textContent='⏳ Читаю...'; if(logEl) logEl.textContent=''; if(out) out.textContent=''; if(perFrameBox) perFrameBox.innerHTML='';
   const isImg=file.type.startsWith('image/'), isVid=file.type.startsWith('video/'), isPdf=file.name.toLowerCase().endsWith('.pdf');
   if(preview) preview.style.display='block';
   if(nameEl) nameEl.textContent=file.name+' • '+(file.size/1024/1024).toFixed(2)+'MB';
-  // preview handling
-  let revokePreview=null;
-  if(isImg){ try{ if(imgEl._obj) URL.revokeObjectURL(imgEl._obj); }catch{} const u=URL.createObjectURL(file); imgEl._obj=u; imgEl.src=u; imgEl.style.display='block'; vidEl.style.display='none'; thumbs.style.display='none'; }
-  else if(isVid){ try{ if(vidEl._obj) URL.revokeObjectURL(vidEl._obj); }catch{} const u=URL.createObjectURL(file); vidEl._obj=u; vidEl.src=u; vidEl.style.display='block'; imgEl.style.display='none'; }
+  if(isImg){ try{ if(imgEl._obj) URL.revokeObjectURL(imgEl._obj);}catch{} const u=URL.createObjectURL(file); imgEl._obj=u; imgEl.src=u; imgEl.style.display='block'; vidEl.style.display='none'; thumbs.style.display='none'; }
+  else if(isVid){ try{ if(vidEl._obj) URL.revokeObjectURL(vidEl._obj);}catch{} const u=URL.createObjectURL(file); vidEl._obj=u; vidEl.src=u; vidEl.style.display='block'; imgEl.style.display='none'; }
   else { imgEl.style.display='none'; vidEl.style.display='none'; thumbs.style.display='none'; }
   if(drop) drop.style.borderColor='var(--accent)';
   try{
-    let dataUrl=null, dataUrls=null, textContent='', duration=0;
+    let textContent='';
     if(isImg){
-      const reader=new FileReader(); dataUrl=await new Promise((res,rej)=>{ reader.onload=()=>res(reader.result); reader.onerror=rej; reader.readAsDataURL(file); });
+      const reader=new FileReader(); let dataUrl=await new Promise((res,rej)=>{ reader.onload=()=>res(reader.result); reader.onerror=rej; reader.readAsDataURL(file); });
       dataUrl=await compressImage(dataUrl, 1024);
+      if(stat) stat.textContent='🔍 Рассматриваю...'; if(logEl) logEl.textContent='JARVIS рассматривает, понимает, думает...';
+      const sys=enrichSys("Ты — JARVIS аналитик для Амина. Рассмотри фото досконально: что видишь, пойми смысл, подумай о скрытых паттернах, сделай ПОЛНЫЙ РАЗБОР (объекты, композиция, свет, лица, эмоции, аномалии, контекст), найди ПАТТЕРН и дай ЗАКЛЮЧЕНИЕ + совет. Структурировано: 1. Рассмотрел 2. Понял 3. Подумал 4. Паттерн 5. Заключение. До 8 предложений, по-русски, точно.");
+      const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:"Фото "+file.name+" — полный разбор: рассмотри, пойми, подумай, найди паттерн, заключение."},{type:'image_url',image_url:{url:dataUrl}}]}], max_tokens:1100, temperature:0.42})});
+      const j=await r.json(); if(!r.ok) throw new Error(j.error?.message||r.status);
+      const txt=(j.choices?.[0]?.message?.content||'').trim();
+      if(out) out.textContent=txt; if(logEl) logEl.textContent='✅ Готово — полный разбор, паттерн, заключение'; if(stat) stat.textContent='✅ Готово';
+      addMsg('bot',"🔍 Анализ "+file.name+":\n"+txt);
+      queueVoice(txt.slice(0,260), currentMode);
+      addProject('analysis', file.name+': '+txt.slice(0,60));
+      switchTab('analysis');
+      return;
     } else if(isVid){
-      if(stat) stat.textContent='⏳ Кадры видео (5 точек)...';
-      if(logEl) logEl.textContent='Режу видео на 5 кадров равномерно — понимаю динамику, не один кадр...';
-      const cap=await captureVideoFrames(file, 5);
-      dataUrls=cap.frames; duration=cap.duration;
-      if(dataUrls && dataUrls.length){
-        thumbs.innerHTML=dataUrls.map(u=>`<img src="${u}" style="width:92px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--line);box-shadow:0 4px 12px rgba(0,0,0,.35)">`).join('');
-        thumbs.style.display='flex';
+      if(stat) stat.textContent='⏳ Извлекаю кадры 1/сек...'; if(logEl) logEl.textContent='Режу видео покадрово: сколько секунд — столько кадров (макс 40) — понимаю динамику...';
+      const cap=await captureFramesPerSecond(file, 40);
+      const frames=cap.frames, duration=cap.duration;
+      const N=frames.length;
+      if(!N) throw new Error('не смог извлечь кадры');
+      if(thumbs){ thumbs.innerHTML=frames.slice(0,12).map(f=> "<img src=\""+f.dataUrl+"\" style=\"width:88px;height:50px;object-fit:cover;border-radius:8px;border:1px solid var(--line)\">").join(''); thumbs.style.display='flex'; }
+      if(N>12){ const more=document.createElement('div'); more.style.cssText='font-size:10px;color:var(--muted);align-self:center'; more.textContent="+"+(N-12)+" кадров"; thumbs.appendChild(more); }
+      if(logEl) logEl.textContent="Извлечено "+N+" кадров (1/сек для "+Math.round(duration)+"с) — начинаю покадровый разбор каждого → потом синтез...";
+      // per-frame analysis
+      let perFrameTexts=[];
+      for(let i=0;i<N;i++){
+        const f=frames[i];
+        if(stat) stat.textContent="🔍 Кадр "+(i+1)+"/"+N+" @"+f.ts.toFixed(1)+"с...";
+        if(logEl) logEl.textContent="Анализирую кадр "+(i+1)+"/"+N+" @"+f.ts.toFixed(1)+"с — JARVIS рассматривает...";
+        // placeholder card
+        const card=document.createElement('div');
+        card.style.cssText='padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:11px';
+        card.innerHTML="<b style='color:var(--accent)'>Кадр "+(i+1)+"/"+N+" @"+f.ts.toFixed(1)+"с</b> <span style='color:var(--muted)'>⏳</span>";
+        perFrameBox.appendChild(card); perFrameBox.scrollTop=perFrameBox.scrollHeight;
+        try{
+          const txt=await analyzeSingleFrame(f.dataUrl, i, f.ts, N, file.name);
+          perFrameTexts.push({idx:i, ts:f.ts, txt});
+          card.innerHTML="<b style='color:var(--accent)'>Кадр "+(i+1)+" @"+f.ts.toFixed(1)+"с</b><br><span style='color:#CBD5E1'>"+txt+"</span>";
+          if(logEl) logEl.textContent="Кадр "+(i+1)+"/"+N+" готов ✓";
+        }catch(e){
+          const txt="[ошибка кадра] "+e.message;
+          perFrameTexts.push({idx:i, ts:f.ts, txt});
+          card.innerHTML="<b>Кадр "+(i+1)+"</b> ❌ "+e.message;
+        }
+        await new Promise(r=>setTimeout(r,260));
       }
-      textContent=`Видео ${file.name} • ${(file.size/1024/1024).toFixed(1)}MB • ${Math.round(duration||0)}с — ${dataUrls?dataUrls.length:0} кадров равномерно.`;
-      // keep preview video element showing file (already)
+      if(stat) stat.textContent='🔍 Синтезирую паттерн...'; if(logEl) logEl.textContent="Все "+N+" кадров разобраны покадрово — синтезирую общий паттерн, стиль боя/движений, заключение...";
+      // pick 6 representative frames for synthesis
+      const step=Math.max(1, Math.floor(N/6));
+      const rep=[]; for(let i=0;i<N;i+=step){ rep.push(frames[i]); if(rep.length>=6) break; }
+      let finalTxt='';
+      try{
+        finalTxt=await synthesizeVideo(perFrameTexts, rep, file.name, duration);
+      }catch(e){
+        if(logEl) logEl.textContent='Синтез 500 — пробую без кадров...';
+        // fallback without images
+        const perSummary=perFrameTexts.map(p=>"Кадр "+(p.idx+1)+" @"+p.ts.toFixed(1)+"с: "+p.txt).join("\n");
+        const sys2=enrichSys("Ты — JARVIS+FRIDAY+ULTRON для Амина. По покадровым разборам найди паттерн видео.");
+        const r2=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys2},{role:'user',content:"Видео "+file.name+" • "+Math.round(duration)+"с\n"+perSummary+"\n\nДай паттерн и заключение — стиль боя/движений если есть."}], max_tokens:1000})});
+        const j2=await r2.json(); if(!r2.ok) throw new Error(j2.error?.message||r2.status);
+        finalTxt=(j2.choices?.[0]?.message?.content||'').trim();
+      }
+      // build final output
+      const perList=perFrameTexts.map(p=> "▶ Кадр "+(p.idx+1)+" @"+p.ts.toFixed(1)+"с:\n"+p.txt).join("\n\n");
+      const full="▣ ПОКАДРОВО ("+N+" кадров, 1/сек):\n"+perList+"\n\n▣ ОБЩИЙ ПАТТЕРН + ЗАКЛЮЧЕНИЕ:\n"+finalTxt;
+      if(out) out.textContent=full;
+      if(logEl) logEl.textContent='✅ Готово — '+N+' кадров каждый отдельно + вместе, паттерн найден'; if(stat) stat.textContent='✅ Готово ('+N+' кадров)';
+      addMsg('bot',"🔍 Видео "+file.name+" ("+Math.round(duration)+"с, "+N+" кадров):\n"+finalTxt);
+      queueVoice(finalTxt.slice(0,280), currentMode);
+      addProject('analysis', file.name+': '+finalTxt.slice(0,60));
+      switchTab('analysis');
+      return;
     } else if(isPdf){
       try{
         if(!window.pdfjsLib){ await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
         const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise;
-        for(let i=1;i<=Math.min(pdf.numPages,4);i++){ const pg=await pdf.getPage(i); const c=await pg.getTextContent(); textContent+= c.items.map(it=>it.str).join(' ')+'\n'; }
+        for(let i=1;i<=Math.min(pdf.numPages,4);i++){ const pg=await pdf.getPage(i); const c=await pg.getTextContent(); textContent+= c.items.map(it=>it.str).join(' ') + "\n"; }
         textContent=textContent.slice(0,8000);
       }catch(e){ textContent='[PDF fail] '+e.message; }
     } else {
       textContent=await file.text().catch(()=> ''); textContent=textContent.slice(0,8000);
     }
-    if(stat) stat.textContent='🔍 Анализирую...'; if(logEl) logEl.textContent=dataUrls && dataUrls.length?`Отправляю ${dataUrls.length} кадров в Agnes — анализирует динамику...`:'Отправляю в Agnes...';
-    const sys=enrichSys(`Ты — JARVIS-аналитик. Реально понимай паттерны. Для фото — объекты, композиция, лица, аномалии, совет. Для ВИДЕО — обязательно опиши динамику во времени: что меняется кадр к кадру, движение, действия, эмоции в развитии, паттерны сменяемости, а не как статичный кадр. До 8 предложений, по-русски, будь точным, не галлюцинируй несуществующее (если на видео щенки — так и скажи, не выдумывай Натали Портман). Для файлов — TL;DR, паттерны.`);
-    let messages=[];
-    if(dataUrls && dataUrls.length){
-      const content=[{type:'text',text:`Проанализируй ВИДЕО ${file.name} как последовательность ${dataUrls.length} кадров равномерно по времени (0%→100%). Опиши: что происходит во времени, динамика/движение, объекты/лица, изменение эмоций/действий, локация, свет, паттерны, аномалии, совет. НЕ описывай как один статичный кадр — это видео, покажи развитие.`}];
-      dataUrls.forEach(u=> content.push({type:'image_url', image_url:{url:u}}));
-      messages=[{role:'system',content:sys},{role:'user',content}];
-    } else if(dataUrl){
-      messages=[{role:'system',content:sys},{role:'user',content:[{type:'text',text:`Проанализируй фото ${file.name}: паттерны, детали, совет.`},{type:'image_url',image_url:{url:dataUrl}}]}];
-    } else {
-      messages=[{role:'system',content:sys},{role:'user',content:`Файл ${file.name}:
-${textContent.slice(0,6000)}
-
-Разбор паттернов, TL;DR.`}];
-    }
-    let r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages, max_tokens:1100, temperature:0.42})});
-    let j=await r.json();
-    if(!r.ok && r.status===500 && dataUrls && dataUrls.length>2){
-      if(logEl) logEl.textContent='500 — пробую 2 кадра...';
-      const content2=[{type:'text',text:`Видео ${file.name}: проанализируй динамику по 2 кадрам (начало/конец).`}];
-      dataUrls.slice(0,2).forEach(u=> content2.push({type:'image_url', image_url:{url:u}}));
-      const r2=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:content2}], max_tokens:800})});
-      const j2=await r2.json(); if(r2.ok){ j=j2; r=r2; }
-    }
-    if(!r.ok && r.status===500 && (dataUrl || (dataUrls && dataUrls.length))){
-      if(logEl) logEl.textContent='500 — retry без фото, текстом...';
-      const r2=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:`Файл ${file.name} (${isVid?`видео ${Math.round(duration)}с, ${dataUrls.length} кадров`:`фото`}, вижн 500) — дай разбор паттернов текстом, без фото.`}], max_tokens:700})});
-      const j2=await r2.json(); if(r2.ok){ j=j2; r=r2; } else throw new Error('500');
-    }
-    if(!r.ok) throw new Error('agnes '+r.status+' '+(j.error?.message||''));
+    if(stat) stat.textContent='🔍 Анализирую...'; if(logEl) logEl.textContent='Отправляю в Agnes...';
+    const sys=enrichSys("Ты — JARVIS-аналитик. Реально понимай паттерны: для файлов — TL;DR, паттерны, заключение. До 8 предложений, по-русски.");
+    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:"Файл "+file.name+":\n"+textContent.slice(0,6000)+"\n\nРазбор паттернов, TL;DR."}], max_tokens:900})});
+    const j=await r.json(); if(!r.ok) throw new Error(j.error?.message||r.status);
     const txt=(j.choices?.[0]?.message?.content||'').trim();
-    if(out) out.textContent=txt; if(logEl) logEl.textContent='✅ Готово — видео понято как динамика, не статика'; if(stat) stat.textContent='✅ Готово';
-    addMsg('bot',`🔍 Анализ ${file.name}:
-${txt}`);
+    if(out) out.textContent=txt; if(logEl) logEl.textContent='✅ Готово'; if(stat) stat.textContent='✅ Готово';
+    addMsg('bot',"🔍 Анализ "+file.name+":\n"+txt);
     queueVoice(txt.slice(0,240), currentMode);
     addProject('analysis', file.name+': '+txt.slice(0,60));
     switchTab('analysis');
@@ -775,7 +821,7 @@ ${txt}`);
     if(stat) stat.textContent='❌ Ошибка'; if(logEl) logEl.textContent='Ошибка: '+e.message; if(out) out.textContent='❌ '+e.message; addMsg('sys','❌ '+e.message);
   } finally { if(drop) setTimeout(()=>drop.style.borderColor='var(--line)', 900); }
 }
-function clearAnalysis(){ document.getElementById('analysisOut').textContent=''; document.getElementById('analysisLog').textContent=''; document.getElementById('analysisStat').textContent=''; document.getElementById('analysisPreview').style.display='none'; const th=document.getElementById('analysisThumbs'); if(th) th.style.display='none'; }
+function clearAnalysis(){ document.getElementById('analysisOut').textContent=''; document.getElementById('analysisLog').textContent=''; document.getElementById('analysisStat').textContent=''; document.getElementById('analysisPreview').style.display='none'; const th=document.getElementById('analysisThumbs'); if(th) th.style.display='none'; const pf=document.getElementById('perFrameBox'); if(pf) pf.innerHTML=''; }
 
 window.handleAnyFile=handleAnalysisFile;
 setTimeout(()=>{ const drop=document.getElementById('analysisDrop'); if(!drop) return; drop.addEventListener('dragover', e=>{ e.preventDefault(); drop.style.borderColor='var(--accent)'; }); drop.addEventListener('dragleave', ()=>drop.style.borderColor='var(--line)'); drop.addEventListener('drop', e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) handleAnalysisFile(f); }); },1200);
