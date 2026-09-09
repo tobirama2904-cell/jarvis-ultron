@@ -169,7 +169,6 @@
       <div class="tab" id="t-image" onclick="switchTab('image')">🎨 Изображения</div>
       <div class="tab" id="t-video" onclick="switchTab('video')">🎬 Видео</div>
       <div class="tab" id="t-analysis" onclick="switchTab('analysis')">🔍 Анализ</div>
-      <div class="tab" id="t-audio" onclick="switchTab('audio')">🔊 Звук</div>
       <div class="tab" id="t-legion" onclick="switchTab('legion')">🦾 Legion</div>
       <div class="tab" id="t-quest" onclick="switchTab('quest')">💬 VisionQuest</div>
     </div>
@@ -256,34 +255,6 @@
     </div>
 
 
-    <!-- AUDIO -->
-    <div class="pane" id="pane-audio">
-      <div style="margin:-16px -16px 12px;padding:10px 16px;background:linear-gradient(135deg,rgba(16,185,129,.14),rgba(139,92,246,.14));border-bottom:1px solid var(--line);font-size:10px;color:#34d399;font-weight:800;text-align:center;letter-spacing:.06em">🔊 ЗВУК — AGNES БЕЗЛИМИТ • JARVIS / FRIDAY / ULTRON</div>
-      <div style="padding:2px">
-        <div style="font-size:13px;font-weight:800">🔊 Звук • Agnes безлимит + клон</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Текст → звук. Сначала пробует Agnes, если нет канала — мгновенный фолбек на браузер (бесплатно, безлимит). Поддержка JARVIS британский, FRIDAY дерзкая, ULTRON русский дубляж.</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <select id="audioVoice" style="height:42px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;font-size:12px">
-            <option value="jarvis">JARVIS — британский (en-GB)</option>
-            <option value="friday">FRIDAY — ирландская (en)</option>
-            <option value="ultron">ULTRON — русский дубляж (ru)</option>
-            <option value="custom">🎛️ Кастом промпт</option>
-          </select>
-          <button class="btn" onclick="testVoices()">🎙️ Тест</button>
-          <span id="audioStat" style="font-size:11px;color:var(--muted);align-self:center">Agnes TTS пробуется → браузер фолбек</span>
-        </div>
-        <textarea id="audioText" placeholder="Напиши что озвучить — например: Привет, Амин! Это FRIDAY, готова к эдиту в стиле z4r.ae" style="width:100%;height:84px;margin-top:10px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:10px;font-size:12px;resize:vertical"></textarea>
-        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-          <button class="btn primary" onclick="generateAudio()">🔊 Генерить звук (Agnes безлимит)</button>
-          <button class="btn" onclick="stopAudio()">⏹ Стоп</button>
-          <button class="btn" onclick="downloadAudio()" id="audioDlBtn" style="display:none">💾 Скачать mp3</button>
-        </div>
-        <audio id="audioPlayer" controls style="width:100%;margin-top:10px;display:none"></audio>
-        <div id="audioOut" style="margin-top:10px;display:flex;flex-direction:column;gap:6px"></div>
-        <div style="margin-top:8px;font-size:10px;color:var(--muted)">Agnes video с [SOUNDS] тоже генерирует звук. Если Agnes audio канал недоступен — используется бесплатный Edge/Browser TTS (тоже безлимит, без ключа).</div>
-      </div>
-    </div>
-
     <!-- LEGION -->
     <div class="pane" id="pane-legion">
       <div style="margin:-16px -16px 12px;padding:10px 16px;background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(59,130,246,.14));border-bottom:1px solid var(--line);font-size:10px;color:#34d399;font-weight:800;text-align:center;letter-spacing:.06em">🦾 LEGION — РОЙ ИЗ 3 КООРДИНИРОВАННО</div>
@@ -338,8 +309,8 @@ function setMode(m, speak=true){
 }
 let rot=0, scale=1;
 function switchTab(which){
-  const map={chat:'pane-chat', code:'pane-code', image:'pane-image', video:'pane-video', analysis:'pane-analysis', audio:'pane-audio', legion:'pane-legion', quest:'pane-quest'};
-  const tabMap={chat:'t-chat', code:'t-code', image:'t-image', video:'t-video', analysis:'t-analysis', audio:'t-audio', legion:'t-legion', quest:'t-quest'};
+  const map={chat:'pane-chat', code:'pane-code', image:'pane-image', video:'pane-video', analysis:'pane-analysis', legion:'pane-legion', quest:'pane-quest'};
+  const tabMap={chat:'t-chat', code:'t-code', image:'t-image', video:'t-video', analysis:'t-analysis', legion:'t-legion', quest:'t-quest'};
   document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   const paneId=map[which]||('pane-'+which);
@@ -904,151 +875,6 @@ function clearAnalysis(){ document.getElementById('analysisOut').textContent='';
 window.handleAnyFile=handleAnalysisFile;
 setTimeout(()=>{ const drop=document.getElementById('analysisDrop'); if(!drop) return; drop.addEventListener('dragover', e=>{ e.preventDefault(); drop.style.borderColor='var(--accent)'; }); drop.addEventListener('dragleave', ()=>drop.style.borderColor='var(--line)'); drop.addEventListener('drop', e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) handleAnalysisFile(f); }); },1200);
 
-
-
-// ===== AUDIO — FIXED V2: instant, robust, Android Chrome =====
-let lastAudioUrl=null, lastAudioBlob=null;
-function ensureVoices(){
-  return new Promise(res=>{
-    let vs=speechSynthesis.getVoices();
-    if(vs.length) return res(vs);
-    let done=false;
-    const t=setTimeout(()=>{ if(!done){ done=true; res(speechSynthesis.getVoices()); } }, 1200);
-    const handler=()=>{
-      if(!done){ done=true; clearTimeout(t); res(speechSynthesis.getVoices()); }
-    };
-    try{ speechSynthesis.onvoiceschanged=handler; }catch{}
-    // also poll
-    let tries=0;
-    const iv=setInterval(()=>{
-      vs=speechSynthesis.getVoices();
-      if(vs.length || tries>8){ clearInterval(iv); if(!done){ done=true; clearTimeout(t); res(vs); } }
-      tries++;
-    }, 180);
-  });
-}
-async function generateAudio(){
-  const text=document.getElementById('audioText').value.trim();
-  const voice=document.getElementById('audioVoice').value;
-  const stat=document.getElementById('audioStat'), out=document.getElementById('audioOut'), player=document.getElementById('audioPlayer');
-  if(!text) return addMsg('sys','🔊 Введи текст');
-  if(stat) stat.textContent='⏳ Запускаю...';
-  if(out) out.innerHTML='';
-  try{ speechSynthesis.cancel(); }catch{}
-  // Wait for voices with timeout
-  let vs=await ensureVoices();
-  if(!vs.length) vs=speechSynthesis.getVoices();
-  console.log('voices', vs.length, vs.map(v=>v.name+':'+v.lang));
-  const utter=new SpeechSynthesisUtterance(text);
-  let v=null;
-  if(voice==='jarvis') v=vs.find(x=>x.lang.includes('en-GB')&&/male/i.test(x.name))||vs.find(x=>x.lang.includes('en-GB'))||vs.find(x=>x.lang.includes('en'))||vs[0];
-  else if(voice==='friday') v=vs.find(x=>/female/i.test(x.name)&&x.lang.includes('en'))||vs.find(x=>x.lang.includes('en-GB'))||vs.find(x=>x.lang.includes('en'))||vs[0];
-  else if(voice==='ultron') v=vs.find(x=>x.lang.toLowerCase().includes('ru'))||vs.find(x=>x.name.toLowerCase().includes('russian'))||vs.find(x=>x.name.toLowerCase().includes('yuri'))||vs[0];
-  else v=pickVoice(voice, text);
-  if(v){ utter.voice=v; utter.lang=v.lang; }
-  else { utter.lang=(voice==='ultron'||/[а-яё]/i.test(text)?'ru-RU':'en-GB'); }
-  utter.rate=voice==='ultron'?0.88:voice==='friday'?1.06:0.94;
-  utter.pitch=voice==='ultron'?0.62:voice==='friday'?1.16:0.92;
-  utter.volume=1;
-  const wave=document.getElementById('wave');
-  const hud=document.getElementById('hudVoice');
-  let finished=false;
-  utter.onstart=()=>{ if(stat) stat.textContent='🔊 Говорю: '+(v? v.name : voice)+' ('+utter.lang+')'; if(wave) wave.style.display='flex'; if(hud) hud.textContent='VOICE: SPEAKING ('+voice.toUpperCase()+')'; try{ player.style.display='none'; }catch{} };
-  utter.onend=()=>{ if(finished) return; finished=true; if(stat) stat.textContent='✅ Готово — безлимит'; if(wave) wave.style.display='none'; if(hud) hud.textContent='VOICE: READY'; };
-  utter.onerror=(e)=>{
-    if(finished) return; finished=true;
-    console.error('TTS error', e);
-    // Try fallback without voice
-    if(e.error==='not-allowed' || e.error==='interrupted' || e.error==='synthesis-failed'){
-      if(stat) stat.textContent='⚠️ '+e.error+' — пробую без голоса...';
-      const u2=new SpeechSynthesisUtterance(text);
-      u2.lang=utter.lang; u2.rate=utter.rate; u2.pitch=utter.pitch;
-      u2.onend=()=>{ if(stat) stat.textContent='✅ Готово (фолбек)'; if(wave) wave.style.display='none'; };
-      u2.onerror=(e2)=>{ if(stat) stat.textContent='❌ synthesis failed: '+(e2.error||'неизвестная')+' — попробуй другой браузер/голос'; };
-      try{ speechSynthesis.speak(u2); }catch(err){ if(stat) stat.textContent='❌ '+err.message; }
-    } else {
-      if(stat) stat.textContent='❌ synthesis failed: '+(e.error||'неизвестная')+' — попробуй ещё раз';
-      if(wave) wave.style.display='none';
-    }
-  };
-  // Android Chrome needs resume
-  try{ if(speechSynthesis.paused) speechSynthesis.resume(); }catch{}
-  try{
-    speechSynthesis.speak(utter);
-    // Extra resume after 100ms for Android
-    setTimeout(()=>{ try{ if(speechSynthesis.paused) speechSynthesis.resume(); }catch{} }, 120);
-  }catch(err){
-    if(stat) stat.textContent='❌ '+err.message;
-  }
-  // Background Agnes tip (non-blocking)
-  (async()=>{
-    const k=getKey(); if(!k) return;
-    try{
-      const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:'Ты — голосовой дизайнер для '+voice+'. Короткий совет по интонации для: "'+text.slice(0,80)+'"'}], max_tokens:80})});
-      const j=await r.json(); if(r.ok) console.log('Agnes voice tip', j.choices?.[0]?.message?.content);
-    }catch{}
-  })();
-  lastAudioBlob=new Blob([text],{type:'text/plain'});
-  if(lastAudioUrl) try{ URL.revokeObjectURL(lastAudioUrl); }catch{}
-  lastAudioUrl=URL.createObjectURL(lastAudioBlob);
-  document.getElementById('audioDlBtn').style.display='inline-flex';
-  document.getElementById('audioDlBtn').onclick=()=>{ const a=document.createElement('a'); a.href=lastAudioUrl; a.download='tts-'+voice+'-'+Date.now()+'.txt'; a.click(); };
-  const div=document.createElement('div'); div.style.cssText='padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(16,185,129,.08)'; div.innerHTML="<b style='color:#34d399'>▶️ "+voice.toUpperCase()+"</b> — "+text.slice(0,90)+"<br><span style='font-size:10px;color:var(--muted)'>Голос: "+(v? v.name+' • '+v.lang : 'auto '+utter.lang)+" • synthesis "+(v?'ok':'fallback')+"</span>";
-  out.appendChild(div);
-  addMsg('bot','🔊 '+voice.toUpperCase()+': '+text.slice(0,80));
-  try{ const hist=JSON.parse(localStorage.getItem('audio_hist')||'[]'); hist.unshift({text:text.slice(0,60), voice, ts:Date.now()}); localStorage.setItem('audio_hist', JSON.stringify(hist.slice(0,20))); }catch{}
-}
-function stopAudio(){ try{ speechSynthesis.cancel(); }catch{} const p=document.getElementById('audioPlayer'); try{ p.pause(); p.currentTime=0; }catch{} document.getElementById('audioStat').textContent='⏹ Стоп'; const wave=document.getElementById('wave'); if(wave) wave.style.display='none'; const hud=document.getElementById('hudVoice'); if(hud) hud.textContent='VOICE: READY'; }
-function downloadAudio(){
-  if(!lastAudioBlob) return;
-  const a=document.createElement('a'); a.href=lastAudioUrl; a.download='tts-'+document.getElementById('audioVoice').value+'-'+Date.now()+'.txt'; a.click();
-}
-function testVoices(){
-  const v=document.getElementById('audioVoice').value;
-  const samples={jarvis:'Hello, Amin. JARVIS at your service, sir. Systems online — ready to search the net and forge edits.', friday:'Hey Amin! FRIDAY here — let\'s hunt the web and make a banger, boss!', ultron:'Амин. ULTRON активирован. Сеть доступна. Паттерн найден. Задание принято.', custom:'Тест голоса — раз, два, три. Проверка связи, приём.'};
-  document.getElementById('audioText').value=samples[v]||samples.custom;
-  generateAudio();
-}
-
-
-
-
-// EDITS REMOVED per user request
-
-
-
-
-
-// ===== ANALYSIS CHAT — спроси как Тони Старк =====
-let lastAnalysisContext=null;
-async function sendAnalysisChat(){
-  const inp=document.getElementById('analysisChatInput'); const q=inp.value.trim(); if(!q) return;
-  const k=getKey(); if(!k) return addMsg('sys','🔑 Ключ');
-  const out=document.getElementById('analysisChatOut');
-  const card=document.createElement('div'); card.style.cssText='padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04)'; card.innerHTML="<b style='color:var(--accent)'>Ты:</b> "+q; out.appendChild(card);
-  inp.value='';
-  const ctx=lastAnalysisContext;
-  let contextText='';
-  if(ctx){
-    contextText="Последний анализ: файл "+ctx.fileName+" ("+Math.round(ctx.duration)+"с, "+ctx.N+" кадров). Паттерн: "+(ctx.finalTxt||'').slice(0,1200)+"\nПокадрово кратко: "+ctx.perFrameTexts.map(p=> "к"+(p.idx+1)+"@"+p.ts.toFixed(1)+"с: "+p.txt.slice(0,80)).join(" | ").slice(0,2000);
-  } else {
-    contextText="Пока нет анализа. Ответь как JARVIS/FRIDAY/ULTRON смесь.";
-  }
-  // Только если явно просят найти в инете — иначе не ищем, чтобы не упоминать CS2 на каждом видео
-  let webExtra='';
-  if(/найди.*интернет|поищи.*сети|интернет/i.test(q) && q.length>8){
-    try{ webExtra=await webSearch(q); }catch{}
-  }
-  const sys=enrichSys("Ты — JARVIS + FRIDAY + ULTRON смесь, как Тони Старк, для Амина. Отвечаешь ТОЛЬКО по последнему анализу видео/фото/текста. Если спрашивают про бой/оружие — отвечай только если в кадрах было оружие/бой, иначе скажи что в видео этого нет. Будь точным, делай вывод как JARVIS, но не выдумывай CS2/оружие если в видео нет оружия. Не выводи JSON. Контекст:\n"+contextText + (webExtra? "\nДанные из сети:\n"+webExtra.slice(0,2000):""));
-  try{
-    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:q}], max_tokens:700})});
-    const j=await r.json(); let ans=(j.choices?.[0]?.message?.content||'').trim();
-    ans=ans.replace(/\{"type"\s*:\s*"search"[^}]*\}/gi,'').replace(/http[^\s]*google\.com[^\s]*/gi,'').trim();
-    const div=document.createElement('div'); div.style.cssText='padding:8px 10px;border-radius:10px;border:1px solid rgba(0,217,255,.2);background:rgba(0,217,255,.08)'; div.innerHTML="<b style='color:var(--accent)'>JARVIS/FRIDAY/ULTRON:</b> "+ans; out.appendChild(div);
-    out.scrollTop=out.scrollHeight;
-    queueVoice(ans.slice(0,200), currentMode);
-  }catch(e){ addMsg('sys','analysis chat '+e.message); }
-}
 
 
 // ===== WEB SEARCH — как JARVIS в фильме: ищет в инете, читает, создаёт =====
