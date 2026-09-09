@@ -397,12 +397,14 @@ async function agnesChat(prompt){
     addMsg('sys','🌐 Ищу в интернете: '+prompt.slice(0,40)+'...');
     try{ webResults=await webSearch(prompt); addMsg('sys','🌐 Нашёл:\n'+webResults.slice(0,500)); }catch(e){ webResults=''; }
   }
-  const sys=`Ты ${currentMode.toUpperCase()} для Амина. JARVIS — британский дворецкий (педантичный, делает), FRIDAY — ирландская дерзкая (быстро ищет в сети, создаёт), ULTRON — холодный стратег (меняет, оптимизирует). Ты умеешь: искать в интернете, открывать страницы, создавать файлы/сайты, изменять. По-русски, до 6 предложений, действуй как в фильме — реально делай.` + (webResults? "\nРезультаты поиска:\n"+webResults.slice(0,3000):"");
+  const sys=`Ты ${currentMode.toUpperCase()} для Амина. JARVIS — британский дворецкий (педантичный, делает), FRIDAY — ирландская дерзкая (быстро ищет), ULTRON — холодный стратег. Ты умеешь искать в интернете (тебе уже дали результаты поиска если нужно), создавать файлы/сайты. НИКОГДА не выводи JSON вида {"type":"search"} и не выводи ссылки http://google.com/search — просто дай чистый ответ по-русски, до 6 предложений, действуй как в фильме.` + (webResults? "\nРезультаты поиска (используй их):\n"+webResults.slice(0,3000):"");
   addMsg('user', prompt);
   try{
     const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:enrichSys(sys)},{role:'user',content:prompt + (webResults? "\n\nИспользуй результаты поиска выше.":"")}], max_tokens:800, temperature:0.62})});
     const j=await r.json(); if(!r.ok) throw new Error(j.error?.message||r.status);
     let txt=(j.choices?.[0]?.message?.content||'').trim();
+    txt=txt.replace(/\{"type"\s*:\s*"search"[^}]*\}/gi, '').replace(/http:\/\/google\.com\/search\?[^\s\n]*/gi, '').replace(/https:\/\/google\.com\/search\?[^\s\n]*/gi, '').trim();
+    if(!txt && webResults) txt=webResults.slice(0,1200);
     // If AI wants to create file and mentions code, auto handle
     if(/создай|сгенери.*код|сделай.*файл/i.test(prompt) && txt.includes('```')){
       // keep as code and preview if html
@@ -750,7 +752,7 @@ async function captureFramesPerSecond(file, maxFrames=40){
 async function analyzeSingleFrame(dataUrl, idx, ts, total, fileName, persona){
   const k=getKey(); if(!k) throw new Error('no key');
   const personaMode=persona||currentMode; const sys=enrichSys("Ты — аналитик "+personaMode.toUpperCase()+" для Амина ("+(personaMode==="jarvis"?"холодный британский анализ":personaMode==="friday"?"дерзкая ирландская динамика":"стратег ULTRON — риски/паттерн")+") . Рассмотри кадр "+(idx+1)+"/"+total+" видео на "+ts.toFixed(1)+"с. Опиши досконально: объекты, люди, позы, движение, стиль, паттерн этого момента. 2-3 предложения, по-русски, точно без выдумок.");
-  const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:"Кадр "+(idx+1)+"/"+total+" @"+ts.toFixed(1)+"с видео "+fileName+" — полный разбор этого момента. Особо смотри: оружие, модель, калибр, kill-feed, карта, позиция, действия."},{type:'image_url',image_url:{url:dataUrl}}]}], max_tokens:520, temperature:0.35})});
+  const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:"Кадр "+(idx+1)+"/"+total+" @"+ts.toFixed(1)+"с видео "+fileName+" — полный разбор этого момента."},{type:'image_url',image_url:{url:dataUrl}}]}], max_tokens:480, temperature:0.36})});
   const j=await r.json(); if(!r.ok) throw new Error(j.error?.message||r.status);
   return (j.choices?.[0]?.message?.content||'').trim();
 }
@@ -1032,15 +1034,16 @@ async function sendAnalysisChat(){
   } else {
     contextText="Пока нет анализа. Ответь как JARVIS/FRIDAY/ULTRON смесь.";
   }
-  // If question asks about player stats, weapon, internet — search
+  // Только если явно просят найти в инете — иначе не ищем, чтобы не упоминать CS2 на каждом видео
   let webExtra='';
-  if(/игрок|статистик|найди|интернет|какой.*чаще|стиль.*боя/i.test(q)){
-    try{ webExtra=await webSearch(q + " CS2 статистика"); }catch{}
+  if(/найди.*интернет|поищи.*сети|интернет/i.test(q) && q.length>8){
+    try{ webExtra=await webSearch(q); }catch{}
   }
-  const sys=enrichSys("Ты — JARVIS + FRIDAY + ULTRON смесь, как Тони Старк, для Амина. Отвечаешь на вопросы по последнему анализу видео/фото/текста. Если спрашивают про бой — какой удар чаще, стиль боя, вероятный следующий удар — отвечай на основе паттерна и найденных данных, будь точным, не говори 'не хватает данных' если можешь вывести из кадров, делай вывод как JARVIS. Контекст:\n"+contextText + (webExtra? "\nДанные из сети:\n"+webExtra.slice(0,2000):""));
+  const sys=enrichSys("Ты — JARVIS + FRIDAY + ULTRON смесь, как Тони Старк, для Амина. Отвечаешь ТОЛЬКО по последнему анализу видео/фото/текста. Если спрашивают про бой/оружие — отвечай только если в кадрах было оружие/бой, иначе скажи что в видео этого нет. Будь точным, делай вывод как JARVIS, но не выдумывай CS2/оружие если в видео нет оружия. Не выводи JSON. Контекст:\n"+contextText + (webExtra? "\nДанные из сети:\n"+webExtra.slice(0,2000):""));
   try{
     const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:q}], max_tokens:700})});
-    const j=await r.json(); const ans=(j.choices?.[0]?.message?.content||'').trim();
+    const j=await r.json(); let ans=(j.choices?.[0]?.message?.content||'').trim();
+    ans=ans.replace(/\{"type"\s*:\s*"search"[^}]*\}/gi,'').replace(/http[^\s]*google\.com[^\s]*/gi,'').trim();
     const div=document.createElement('div'); div.style.cssText='padding:8px 10px;border-radius:10px;border:1px solid rgba(0,217,255,.2);background:rgba(0,217,255,.08)'; div.innerHTML="<b style='color:var(--accent)'>JARVIS/FRIDAY/ULTRON:</b> "+ans; out.appendChild(div);
     out.scrollTop=out.scrollHeight;
     queueVoice(ans.slice(0,200), currentMode);
