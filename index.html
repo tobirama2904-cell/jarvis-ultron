@@ -216,32 +216,47 @@
 </div>
 
 <script>
-function log(t){ const el=document.getElementById('log'); if(el) el.textContent=new Date().toLocaleTimeString()+' • '+t.slice(0,140); console.log(t); }
-setInterval(()=>{ const el=document.getElementById('sysClock'); if(el) el.textContent=new Date().toLocaleString('ru-RU',{timeZone:'Asia/Dushanbe',hour:'2-digit',minute:'2-digit',second:'2-digit'})+' DSH' },1000);
+// helpers
+function log(t){ const el=document.getElementById('log'); el.textContent=(new Date().toLocaleTimeString()+' • '+t).slice(0,160); console.log(t); }
+// clock
+setInterval(()=>{ document.getElementById('sysClock').textContent=new Date().toLocaleString('ru-RU',{timeZone:'Asia/Dushanbe',hour:'2-digit',minute:'2-digit',second:'2-digit'})+' DSH' },1000);
+// mode
 let currentMode='jarvis';
-const greetings={jarvis:'Добрый день, сэр Амин. JARVIS к вашим услугам.', friday:'Привет, Амин! FRIDAY на связи — готова помочь, босс!', ultron:'Амин. ULTRON активирован. Приказывай.'};
+const greetings={
+  jarvis:'Добрый день, сэр Амин. JARVIS к вашим услугам. Все системы в норме.',
+  friday:'Привет, Амин! FRIDAY на связи — готова помочь, босс!',
+  ultron:'Амин. ULTRON активирован. Приказывай, создатель.'
+};
 const pColors={jarvis:'00D9FF',friday:'FF8A00',ultron:'FF2336'};
 function setMode(m, speak=true){
-  currentMode=m; document.body.className='theme-'+m;
+  currentMode=m;
+  document.body.className='theme-'+m;
   document.querySelectorAll('.mode').forEach(x=>x.classList.toggle('active', x.dataset.m===m));
-  document.getElementById('whoName').textContent=m.toUpperCase(); document.getElementById('modeWord').textContent=m.toUpperCase();
-  document.getElementById('orbTitle').textContent='HOLO-ORB • '+m.toUpperCase(); document.getElementById('hudState').textContent=m.toUpperCase()+' • STANDBY';
-  document.querySelector('meta[name="theme-color"]').content='#'+pColors[m]; document.getElementById('dotText').textContent=m.toUpperCase();
+  document.getElementById('whoName').textContent=m.toUpperCase();
+  document.getElementById('modeWord').textContent=m.toUpperCase();
+  document.getElementById('orbTitle').textContent='HOLO-ORB • '+m.toUpperCase();
+  document.getElementById('hudState').textContent=m.toUpperCase()+' • STANDBY';
+  document.querySelector('meta[name="theme-color"]').content='#'+pColors[m];
+  document.getElementById('dotText').textContent=m.toUpperCase();
   log('режим '+m);
   if(speak){ addMsg('bot', m==='jarvis'?'🇬🇧 JARVIS включён, сэр Амин.':'FRIDAY на связи, Амин!'+(m==='ultron'?' ULTRON проснулся.':'')); speakText(greetings[m]); }
 }
-// ORB
+// ORB - надёжный без DPR глюков
 const orb=document.getElementById('orb'); const octx=orb.getContext('2d');
-let rot=0, scale=1, dragging=false, lastX=0, pulse=0, speaking=false, autoRot=0.006, handActive=false;
+let rot=0, scale=1, dragging=false, lastX=0, pulse=0, speaking=false, autoRot=0.006;
 function resizeOrb(){
-  const r=document.getElementById('stage').getBoundingClientRect();
-  const d=Math.min(2, devicePixelRatio||1);
-  orb.width=Math.max(200,r.width)*d; orb.height=Math.max(200,r.height)*d;
-  orb.style.width=r.width+'px'; orb.style.height=r.height+'px';
-  octx.setTransform(d,0,0,d,0,0);
+  const rect=document.getElementById('stage').getBoundingClientRect();
+  const dpr=Math.min(2, window.devicePixelRatio||1);
+  orb.width=Math.max(200, rect.width)*dpr;
+  orb.height=Math.max(200, rect.height)*dpr;
+  orb.style.width=rect.width+'px'; orb.style.height=rect.height+'px';
+  octx.setTransform(dpr,0,0,dpr,0,0);
+  log('orb '+Math.round(rect.width)+'x'+Math.round(rect.height));
 }
 function initOrb(){
-  resizeOrb(); addEventListener('resize', resizeOrb);
+  resizeOrb();
+  window.addEventListener('resize', resizeOrb);
+  // mouse
   orb.addEventListener('pointerdown',e=>{dragging=true; lastX=e.clientX; orb.setPointerCapture(e.pointerId)});
   orb.addEventListener('pointerup',()=>dragging=false);
   orb.addEventListener('pointermove',e=>{ if(dragging){ rot+=(e.clientX-lastX)*0.01; lastX=e.clientX; }});
@@ -253,312 +268,600 @@ function drawOrb(){
   octx.clearRect(0,0,w,h);
   const cx=w/2, cy=h/2, R=Math.min(w,h)*0.28*scale;
   const col=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#00D9FF';
+  // glow
   const g=octx.createRadialGradient(cx,cy,R*0.2,cx,cy,R*1.9);
   g.addColorStop(0, col+'33'); g.addColorStop(1,'transparent');
   octx.fillStyle=g; octx.beginPath(); octx.arc(cx,cy,R*1.9,0,Math.PI*2); octx.fill();
-  octx.save(); octx.translate(cx,cy); if(!dragging && !handActive) rot+=autoRot; octx.rotate(rot);
-  for(let i=0;i<3;i++){ octx.beginPath(); octx.strokeStyle=col + (i===0?'':'99'); octx.lineWidth=1.4 + (speaking? Math.sin(Date.now()*0.012+i)*1.3:0); const r=R*(0.68+i*0.16); octx.ellipse(0,0,r,R*0.58,0,0,Math.PI*2); octx.stroke(); }
-  pulse+= speaking?0.22:0.06; const coreR=R*0.20 + Math.sin(pulse)*(speaking?7:2);
-  const cg=octx.createRadialGradient(0,0,coreR*0.3,0,0,coreR); cg.addColorStop(0,'white'); cg.addColorStop(1,col);
+  octx.save(); octx.translate(cx,cy); if(!dragging && !handActive) rot+=autoRot;
+  octx.rotate(rot);
+  for(let i=0;i<3;i++){
+    octx.beginPath(); octx.strokeStyle=col + (i===0?'':'99'); octx.lineWidth=1.4 + (speaking? Math.sin(Date.now()*0.012+i)*1.3:0);
+    const r=R*(0.68+i*0.16); octx.ellipse(0,0,r,R*0.58,0,0,Math.PI*2); octx.stroke();
+  }
+  pulse+= speaking?0.22:0.06;
+  const coreR=R*0.20 + Math.sin(pulse)*(speaking?7:2);
+  const cg=octx.createRadialGradient(0,0,coreR*0.3,0,0,coreR);
+  cg.addColorStop(0,'white'); cg.addColorStop(1,col);
   octx.fillStyle=cg; octx.beginPath(); octx.arc(0,0,coreR,0,Math.PI*2); octx.fill();
   octx.restore();
-  octx.fillStyle='rgba(255,255,255,.05)'; octx.font='10px JetBrains Mono'; octx.textAlign='center'; octx.fillText('◈ '+currentMode.toUpperCase(), cx, cy+R+26);
+  // fallback text if not drawn
+  octx.fillStyle='rgba(255,255,255,.06)'; octx.font='10px JetBrains Mono'; octx.textAlign='center'; octx.fillText('◈ '+currentMode.toUpperCase(), cx, cy+R+28);
   requestAnimationFrame(drawOrb);
 }
 initOrb();
-// CAM + HANDS
-let camStream=null, hands=null, camera=null, lastPinchDist=0;
+
+// CAMERA + HANDS - надёжно
+let camStream=null, hands=null, camera=null, handActive=false, lastPinchDist=0;
 async function toggleCam(){
   const v=document.getElementById('cam'), off=document.getElementById('faceOff'), label=document.getElementById('faceLabel'), btn=document.getElementById('camBtn');
   if(camStream){
-    try{ if(camera) camera.stop(); }catch{} try{ if(hands) hands.close(); }catch{}
+    try{ if(camera) camera.stop(); }catch{}
+    try{ if(hands) hands.close(); }catch{}
     camStream.getTracks().forEach(t=>t.stop()); camStream=null; v.srcObject=null;
-    off.style.display='grid'; label.textContent='FACE • OFF'; btn.textContent='📷 Камера';
+    off.style.display='grid'; label.textContent='FACE • OFF'; btn.textContent='📷 Камера + руки';
     document.getElementById('handStat').textContent='✋ off'; document.getElementById('hudHand').textContent='HAND: OFF'; handActive=false; log('камера выкл'); return;
   }
   try{
     log('запрос камеры...');
     camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:{ideal:640}, height:{ideal:480}}, audio:false});
-    v.srcObject=camStream; await v.play().catch(()=>{}); off.style.display='none'; label.textContent='FACE • ON • AMIN'; btn.textContent='📷 Выкл';
-    log('камера ок'); try{ await initHands(v); }catch(e){ log('hands fail '+e.message); document.getElementById('handStat').textContent='✋ камера'; document.getElementById('hudHand').textContent='HAND: CAM ONLY'; }
-  }catch(e){ log('камера err '+e.name); document.getElementById('faceOff').innerHTML='<span style="color:#FF8A00">Нет доступа<br><span style="font-size:10px">'+e.message.slice(0,50)+'</span></span>'; document.getElementById('faceOff').style.display='grid'; }
+    v.srcObject=camStream; await v.play().catch(()=>{});
+    off.style.display='none'; label.textContent='FACE • ON • AMIN'; btn.textContent='📷 Выкл';
+    log('камера ок, пробую руки...');
+    // пробуем руки, но не ломаем если нет
+    try{ await initHands(v); }catch(e){ log('hands не загрузились: '+e.message+' — камера без жестов'); document.getElementById('handStat').textContent='✋ камера без рук'; document.getElementById('hudHand').textContent='HAND: CAM ONLY'; }
+  }catch(e){
+    log('камера ошибка: '+e.name+' '+e.message);
+    // показываем в UI а не alert чтобы не блочить
+    document.getElementById('faceOff').innerHTML='<span style="color:#FF8A00">Нет доступа<br><span style="font-size:10px">'+e.message.slice(0,50)+'</span><br><span style="font-size:9px">Chrome → замок → Камера → Разрешить, нужен HTTPS</span></span>';
+    document.getElementById('faceOff').style.display='grid';
+  }
 }
 async function initHands(video){
+  // динамически грузим если не было
   if(!window.Hands){
-    log('гружу hands...');
-    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'; s.onload=res; s.onerror=()=>rej(new Error('hands cdn')); document.head.appendChild(s); });
-    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+    log('гружу hands.js...');
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'; s.onload=res; s.onerror=()=>rej(new Error('hands.js cdn fail')); document.head.appendChild(s);
+    });
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s);
+    });
   }
   hands=new Hands({locateFile:(f)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
   hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.68, minTrackingConfidence:0.68});
   hands.onResults(onHandResults);
   camera=new Camera(video,{onFrame:async()=>{ await hands.send({image:video}); }, width:640, height:480});
-  camera.start(); document.getElementById('handStat').textContent='✋ tracking'; document.getElementById('hudHand').textContent='HAND: TRACKING'; log('hands on');
+  camera.start();
+  document.getElementById('handStat').textContent='✋ tracking'; document.getElementById('hudHand').textContent='HAND: TRACKING';
+  log('hands tracking on');
 }
 function onHandResults(res){
-  const canvas=document.getElementById('faceOv'), ctx=canvas.getContext('2d'); const box=document.getElementById('faceBox');
-  canvas.width=box.clientWidth*2; canvas.height=box.clientHeight*2; ctx.clearRect(0,0,canvas.width,canvas.height); ctx.setTransform(2,0,0,2,0,0);
-  if(!document.getElementById('gestureToggle').checked){ drawFaceFrame(ctx,box); handActive=false; return; }
+  const canvas=document.getElementById('faceOv'), ctx=canvas.getContext('2d');
+  const box=document.getElementById('faceBox');
+  canvas.width=box.clientWidth*2; canvas.height=box.clientHeight*2;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.setTransform(2,0,0,2,0,0);
+  if(!document.getElementById('gestureToggle').checked){ drawFaceFrame(ctx, box); handActive=false; return; }
   if(res.multiHandLandmarks && res.multiHandLandmarks.length>0){
-    handActive=true; const lm=res.multiHandLandmarks[0]; const conn=window.HAND_CONNECTIONS||[];
+    handActive=true;
+    const lm=res.multiHandLandmarks[0];
+    // skeleton
+    const conn=window.HAND_CONNECTIONS||[];
     ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent'); ctx.lineWidth=2;
     for(const c of conn){ const a=lm[c[0]], b=lm[c[1]]; ctx.beginPath(); ctx.moveTo(a.x*box.clientWidth, a.y*box.clientHeight); ctx.lineTo(b.x*box.clientWidth, b.y*box.clientHeight); ctx.stroke(); }
     ctx.fillStyle='white'; lm.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x*box.clientWidth, p.y*box.clientHeight, 3,0,Math.PI*2); ctx.fill(); });
-    const th=lm[4], ix=lm[8], wr=lm[0], mid=lm[9]; const dist=Math.hypot(th.x-ix.x, th.y-ix.y); const angle=Math.atan2(mid.y-wr.y, mid.x-wr.x);
+    const th=lm[4], ix=lm[8], wr=lm[0], mid=lm[9];
+    const dist=Math.hypot(th.x-ix.x, th.y-ix.y);
+    const angle=Math.atan2(mid.y-wr.y, mid.x-wr.x);
     if(dist<0.05){ if(lastPinchDist===0) lastPinchDist=dist; const d=(dist-lastPinchDist); scale=Math.max(0.6,Math.min(1.7, scale - d*4)); document.getElementById('hudHand').textContent='HAND: PINCH'; }
     else{ lastPinchDist=0; rot+=angle*0.015; document.getElementById('hudHand').textContent='HAND: ROTATE'; }
     const open=isOpen(lm); document.getElementById('handStat').textContent=open?'✋ open':'✋ tracking'; autoRot=open?0:0.006;
-  }else{ handActive=false; drawFaceFrame(ctx,box); document.getElementById('hudHand').textContent='HAND: NO HAND'; document.getElementById('handStat').textContent='✋ no hand'; }
+  }else{ handActive=false; drawFaceFrame(ctx, box); document.getElementById('hudHand').textContent='HAND: NO HAND'; document.getElementById('handStat').textContent='✋ no hand'; }
 }
 function isOpen(lm){ let o=0; [8,12,16,20].forEach((t,i)=>{ const p=[6,10,14,18][i]; if(lm[t].y < lm[p].y) o++; }); return o>=3; }
-function drawFaceFrame(ctx,box){
-  const w=80,h=60,x=(box.clientWidth-w)/2 + Math.sin(Date.now()*0.002)*5,y=(box.clientHeight-h)/2 + Math.cos(Date.now()*0.0026)*4;
-  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent'); ctx.lineWidth=2; const s=9;
-  ctx.beginPath(); ctx.moveTo(x,y+s); ctx.lineTo(x,y); ctx.lineTo(x+s,y); ctx.moveTo(x+w-s,y); ctx.lineTo(x+w,y); ctx.lineTo(x+w,y+s); ctx.moveTo(x+w,y+h-s); ctx.lineTo(x+w,y+h); ctx.lineTo(x+w-s,y+h); ctx.moveTo(x+s,y+h); ctx.lineTo(x,y+h); ctx.lineTo(x,y+h-s); ctx.stroke();
-  const sy=y+((Math.sin(Date.now()*0.0011)+1)/2*h); ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent')+'66'; ctx.fillRect(x,sy,w,1.5);
+function drawFaceFrame(ctx, box){
+  const w=80, h=60, x=(box.clientWidth-w)/2 + Math.sin(Date.now()*0.002)*5, y=(box.clientHeight-h)/2 + Math.cos(Date.now()*0.0026)*4;
+  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent'); ctx.lineWidth=2;
+  const s=9; ctx.beginPath();
+  ctx.moveTo(x,y+s); ctx.lineTo(x,y); ctx.lineTo(x+s,y);
+  ctx.moveTo(x+w-s,y); ctx.lineTo(x+w,y); ctx.lineTo(x+w,y+s);
+  ctx.moveTo(x+w,y+h-s); ctx.lineTo(x+w,y+h); ctx.lineTo(x+w-s,y+h);
+  ctx.moveTo(x+s,y+h); ctx.lineTo(x,y+h); ctx.lineTo(x,y+h-s); ctx.stroke();
+  const sy=y + ((Math.sin(Date.now()*0.0011)+1)/2*h);
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent')+'66'; ctx.fillRect(x,sy,w,1.5);
 }
-// AUDIO
+
+// AUDIO - unlock надёжно
 let audioUnlocked=false;
 function unlockAudio(manual=false){
   try{
-    if(!window.speechSynthesis){ log('no speech'); return; }
+    if(!window.speechSynthesis) { log('speechSynthesis нет'); return; }
     speechSynthesis.getVoices();
     const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u);
-    const AC=window.AudioContext||window.webkitAudioContext; if(AC){ const ac=new AC(); if(ac.state==='suspended') ac.resume(); if(manual){ const o=ac.createOscillator(); const g=ac.createGain(); g.gain.value=0.0001; o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+0.05); } }
-    audioUnlocked=true; log('звук ok'+(manual?' (кнопка)':'')); document.getElementById('hudVoice').textContent='VOICE: READY';
+    // также WebAudio
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(AC){ const ac=new AC(); if(ac.state==='suspended') ac.resume(); if(manual){ const o=ac.createOscillator(); const g=ac.createGain(); g.gain.value=0.0001; o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime+0.05); } }
+    audioUnlocked=true; log('звук разблокирован'+(manual?' (кнопка)':'')); document.getElementById('hudVoice').textContent='VOICE: READY';
   }catch(e){ log('unlock fail '+e.message); }
 }
 ['click','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ if(!audioUnlocked) unlockAudio(); },{once:true}));
 let voices=[];
-function loadVoices(){ voices=speechSynthesis.getVoices(); if(voices.length) log('голосов '+voices.length); }
-speechSynthesis.onvoiceschanged=()=>{ loadVoices(); }; loadVoices(); setTimeout(loadVoices,800);
+function loadVoices(){ voices=speechSynthesis.getVoices(); if(voices.length) log('голосов: '+voices.length+' — '+voices.map(v=>v.name+'/'+v.lang).slice(0,3).join(' | ')); }
+speechSynthesis.onvoiceschanged=()=>{ loadVoices(); log('голоса обновлены: '+voices.length); }; loadVoices();
+setTimeout(loadVoices, 800);
 function pickVoice(m, text=''){
-  loadVoices(); const isRu=/[а-яё]/i.test(text);
-  if(isRu){ const map={jarvis:['Google русский','Pavel','ru-RU'], friday:['Google русский','Irina','ru-RU'], ultron:['Google русский','Pavel','ru-RU']}[m]; for(const w of map){ const v=voices.find(x=>x.name.includes(w)||x.lang.startsWith('ru')); if(v) return v; } const ru=voices.find(x=>x.lang.startsWith('ru')); if(ru) return ru; }
-  const want={jarvis:['Google UK English Male','Daniel','en-GB'], friday:['Google UK English Female','Samantha','en-GB'], ultron:['Google UK English Male','Alex','en-GB']}[m];
+  loadVoices();
+  const isRu=/[а-яё]/i.test(text);
+  if(isRu){
+    // для русского текста — русские голоса
+    const ruWants={
+      jarvis:['Google русский','Pavel','Microsoft Pavel','Dmitry','Yuri','ru-RU'],
+      friday:['Google русский','Irina','Microsoft Irina','Svetlana','Alena','Milena','ru-RU'],
+      ultron:['Google русский','Pavel','Dmitry','ru-RU']
+    }[m];
+    for(const w of ruWants){ const v=voices.find(x=>x.name.includes(w)||x.lang===w||x.lang.startsWith('ru')); if(v) return v; }
+    const ru=voices.find(x=>x.lang.startsWith('ru')); if(ru) return ru;
+  }
+  const want={jarvis:['Google UK English Male','Daniel','Arthur','Microsoft George','en-GB'], friday:['Google UK English Female','Samantha','Aria','Jenny','en-IE','en-GB'], ultron:['Google UK English Male','Alex','David','en-GB']}[m];
   for(const w of want){ const v=voices.find(x=>x.name.includes(w)||x.lang===w); if(v) return v; }
-  return voices.find(x=>x.lang.startsWith('en-'))||voices[0];
+  return voices.find(x=>x.lang.startsWith('en-'))||voices[0]||voices.find(x=>x.lang.startsWith('ru-'));
 }
 async function speakText(text){
-  if(!document.getElementById('voiceToggle').checked) return;
-  if(!audioUnlocked) unlockAudio(); const clean=text.slice(0,700);
-  speaking=true; document.getElementById('wave').style.display='flex'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • SPEAKING';
-  log('говорю '+currentMode+': '+clean.slice(0,30));
+  if(!document.getElementById('voiceToggle').checked){ log('озвучка выкл'); return; }
+  if(!audioUnlocked) unlockAudio();
+  const clean=text.slice(0,650);
+  speaking=true; document.getElementById('wave').style.display='flex';
+  document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • SPEAKING';
+  log('говорю '+currentMode+': '+clean.slice(0,30)+'...');
+  // пробуем ElevenLabs если есть ключ
   const eleven=localStorage.getItem('eleven_key')||'';
   if(eleven){
     try{
       const map={jarvis:'pNInz6obpgDQGcFmaJgB',friday:'EXAVITQu4vr4xnSDxMaL',ultron:'VR6AewLTigWG4xSOukaG'};
       const r=await fetch('https://api.elevenlabs.io/v1/text-to-speech/'+map[currentMode],{method:'POST', headers:{'xi-api-key':eleven,'Content-Type':'application/json'}, body: JSON.stringify({text:clean, model_id:'eleven_multilingual_v2'})});
-      if(r.ok){ const blob=await r.blob(); const url=URL.createObjectURL(blob); const a=new Audio(url); a.onended=()=>{ speaking=false; document.getElementById('wave').style.display='none'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; URL.revokeObjectURL(url); }; await a.play(); return; }
+      if(r.ok){ const blob=await r.blob(); const url=URL.createObjectURL(blob); const a=new Audio(url); a.onended=()=>{ speaking=false; document.getElementById('wave').style.display='none'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; URL.revokeObjectURL(url); log('eleven done'); }; await a.play(); return; }
+      else log('eleven '+r.status);
     }catch(e){ log('eleven err '+e.message); }
   }
+  // браузер
   try{
-    if(speechSynthesis.paused) speechSynthesis.resume(); speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(clean); const v=pickVoice(currentMode,clean); if(v){ u.voice=v; log('voice '+v.name); } u.lang=v?.lang||(/[а-яё]/i.test(clean)?'ru-RU':'en-GB'); u.rate=currentMode==='ultron'?0.84: currentMode==='friday'?1.06:0.94; u.pitch=currentMode==='ultron'?0.62: currentMode==='friday'?1.2:0.9; u.volume=1;
-    u.onend=()=>{ speaking=false; document.getElementById('wave').style.display='none'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; };
-    u.onerror=()=>{ speaking=false; document.getElementById('wave').style.display='none'; };
+    if(speechSynthesis.paused) speechSynthesis.resume();
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(clean);
+    const v=pickVoice(currentMode, clean); if(v){ u.voice=v; log('voice '+v.name+' '+v.lang); } else { log('voice default, всего голосов: '+voices.length+' ['+voices.map(x=>x.lang).slice(0,4).join(',')+']'); }
+    u.lang=v?.lang|| (/[а-яё]/i.test(clean)?'ru-RU':'en-GB'); u.rate=currentMode==='ultron'?0.84: currentMode==='friday'?1.06:0.94; u.pitch=currentMode==='ultron'?0.62: currentMode==='friday'?1.2:0.9; u.volume=1;
+    u.onend=()=>{ speaking=false; document.getElementById('wave').style.display='none'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; log('speech done'); };
+    u.onerror=e=>{ speaking=false; document.getElementById('wave').style.display='none'; log('speech error '+e.error); };
     speechSynthesis.speak(u);
+    // если через 1.2с не заговорил — фолбэк
+    setTimeout(()=>{ if(speaking && !speechSynthesis.speaking){ log('speech не стартовал, пробую снова'); speechSynthesis.speak(u); } },1200);
   }catch(e){ log('speak fail '+e.message); speaking=false; document.getElementById('wave').style.display='none'; }
 }
-function testVoice(){ unlockAudio(true); try{ const AC=window.AudioContext||window.webkitAudioContext; if(AC){ const ac=new AC(); const o=ac.createOscillator(); const g=ac.createGain(); o.frequency.value=720; g.gain.value=0.12; o.connect(g).connect(ac.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime+0.35); o.stop(ac.currentTime+0.36); } }catch{} setTimeout(()=> speakText(greetings[currentMode]+' Амин, проверка '+currentMode), 300); }
-// MIC
-let rec=null, listening=false, micStream=null, micMeterRAF=null, offlineMode=false, whisperPipe=null;
+function testVoice(){
+  unlockAudio(true);
+  // бип чтобы доказать что звук вообще работает
+  try{ const AC=window.AudioContext||window.webkitAudioContext; if(AC){ const ac=new AC(); const o=ac.createOscillator(); const g=ac.createGain(); o.type='sine'; o.frequency.value=720; g.gain.value=0.12; o.connect(g).connect(ac.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime+0.35); o.stop(ac.currentTime+0.36); log('бип 720Гц ok'); } }catch(e){ log('бип fail '+e.message); }
+  setTimeout(()=> speakText(greetings[currentMode]+' Амин, проверка голоса '+currentMode+'. Если слышишь меня — голос работает. Скажи Джарвис сделай что-нибудь.'), 400);
+  // покажем какие голоса есть
+  setTimeout(()=>{ if(voices.length===0) log('⚠️ голосов 0 — нажми ещё раз 🔓 Вкл звук, Chrome должен загрузить'); }, 900);
+}
+
+// MIC - надёжно, теперь без обязательного wake + с проверкой микрофона
+let rec=null, listening=false, micStream=null, micMeterRAF=null, offlineMode=false, whisperPipe=null, offlineRec=null, offlineChunks=[];
 function initRec(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){ log('no SR'); return null; }
+  if(!SR){ log('SpeechRecognition нет — нужен Chrome/Edge v80+'); return null; }
   const r=new SR(); r.lang='ru-RU'; r.continuous=true; r.interimResults=true; r.maxAlternatives=1;
-  r.onstart=()=>{ log('микрофон старт'); document.getElementById('hudVoice').textContent='VOICE: LISTENING...'; };
+  r.onstart=()=>{ log('микрофон старт — говори громко, Амин'); document.getElementById('hudVoice').textContent='VOICE: LISTENING...'; document.getElementById('micBtn').classList.add('live'); };
+  r.onaudiostart=()=>{ log('audio start — микрофон живой'); };
+  r.onsoundstart=()=>{ log('sound start — слышу звук'); };
+  r.onspeechstart=()=>{ log('speech start — слышу речь'); };
   r.onresult=e=>{
-    let interim='', final='';
-    for(let i=e.resultIndex;i<e.results.length;i++){ const txt=e.results[i][0].transcript; if(e.results[i].isFinal) final+=txt+' '; else interim+=txt+' '; }
-    const show=(final||interim).trim(); if(show) document.getElementById('hudVoice').textContent='VOICE: "'+show.slice(0,28)+'"';
-    if(final){ const t=final.trim(); log('✅ ФИНАЛ: '+t); if(/пятниц/i.test(t)) setMode('friday',false); else if(/ультрон/i.test(t)) setMode('ultron',false); else if(/джарвис|jarvis/i.test(t)) setMode('jarvis',false); const cmd=t.replace(/джарвис|пятниц.*|ультрон|jarvis|friday|ultron/gi,'').trim()||t; addMsg('user','🎙️ '+t); handle(cmd); }
-  };
-  r.onerror=e=>{
-    log('mic err '+e.error);
-    if(e.error==='network'){
-      log('Google blocked → offline Whisper'); addMsg('sys','🌐 Google заблокирован — включаю оффлайн Whisper, нажми 🎙️ ещё раз'); offlineMode=true; document.getElementById('micBtn').textContent='🎙️ Оффлайн'; document.getElementById('hudVoice').textContent='OFFLINE READY'; try{ r.stop(); }catch{} listening=false; document.getElementById('micBtn').classList.remove('live'); loadWhisper().catch(err=>log(err.message));
+    let interim=''; let final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const txt=e.results[i][0].transcript;
+      if(e.results[i].isFinal) final+=txt+' ';
+      else interim+=txt+' ';
     }
-    if(e.error==='not-allowed') addMsg('sys','🎙️ Разреши микрофон в замке');
+    const show=(final||interim).trim();
+    if(show) document.getElementById('hudVoice').textContent='VOICE: "'+show.slice(0,28)+'"';
+    if(interim) log('промежуточно: '+interim.trim());
+    if(final){
+      const t=final.trim();
+      log('✅ ФИНАЛ: '+t);
+      if(/пятниц/i.test(t)) setMode('friday',false);
+      else if(/ультрон/i.test(t)) setMode('ultron',false);
+      else if(/джарвис|jarvis/i.test(t)) setMode('jarvis',false);
+      const cmd=t.replace(/джарвис|пятниц.*|ультрон|jarvis|friday|ultron/gi,'').trim() || t;
+      addMsg('user','🎙️ '+t); handle(cmd);
+    }
   };
-  r.onend=()=>{ if(listening && !offlineMode) setTimeout(()=>{ if(listening) try{ r.start(); }catch{} },600); };
+  r.onerror=e=>{ log('❌ mic error '+e.error+' '+(e.message||'')); if(e.error==='not-allowed') addMsg('sys','🎙️ Доступ запрещён — нажми замок в адресе → Микрофон → Разрешить → Перезагрузи страницу'); if(e.error==='no-speech') log('no-speech — ты молчал 5с, говорю громче'); if(e.error==='audio-capture') addMsg('sys','🎙️ Микрофон занят другим приложением'); if(e.error==='network'){
+      log('🌐 Google STT заблокирован у тебя (TJ) — включаю оффлайн Whisper');
+      addMsg('sys','🌐 Google заблокирован. Включаю оффлайн Whisper (без VPN). Нажми 🎙️ ещё раз — теперь запись через Whisper (скачает ~30МБ один раз).');
+      offlineMode=true;
+      document.getElementById('micBtn').textContent='🎙️ Оффлайн';
+      document.getElementById('hudVoice').textContent='VOICE: OFFLINE READY';
+      try{ r.stop(); }catch{}
+      listening=false; document.getElementById('micBtn').classList.remove('live');
+      loadWhisper().catch(err=>log('whisper load fail '+err.message));
+    } if(e.error==='aborted') log('aborted'); };
+  r.onend=()=>{ log('mic end, listening='+listening+' offline='+offlineMode); if(listening && !offlineMode){ log('перезапуск через 0.6с...'); setTimeout(()=>{ if(listening) try{ r.start(); log('restart ok'); }catch(err){ log('restart fail '+err.message); } },600);} };
+  r.onnomatch=()=>{ log('nomatch — не понял'); };
   return r;
 }
 async function loadWhisper(){
   if(whisperPipe) return whisperPipe;
-  log('⏳ Whisper 30МБ...'); document.getElementById('hudVoice').textContent='гружу Whisper...';
+  log('⏳ Гружу Whisper tiny (30МБ, один раз) ...');
+  document.getElementById('hudVoice').textContent='VOICE: гружу Whisper...';
   try{
     const mod=await import('https://esm.sh/@huggingface/transformers@3.3.0');
-    whisperPipe=await mod.pipeline('automatic-speech-recognition','Xenova/whisper-tiny',{quantized:true});
-    log('Whisper ready'); document.getElementById('hudVoice').textContent='Whisper готов'; return whisperPipe;
-  }catch(e){ log('whisper fail '+e.message); throw e; }
+    const { pipeline } = mod;
+    whisperPipe = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', { quantized: true });
+    log('✅ Whisper готов! Теперь оффлайн');
+    document.getElementById('hudVoice').textContent='VOICE: Whisper готов';
+    addMsg('sys','✅ Оффлайн Whisper готов — теперь нажми 🎙️ Оффлайн и говори, Амин!');
+    return whisperPipe;
+  }catch(e){
+    log('whisper esm.sh fail '+e.message);
+    try{
+      const mod2=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.0/+esm');
+      const { pipeline } = mod2;
+      whisperPipe = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', { quantized: true });
+      log('✅ Whisper cdn готов'); return whisperPipe;
+    }catch(e2){ log('whisper fail2 '+e2.message); addMsg('sys','❌ Не смог загрузить Whisper — включи VPN для первой загрузки'); throw e2; }
+  }
 }
-function startMeter(s){
-  try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; const ac=new AC(); const src=ac.createMediaStreamSource(s); const an=ac.createAnalyser(); an.fftSize=256; src.connect(an); const d=new Uint8Array(an.frequencyBinCount); function tick(){ if(!listening) try{ac.close()}catch{}; else{ an.getByteFrequencyData(d); let sum=0; for(let v of d) sum+=v; const av=sum/d.length; if(av>8) document.getElementById('hudVoice').textContent='VOICE: 🔊 '+Math.round(av)+'%'; requestAnimationFrame(tick); } } tick(); }catch{}
+function startMeter(stream){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    const ac=new AC(); const src=ac.createMediaStreamSource(stream); const analyser=ac.createAnalyser(); analyser.fftSize=256; src.connect(analyser);
+    const data=new Uint8Array(analyser.frequencyBinCount);
+    function tick(){
+      if(!listening) { try{ac.close()}catch{}; return; }
+      analyser.getByteFrequencyData(data);
+      let sum=0; for(let v of data) sum+=v; const avg=sum/data.length;
+      // показываем громкость в HUD
+      if(avg>8) document.getElementById('hudVoice').textContent='VOICE: 🔊 '+Math.round(avg)+'% слышу!';
+      micMeterRAF=requestAnimationFrame(tick);
+    }
+    tick();
+  }catch(e){ log('meter fail '+e.message); }
 }
 async function toggleMic(){
+  // ОФФЛАЙН режим — Whisper
   if(offlineMode){
     const btn=document.getElementById('micBtn');
-    if(!window.MediaRecorder){ addMsg('sys','❌ MediaRecorder нет'); return; }
-    if(!offlineMode || !whisperPipe) await loadWhisper().catch(()=>{});
-    if(btn.textContent.includes('Оффлайн') && !listening){
-      // start offline record
+    if(!offlineRec || offlineRec.state==='inactive'){
+      // старт записи
       try{
+        log('🎙️ Оффлайн запись — говори 2-4с, потом нажми стоп');
+        document.getElementById('hudVoice').textContent='VOICE: 🔴 запись... говори!';
+        if(!whisperPipe) await loadWhisper();
         const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-        const rec2=new MediaRecorder(stream); const chunks=[];
-        rec2.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
-        rec2.onstop=async()=>{
+        offlineChunks=[];
+        offlineRec=new MediaRecorder(stream, {mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm'});
+        offlineRec.ondataavailable=e=>{ if(e.data.size>0) offlineChunks.push(e.data); };
+        offlineRec.onstop=async()=>{
           try{
-            log('Whisper думает...'); document.getElementById('hudVoice').textContent='🧠 Whisper...';
-            const blob=new Blob(chunks,{type:rec2.mimeType});
+            log('обработка Whisper...');
+            document.getElementById('hudVoice').textContent='VOICE: 🧠 Whisper думает...';
+            const blob=new Blob(offlineChunks, {type: offlineRec.mimeType || 'audio/webm'});
+            // декодим через AudioContext в Float32
             const ac=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
-            const buf=await blob.arrayBuffer(); let data;
-            try{ const dec=await ac.decodeAudioData(buf.slice(0)); data=dec.getChannelData(0); }catch{ log('decode fail'); document.getElementById('hudVoice').textContent='ошибка аудио'; stream.getTracks().forEach(t=>t.stop()); listening=false; btn.classList.remove('live'); btn.textContent='🎙️ Оффлайн'; return; }
-            const res=await whisperPipe(data,{language:'russian',task:'transcribe'}); const text=(res.text||'').trim();
-            log('Whisper → '+text); if(text){ document.getElementById('hudVoice').textContent='VOICE: "'+text.slice(0,24)+'"'; addMsg('user','🎙️ '+text); handle(text); } else addMsg('sys','🤷 не понял');
-            stream.getTracks().forEach(t=>t.stop()); try{ac.close()}catch{}
-          }catch(e){ log('whisper err '+e.message); }
-          listening=false; btn.classList.remove('live'); btn.textContent='🎙️ Оффлайн'; document.getElementById('hudVoice').textContent='OFFLINE READY';
+            const arrayBuf=await blob.arrayBuffer();
+            let audioData;
+            try{
+              const decoded=await ac.decodeAudioData(arrayBuf.slice(0));
+              // ресемплим уже 16k, берём первый канал
+              audioData=decoded.getChannelData(0);
+            }catch{
+              // fallback: читаем как есть — whisper может принять blob URL
+              // попробуем через FileReader как base? просто передадим blob URL
+              log('decode fail, пробую blob');
+              document.getElementById('hudVoice').textContent='VOICE: ошибка аудио';
+              addMsg('sys','❌ Не смог декодировать аудио — попробуй ещё раз, говори чётко');
+              stream.getTracks().forEach(tr=>tr.stop());
+              listening=false; btn.classList.remove('live'); btn.textContent='🎙️ Оффлайн'; return;
+            }
+            // whisper ожидает 16k float32
+            const result=await whisperPipe(audioData, {language:'russian', task:'transcribe'});
+            const text=(result.text||'').trim();
+            log('Whisper → "'+text+'"');
+            if(text){
+              document.getElementById('hudVoice').textContent='VOICE: "'+text.slice(0,24)+'"';
+              addMsg('user','🎙️ '+text);
+              handle(text);
+            }else{
+              addMsg('sys','🤷 Whisper не понял — говори громче и чётче, 2-4 сек');
+              document.getElementById('hudVoice').textContent='VOICE: не понял';
+            }
+            stream.getTracks().forEach(tr=>tr.stop());
+            try{ac.close()}catch{}
+          }catch(e){ log('whisper transcribe fail '+e.message); addMsg('sys','❌ Whisper ошибка: '+e.message); }
+          listening=false; btn.classList.remove('live'); btn.textContent='🎙️ Оффлайн'; document.getElementById('hudVoice').textContent='VOICE: OFFLINE READY';
         };
-        window._offlineRec=rec2; rec2.start(); listening=true; btn.classList.add('live'); btn.textContent='■ Стоп (оффлайн)'; document.getElementById('hudVoice').textContent='🔴 запись... говори!'; addMsg('sys','🎙️ Оффлайн запись — говори 2-4с, потом Стоп');
-        setTimeout(()=>{ if(listening && rec2.state==='recording'){ try{ rec2.stop(); }catch{} } },6000);
-      }catch(e){ log('offline fail '+e.message); }
+        offlineRec.start();
+        listening=true; btn.classList.add('live'); btn.textContent='■ Стоп (оффлайн)'; 
+        log('offline rec started');
+      }catch(e){ log('offline start fail '+e.message); addMsg('sys','❌ Микрофон оффлайн fail: '+e.message); }
       return;
-    }else if(listening){
-      try{ window._offlineRec.stop(); }catch{}
+    }else{
+      // стоп записи
+      try{ offlineRec.stop(); log('offline rec stop'); }catch(e){ log('stop fail '+e.message); }
+      document.getElementById('hudVoice').textContent='VOICE: обработка...';
       return;
     }
   }
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; const btn=document.getElementById('micBtn');
-  if(!SR){ addMsg('sys','🎙️ Только Chrome/Edge HTTPS'); return; }
-  if(!rec) rec=initRec(); listening=!listening;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const btn=document.getElementById('micBtn');
+  if(!SR){ addMsg('sys','🎙️ Распознавание только в Chrome/Edge на HTTPS. На iPhone — пиши текстом.'); log('no SR UA='+navigator.userAgent.slice(0,70)); return; }
+  if(!rec) rec=initRec();
+  if(!rec){ log('rec null'); return; }
+  listening=!listening;
   if(listening){
     unlockAudio(true);
-    try{ micStream=await navigator.mediaDevices.getUserMedia({audio:true}); startMeter(micStream); }catch(e){ log('mic perm fail '+e.message); listening=false; return; }
-    try{ rec.start(); log('rec.start'); }catch(e){ log('start fail '+e.message); rec=initRec(); try{ rec.start(); }catch{} }
-    btn.classList.add('live'); btn.textContent='■ Стоп'; document.getElementById('hudVoice').textContent='VOICE: LISTENING...'; document.getElementById('wave').style.display='flex'; addMsg('sys','🎙️ Слушаю, Амин — говори что угодно');
+    try{
+      log('запрос mic getUserMedia...');
+      micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      log('mic permission OK — микрофон живой, громкость покажу');
+      startMeter(micStream);
+    }catch(e){
+      log('getUserMedia fail '+e.name+' '+e.message);
+      addMsg('sys','🎙️ Нет доступа к микрофону: '+e.message+' — замок в адресе → Разрешить');
+      listening=false; return;
+    }
+    log('пытаюсь rec.start() lang=ru-RU continuous...');
+    try{ rec.start(); log('rec.start ВЫЗВАН'); }catch(e){
+      log('rec.start fail '+e.name+' '+e.message);
+      rec=initRec(); try{ rec.start(); log('retry ok'); }catch(e2){ log('retry fail '+e2.name+' '+e2.message); if(micStream) micStream.getTracks().forEach(t=>t.stop()); listening=false; return; }
+    }
+    btn.classList.add('live'); btn.textContent='■ Стоп'; document.getElementById('hudVoice').textContent='VOICE: LISTENING... говори громко!'; document.getElementById('wave').style.display='flex';
+    addMsg('sys','🎙️ Слушаю, Амин — говори что угодно громко: "привет", "нарисуй кота". Смотри VOICE: "текст" и лог.');
+    setTimeout(()=>{ if(listening && document.getElementById('hudVoice').textContent.includes('LISTENING')){ log('⚠️ 6с нет результата — говори громче, ближе к микрофону, проверь интернет (Google STT нужен)'); } },6500);
   }else{
-    try{ if(micStream) micStream.getTracks().forEach(t=>t.stop()); }catch{} try{ rec.stop(); }catch{} btn.classList.remove('live'); btn.textContent='🎙️ Слушать'; document.getElementById('hudVoice').textContent='VOICE: OFF'; document.getElementById('wave').style.display='none';
+    try{ if(micStream) micStream.getTracks().forEach(t=>t.stop()); }catch{}
+    if(micMeterRAF) cancelAnimationFrame(micMeterRAF);
+    try{ rec.stop(); log('rec.stop'); }catch(e){ log('stop fail '+e.message); }
+    btn.classList.remove('live'); btn.textContent='🎙️ Слушать'; document.getElementById('hudVoice').textContent='VOICE: OFF'; document.getElementById('wave').style.display='none'; log('mic стоп');
   }
 }
-// TABS
-function switchTab(which){
-  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('pane-'+which).classList.add('active');
-  document.getElementById('t-'+which).classList.add('active');
-  log('tab '+which);
+// доп тест: показать что браузер слышит без отправки
+function testMic(){
+  log('тест mic — нажми 🎙️ и скажи что-нибудь, смотри лог и VOICE: "..."');
+  if(!listening) toggleMic();
 }
-function quick(t){ switchTab('chat'); document.getElementById('inp').value=t; send(); }
+
 // Agnes
 function getKey(){ return (localStorage.getItem('agnes_key')||'').trim(); }
-function setDot(s){ const el=document.getElementById('dAgnes'); if(el) el.className='dot '+(s==='on'?'on':s==='off'?'':'wait'); const tx=document.getElementById('dotText'); if(tx) tx.textContent=s==='on'?'Agnes OK ✓':'Agnes'; }
-function saveAgnes(){ const k=document.getElementById('agnesKey').value.trim(); if(!k) return alert('sk-...'); localStorage.setItem('agnes_key',k); document.getElementById('agnesStat').textContent='сохранён ✓'; testAgnes(); }
+function setDot(s){ const el=document.getElementById('dAgnes'); el.className='dot '+(s==='on'?'on':s==='off'?'':'wait'); document.getElementById('dotText').textContent=s==='on'?'Agnes OK ✓':'Agnes'; }
+function saveAgnes(){ const k=document.getElementById('agnesKey').value.trim(); if(!k) return alert('Вставь sk-...'); localStorage.setItem('agnes_key',k); document.getElementById('agnesStat').textContent='сохранён ✓'; testAgnes(); log('agnes saved'); }
 function clearAgnes(){ localStorage.removeItem('agnes_key'); document.getElementById('agnesKey').value=''; document.getElementById('agnesStat').textContent='нет ключа'; setDot('wait'); }
 async function testAgnes(){
   const k=(document.getElementById('agnesKey').value.trim()||getKey());
-  if(!k){ document.getElementById('agnesStat').textContent='нет ключа'; setDot('wait'); return; }
+  if(!k){ document.getElementById('agnesStat').textContent='нет ключа → вставь'; setDot('wait'); return;}
   if(document.getElementById('agnesKey').value.trim()) localStorage.setItem('agnes_key',k);
   document.getElementById('agnesStat').textContent='проверяю...';
   for(const m of ['agnes-2.5-flash','agnes-3.0-flash','agnes-2.0-flash']){
-    try{ const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:m, messages:[{role:'user',content:'ping'}], max_tokens:10})}); const j=await r.json().catch(()=>({})); if(r.ok&&j.choices){ document.getElementById('agnesStat').textContent='Agnes OK ✓ ('+m+')'; setDot('on'); log('agnes '+m); return;} if(r.status===429) continue; }catch{} }
-  document.getElementById('agnesStat').textContent='429 — подожди'; setDot('off');
+    try{ const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:m, messages:[{role:'user',content:'ping'}], max_tokens:10})}); const j=await r.json().catch(()=>({})); if(r.ok&&j.choices){ document.getElementById('agnesStat').textContent='Agnes OK ✓ ('+m+')'; setDot('on'); log('agnes ok '+m); return;} if(r.status===429) continue; if(!r.ok){ document.getElementById('agnesStat').textContent='ошибка '+r.status; setDot('off'); log('agnes err '+r.status); return; } }catch(e){ log('agnes net '+e.message);} }
+  document.getElementById('agnesStat').textContent='429 — подожди 20с'; setDot('off');
 }
 document.getElementById('agnesKey').value=getKey()||'sk-22J77EfguZlFo2k8dIGSwmrRrRWmI8IvTeZawIBRtZ9gI23d';
 if(getKey()||document.getElementById('agnesKey').value) testAgnes();
-// Chat
+
+// chat
 function addMsg(role, text){
-  const box=document.getElementById('msgs'); const d=document.createElement('div'); d.className='msg '+role; d.textContent=text; box.appendChild(d); box.scrollTop=box.scrollHeight; if(role==='bot') speakText(text); return d;
+  const box=document.getElementById('msgs'); const d=document.createElement('div'); d.className='msg '+role; d.textContent=text; box.appendChild(d); box.scrollTop=box.scrollHeight;
+  if(role==='bot') speakText(text);
+  return d;
 }
+function quick(t){ document.getElementById('inp').value=t; send(); }
 async function agnesChat(prompt){
-  const k=getKey(); if(!k) return '🔑 Вставь ключ Agnes сверху';
-  const sys=`Ты ${currentMode.toUpperCase()} для Амина. JARVIS — британский дворецкий, "сэр Амин". FRIDAY — "Амин/босс". ULTRON — холодный. По-русски, до 5 предложений.`;
+  const k=getKey(); if(!k) return '🔑 Амин, вставь ключ Agnes сверху и нажми Сохранить.';
+  const sys=`Ты ${currentMode.toUpperCase()} для Амина. JARVIS — британский дворецкий, сухой юмор, "сэр Амин". FRIDAY — ирландская, "Амин/босс". ULTRON — холодный, уважает Амина как создателя. По-русски, до 5 предложений, с характером.`;
   for(const model of ['agnes-2.5-flash','agnes-3.0-flash','agnes-2.0-flash']){
     try{
       const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model, messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:750, temperature:0.78})});
-      const j=await r.json(); if(!r.ok){ if(r.status===429) continue; return `⚠️ Agnes ${r.status}`; }
+      const j=await r.json(); if(!r.ok){ if(r.status===429) continue; return `⚠️ Agnes ${r.status}: ${(j.error?.message||'').slice(0,140)}`; }
       let txt=(j.choices?.[0]?.message?.content||'').trim(); if(!txt) txt=(j.choices?.[0]?.message?.reasoning_content||'').trim(); txt=txt.replace(/^\n+/,'').trim(); if(txt){ setDot('on'); return txt; }
     }catch{ continue; }
   }
-  return '⚠️ Лимит RPM 20 — подожди 25с';
+  return '⚠️ Амин, лимит Agnes RPM 20 — подожди 25 сек.';
 }
 async function handle(prompt){
   const low=prompt.toLowerCase();
-  if(/включи.*камер/i.test(low)){ toggleCam(); addMsg('bot','📷 Ок'); return; }
-  if(/тише|молчи|стоп/i.test(low)){ speechSynthesis.cancel(); speaking=false; document.getElementById('wave').style.display='none'; addMsg('bot','🤫 Молчу'); return; }
+  if(/включи.*камер/i.test(low)){ toggleCam(); addMsg('bot','📷 Выполняю, Амин.'); return; }
+  if(/выключи.*камер/i.test(low)){ if(camStream) toggleCam(); addMsg('bot','📷 Выкл.'); return; }
+  if(/слушай|микрофон/i.test(low) && !listening){ toggleMic(); return; }
+  if(/тише|молчи|стоп/i.test(low)){ speechSynthesis.cancel(); speaking=false; document.getElementById('wave').style.display='none'; addMsg('bot','🤫 Молчу, Амин.'); return; }
   if(low.trim().length<=12 && /джарвис|пятниц|ультрон|привет/i.test(low)){ addMsg('bot', greetings[currentMode]); speakText(greetings[currentMode]); return; }
-  if(/нарисуй|сгенери|картинк|изображ/i.test(low)){ const p=prompt.replace(/нарисуй|сгенерируй|сделай/gi,'').trim()||prompt; switchTab('image'); document.getElementById('imgPrompt2').value=p; await genImg2(); return; }
-  if(/видео|video/i.test(low)){ const p=prompt.replace(/сгенерируй видео:?|видео:?/gi,'').trim()||prompt; switchTab('video'); document.getElementById('vidPrompt2').value=p; await genVid2(); return; }
-  if(/код|программ|сайт|лендинг|скрипт/i.test(low)){ switchTab('code'); document.getElementById('codePrompt').value=prompt; await genCode(); return; }
-  const last=addMsg('bot','…думаю…'); const ans=await agnesChat(prompt); last.textContent=ans; speakText(ans);
+  if(/нарисуй|сгенери|картинк|изображ/i.test(low)){ const p=prompt.replace(/нарисуй|сгенерируй|сделай/gi,'').trim()||prompt; await generateImage(p); return; }
+  if(/видео|video/i.test(low)){ const p=prompt.replace(/сгенерируй видео:?|видео:?/gi,'').trim()||prompt; await generateVideo(p); return; }
+  const last=addMsg('bot','…думаю…');
+  const ans=await agnesChat(prompt);
+  last.textContent=ans; speakText(ans);
 }
-async function send(){ const inp=document.getElementById('inp'); const t=inp.value.trim(); if(!t) return; addMsg('user',t); inp.value=''; await handle(t); }
+async function send(){ const inp=document.getElementById('inp'); const t=inp.value.trim(); if(!t) return; log('send '+t.slice(0,30)); addMsg('user',t); inp.value=''; await handle(t); }
 document.getElementById('inp').addEventListener('keydown',e=>{ if(e.key==='Enter') send(); });
+
 async function generateImage(prompt){
-  const k=getKey(); if(!k) return; const box=document.getElementById('imgBox'), img=document.getElementById('genImg'), cap=document.getElementById('imgCap');
-  box.style.display='block'; img.src=''; cap.textContent='⏳ Генерю...'; addMsg('bot','🎨 Генерю: "'+prompt.slice(0,60)+'"');
+  const k=getKey(); if(!k){ addMsg('bot','🔑 Нужен ключ'); return; }
+  const box=document.getElementById('imgBox'), img=document.getElementById('genImg'), cap=document.getElementById('imgCap');
+  box.classList.add('show'); img.src=''; cap.textContent='⏳ Генерю: "'+prompt.slice(0,60)+'"...'; addMsg('bot','🎨 Генерю для тебя, Амин: "'+prompt.slice(0,70)+'"');
   for(const model of ['agnes-image-2.1-flash','agnes-image-2.0-flash']){
-    try{ const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model, prompt, n:1, size:'1024x1024'})}); const j=await r.json(); if(!r.ok){ if(r.status===429) continue; continue; } const url=j.data?.[0]?.url || (j.data?.[0]?.b64_json && 'data:image/png;base64,'+j.data[0].b64_json); if(url){ img.src=url; cap.textContent='✅ '+model; setDot('on'); speakText('Готово, Амин.'); return; } }catch{} }
+    try{ const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model, prompt, n:1, size:'1024x1024'})}); const j=await r.json(); if(!r.ok){ if(r.status===429) continue; cap.textContent='Ошибка '+r.status; continue; } const url=j.data?.[0]?.url || (j.data?.[0]?.b64_json && 'data:image/png;base64,'+j.data[0].b64_json); if(url){ img.src=url; cap.textContent='✅ Готово ('+model+')'; setDot('on'); speakText('Готово, Амин. Картинка создана.'); return; } }catch(e){ log('img err '+e.message);}
+  }
+  cap.textContent='429 — подожди 20с';
 }
 async function generateVideo(prompt){
-  const k=getKey(); if(!k) return; const box=document.getElementById('vidBox'); box.style.display='block'; box.textContent='⏳ Видео...'; addMsg('bot','🎬 Видео: "'+prompt.slice(0,60)+'"');
+  const k=getKey(); if(!k){ addMsg('bot','🔑 Нужен ключ'); return; }
+  const box=document.getElementById('vidBox'); box.classList.add('show'); box.textContent='⏳ Ставлю задачу видео...';
+  addMsg('bot','🎬 Делаю видео: "'+prompt.slice(0,70)+'"');
   try{
     const r=await fetch('https://apihub.agnes-ai.com/v1/videos',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-video-v2.0', prompt, width:1152, height:768, num_frames:121, frame_rate:24})});
-    const j=await r.json(); if(!r.ok){ box.textContent='Ошибка '+r.status; return; }
-    const video_id=j.video_id||j.id; box.textContent='🎬 '+video_id.slice(0,22)+'...';
+    const j=await r.json(); if(!r.ok){ box.textContent='Ошибка '+r.status+': '+(j.error?.message||'').slice(0,130); return; }
+    const video_id=j.video_id||j.id; box.textContent='🎬 Задача '+video_id.slice(0,22)+'... опрашиваю';
     let tries=0; const iv=setInterval(async()=>{
       tries++; try{
         let pr=await fetch('https://apihub.agnes-ai.com/agnesapi?video_id='+video_id, {headers:{'Authorization':'Bearer '+k}});
-        let pj=await pr.json(); if(!pr.ok && j.task_id){ pr=await fetch('https://apihub.agnes-ai.com/v1/videos/'+j.task_id, {headers:{'Authorization':'Bearer '+k}}); pj=await pr.json(); }
+        let pj=await pr.json();
+        if(!pr.ok && j.task_id){ pr=await fetch('https://apihub.agnes-ai.com/v1/videos/'+j.task_id, {headers:{'Authorization':'Bearer '+k}}); pj=await pr.json(); }
         const url=pj.url||pj.video_url||pj.output_url;
-        if(pj.status==='completed' && url){ clearInterval(iv); box.innerHTML=`✅ <a href="${url}" target="_blank" style="color:var(--accent)">открыть mp4</a>`; speakText('Видео готово'); }
+        if(pj.status==='completed' && url){ clearInterval(iv); box.innerHTML=`✅ Видео готово: <a href="${url}" target="_blank" style="color:var(--accent)">открыть mp4</a>`; speakText('Видео готово, Амин.'); }
         else if(pj.status==='failed'){ clearInterval(iv); box.textContent='❌ Ошибка'; }
-        else if(tries>45){ clearInterval(iv); box.textContent='⏳ Долго — '+video_id; }
+        else if(tries>45){ clearInterval(iv); box.textContent='⏳ Долго — id: '+video_id; }
         else box.textContent='⏳ '+(pj.status||'queued')+' ('+tries+'/45)';
-      }catch{ if(tries>8){clearInterval(iv); box.textContent='Ошибка'} }
+      }catch{ if(tries>8){clearInterval(iv); box.textContent='Ошибка опроса'} }
     },4000);
-  }catch(e){ box.textContent='Ошибка '+e.message; }
+  }catch(e){ box.textContent='Ошибка: '+e.message; }
 }
-// CODING — без обрывов
+// boot
+const boot=`Привет, Амин! Я — ${currentMode.toUpperCase()}, твой MARVEL-ассистент. Включи 📷 — управляй щипком и поворотом. Нажми 🎙️ и скажи “Джарвис сделай...” — я отвечу голосом.`;
+document.getElementById('msgs').innerHTML=`<div class="msg bot">${boot}</div><div class="msg sys">💡 Нажми 🔓 Вкл звук → 🔊 Тест → потом 🎙️ Слушать. На телефоне — разреши микрофон и камеру в замке адреса. Щипок = зум, ладонь = вращение.</div>`;
+let welcomed=false; function welcomeOnce(){ if(welcomed) return; welcomed=true; speakText(greetings[currentMode]); }
+['click','touchstart'].forEach(ev=>document.addEventListener(ev,welcomeOnce,{once:true}));
+log('готов. нажми 🔊 Тест для проверки голоса, 📷 для камеры, 🎙️ для микрофона');
+
+// ========== TABS ==========
+function switchTab(which){
+  document.getElementById('paneCode').style.display=which==='code'?'block':'none';
+  document.getElementById('paneImg').style.display=which==='img'?'block':'none';
+  document.getElementById('paneVid').style.display=which==='vid'?'block':'none';
+  document.getElementById('tabCode').className='btn'+(which==='code'?' primary':'');
+  document.getElementById('tabImg').className='btn'+(which==='img'?' primary':'');
+  document.getElementById('tabVid').className='btn'+(which==='vid'?' primary':'');
+  log('tab '+which);
+}
+
+// ========== CODING (agnes-2.5-flash, free безлимит) ==========
 async function genCode(){
   const prompt=document.getElementById('codePrompt').value.trim();
   const lang=document.getElementById('codeLang').value;
   if(!prompt) return addMsg('sys','💻 Напиши что накодить');
-  const k=getKey(); if(!k) return addMsg('sys','🔑 Ключ Agnes');
-  const sys=`Ты — топ-кодер уровня Opus 4.7, Agnes 2.5-flash free безлимит. Пиши ПОЛНЫЙ рабочий файл без обрывов. Язык ${lang}. Если html — один файл с <style> и <script> внутри, красивый. Отвечай ТОЛЬКО кодом в \`\`\` блоке. Не обрывай, не пиши // ... .`;
-  document.getElementById('codeStat').textContent='⏳ Генерю 6000 токенов...';
-  log('coding '+lang);
+  const k=getKey(); if(!k){ addMsg('sys','🔑 Вставь Agnes ключ сверху'); return; }
+  const sys=`Ты — топ-кодер уровня Claude Opus 4.7, но ты Agnes 2.5-flash free безлимит. Пиши чистый рабочий код без воды. Язык: ${lang}. Всегда отдавай ПОЛНЫЙ файл, готовый к запуску. Если html — отдавай один html-файл с <style> и <script> внутри, с красивым дизайном. Если python/js/react — отдавай полный код с примером. Отвечай ТОЛЬКО кодом в \`\`\` блоке, без лишнего текста.`;
+  document.getElementById('codeStat').textContent='⏳ Генерю через agnes-2.5-flash...';
+  addMsg('bot','💻 Кодю для Амина: "'+prompt.slice(0,60)+'" → agnes-2.5-flash');
+  log('coding '+lang+' "'+prompt.slice(0,30)+'"');
   try{
     const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
       method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
-      body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:6000, temperature:0.42})
+      body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:6000, temperature:0.45})
     });
     const j=await r.json();
-    if(!r.ok){ document.getElementById('codeStat').textContent='Ошибка '+r.status; return; }
+    if(!r.ok){ document.getElementById('codeStat').textContent='Ошибка '+r.status; log('code err '+r.status); return; }
     let txt=(j.choices?.[0]?.message?.content||'').trim();
-    if(j.choices?.[0]?.finish_reason==='length'){ log('⚠️ обрыв length — увеличу'); document.getElementById('codeStat').textContent='⚠️ Обрыв — пробую дополнить...'; /* можно второй запрос */ }
-    const m=txt.match(/```(?:\w+)?\n([\s\S]*?)```/); if(m) txt=m[1].trim();
-    if(txt.length<50){ document.getElementById('codeStat').textContent='⚠️ Пусто — повтори'; return; }
-    // проверка обрыва: если нет закрывающего тега для html
-    if(lang==='html' && !txt.includes('</html>') && txt.includes('<html')){ log('⚠️ html без </html> — возможно обрыв'); document.getElementById('codeStat').textContent='⚠️ Возможно обрыв — нажми ещё раз'; }
+    // вытаскиваем ```code```
+    const m=txt.match(/```(?:\w+)?\n([\s\S]*?)```/);
+    if(m) txt=m[1].trim();
+    // если html без блока — берём как есть
     document.getElementById('codeOut').value=txt;
-    document.getElementById('codeLen').textContent=txt.length+' симв';
-    document.getElementById('codeStat').textContent='✅ Готово — жми Запустить / Полный экран';
-    log('code done '+txt.length); speakText('Готово, Амин. Код без обрывов.');
-    if(lang==='html' || txt.includes('<!DOCTYPE')){ document.getElementById('codePreview').srcdoc=txt; document.getElementById('codeConsole').textContent='превью обновлено'; }
-  }catch(e){ document.getElementById('codeStat').textContent='Ошибка '+e.message; }
+    document.getElementById('codeStat').textContent='✅ Готово ('+txt.length+' симв) — жми Запустить';
+    log('code done '+txt.length);
+    speakText('Готово, Амин. Код сгенерирован agnes два пять.');
+    // авто-превью если html
+    if(lang==='html' || txt.trim().startsWith('<!DOCTYPE') || txt.includes('<html')){
+      document.getElementById('codePreview').srcdoc=txt;
+      document.getElementById('codeConsole').textContent='превью обновлено • html';
+    }
+  }catch(e){ document.getElementById('codeStat').textContent='Ошибка '+e.message; log('code fail '+e.message); }
 }
 function runCode(){
-  const code=document.getElementById('codeOut').value; const lang=document.getElementById('codeLang').value; const con=document.getElementById('codeConsole');
+  const code=document.getElementById('codeOut').value;
+  const lang=document.getElementById('codeLang').value;
+  const con=document.getElementById('codeConsole');
   try{
     if(lang==='html' || code.includes('<!DOCTYPE') || code.includes('<html')){
-      document.getElementById('codePreview').srcdoc=code; con.textContent='▶️ HTML в превью'; log('run html');
+      document.getElementById('codePreview').srcdoc=code;
+      con.textContent='▶️ HTML запущен в превью справа';
+      log('run html preview');
     }else if(lang==='javascript'){
-      con.textContent=''; let out=''; const old=console.log; console.log=(...a)=>{ out+=a.join(' ')+'\n'; old(...a); };
-      try{ const res=Function(code)(); con.textContent='▶️\\n'+out+(res!==undefined?String(res):''); }catch(err){ con.textContent='❌ '+err.message; } console.log=old;
-    }else{ con.textContent='ℹ️ Скопируй в VS Code/Replit'; }
+      con.textContent='';
+      const oldLog=console.log;
+      let out='';
+      console.log=(...args)=>{ out+=args.join(' ')+'\\n'; oldLog(...args); };
+      try{ const res=Function(code)(); con.textContent='▶️ Результат:\\n'+out+(res!==undefined?String(res):''); } catch(err){ con.textContent='❌ '+err.message; }
+      console.log=oldLog;
+      log('run js');
+    }else{
+      con.textContent='ℹ️ Для '+lang+' — скопируй код в VS Code / Replit. Превью только для HTML/JS.';
+    }
   }catch(e){ con.textContent='❌ '+e.message; }
 }
+function copyCode(){ navigator.clipboard.writeText(document.getElementById('codeOut').value); log('код скопирован'); addMsg('sys','📋 Код скопирован'); }
+function downloadCode(){
+  const code=document.getElementById('codeOut').value;
+  const lang=document.getElementById('codeLang').value;
+  const ext={html:'html',javascript:'js',python:'py',react:'jsx',vue:'vue',nextjs:'js',php:'php'}[lang]||'txt';
+  const blob=new Blob([code],{type:'text/plain'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='amin-'+Date.now()+'.'+ext; a.click(); URL.revokeObjectURL(url);
+  log('скачан '+ext);
+}
+
+// ========== IMAGE DEDICATED ==========
+let imgHistory=JSON.parse(localStorage.getItem('amin_img_hist')||'[]');
+function renderImgHist(){
+  document.getElementById('imgGrid').innerHTML=imgHistory.slice(0,12).map(o=>`<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#000"><img src="${o.url}" style="width:100%;display:block"><div style="padding:6px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.prompt.slice(0,40)}</div></div>`).join('')||'<span style="color:var(--muted);font-size:11px">история пуста</span>';
+}
+renderImgHist();
+async function genImg2(){
+  const prompt=document.getElementById('imgPrompt2').value.trim()||document.getElementById('imgPrompt').value.trim();
+  if(!prompt) return addMsg('sys','🎨 Напиши промпт');
+  const size=document.getElementById('imgSize').value;
+  const k=getKey(); if(!k) return addMsg('sys','🔑 Нужен ключ');
+  addMsg('bot','🎨 Изображение: "'+prompt.slice(0,60)+'"');
+  log('img2 '+prompt.slice(0,30));
+  for(const model of ['agnes-image-2.1-flash','agnes-image-2.0-flash']){
+    try{
+      const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model, prompt, n:1, size})});
+      const j=await r.json(); if(!r.ok){ if(r.status===429) continue; log('img err '+r.status); continue; }
+      const url=j.data?.[0]?.url || (j.data?.[0]?.b64_json && 'data:image/png;base64,'+j.data[0].b64_json);
+      if(url){
+        imgHistory.unshift({url, prompt, size, t:Date.now()}); localStorage.setItem('amin_img_hist', JSON.stringify(imgHistory.slice(0,30)));
+        renderImgHist();
+        // также в главный бокс
+        document.getElementById('imgBox').classList.add('show'); document.getElementById('genImg').src=url; document.getElementById('imgCap').textContent='✅ '+model;
+        speakText('Готово, Амин. Картинка создана.');
+        log('img ok '+model); return;
+      }
+    }catch(e){ log('img fail '+e.message); }
+  }
+  log('img 429');
+}
+
+// ========== VIDEO DEDICATED ==========
+async function genVid2(){
+  const prompt=document.getElementById('vidPrompt2').value.trim()||document.getElementById('vidPrompt')?.value.trim();
+  if(!prompt) return addMsg('sys','🎬 Напиши промпт видео');
+  // reuse existing generateVideo but also show in paneVid
+  const k=getKey(); if(!k) return addMsg('sys','🔑 Нужен ключ');
+  const list=document.getElementById('vidList');
+  const id='vid_'+Date.now();
+  list.insertAdjacentHTML('afterbegin', `<div id="${id}" style="padding:8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);font-size:11px">⏳ ${prompt.slice(0,60)} ...</div>`);
+  // вызываем существующий generateVideo который пишет в vidBox, но также апдейтим этот элемент
+  // сделаем прямой вызов
+  try{
+    const r=await fetch('https://apihub.agnes-ai.com/v1/videos',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-video-v2.0', prompt, width:1152, height:768, num_frames:121, frame_rate:24})});
+    const j=await r.json(); if(!r.ok){ document.getElementById(id).textContent='Ошибка '+r.status; return; }
+    const video_id=j.video_id||j.id;
+    document.getElementById(id).textContent='🎬 '+video_id.slice(0,22)+' ... опрашиваю';
+    let tries=0; const iv=setInterval(async()=>{
+      tries++; try{
+        let pr=await fetch('https://apihub.agnes-ai.com/agnesapi?video_id='+video_id, {headers:{'Authorization':'Bearer '+k}});
+        let pj=await pr.json();
+        if(!pr.ok && j.task_id){ pr=await fetch('https://apihub.agnes-ai.com/v1/videos/'+j.task_id, {headers:{'Authorization':'Bearer '+k}}); pj=await pr.json(); }
+        const url=pj.url||pj.video_url||pj.output_url;
+        if(pj.status==='completed' && url){ clearInterval(iv); document.getElementById(id).innerHTML=`✅ <a href="${url}" target="_blank" style="color:var(--accent)">открыть mp4</a> — ${prompt.slice(0,40)}`; document.getElementById('vidBox').classList.add('show'); document.getElementById('vidBox').innerHTML=`✅ Видео готово: <a href="${url}" target="_blank" style="color:var(--accent)">открыть</a>`; }
+        else if(pj.status==='failed'){ clearInterval(iv); document.getElementById(id).textContent='❌ Ошибка'; }
+        else if(tries>45){ clearInterval(iv); document.getElementById(id).textContent='⏳ Долго — '+video_id; }
+        else document.getElementById(id).textContent='⏳ '+(pj.status||'queued')+' ('+tries+'/45) '+prompt.slice(0,30);
+      }catch{ if(tries>8){clearInterval(iv); document.getElementById(id).textContent='Ошибка опроса'} }
+    },4000);
+  }catch(e){ document.getElementById(id).textContent='Ошибка '+e.message; }
+}
+
+
 function openPreview(){
   const code=document.getElementById('codeOut').value; if(!code.trim()) return;
   const w=window.open('','_blank'); if(!w){ log('попап заблочен'); addMsg('sys','❌ Разреши всплывающие окна'); return; }
@@ -570,51 +873,7 @@ function openLocalhost(){
   window.open(url,'_blank'); log('localhost blob '+url.slice(0,30)); addMsg('sys','🌐 Localhost открыт в новой вкладке (blob://) — полный экран');
   setTimeout(()=>URL.revokeObjectURL(url), 60000);
 }
-function copyCode(){ navigator.clipboard.writeText(document.getElementById('codeOut').value); log('copy'); addMsg('sys','📋 Скопирован'); }
-function downloadCode(){ const code=document.getElementById('codeOut').value; const lang=document.getElementById('codeLang').value; const ext={html:'html',javascript:'js',python:'py',react:'jsx',vue:'vue',nextjs:'js',php:'php'}[lang]||'txt'; const blob=new Blob([code],{type:'text/plain'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='amin-'+Date.now()+'.'+ext; a.click(); URL.revokeObjectURL(url); }
-function formatCode(){ try{ const t=document.getElementById('codeOut'); t.value=t.value.replace(/\t/g,'  ').trim()+'\n'; log('format'); }catch{} }
-// IMAGE/VIDEO dedicated
-let imgHistory=JSON.parse(localStorage.getItem('amin_img_hist')||'[]');
-function renderImgHist(){ document.getElementById('imgGrid').innerHTML=imgHistory.slice(0,12).map(o=>`<div class="img-card"><img src="${o.url}"><div>${o.prompt.slice(0,40)}</div></div>`).join('')||'<span style="color:var(--muted);font-size:11px">история пуста</span>'; }
-renderImgHist();
-async function genImg2(){
-  const prompt=document.getElementById('imgPrompt2').value.trim(); if(!prompt) return addMsg('sys','🎨 Промпт'); const size=document.getElementById('imgSize').value; const k=getKey(); if(!k) return;
-  addMsg('bot','🎨 "'+prompt.slice(0,60)+'"'); log('img2 '+prompt.slice(0,30));
-  for(const model of ['agnes-image-2.1-flash','agnes-image-2.0-flash']){
-    try{
-      const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model, prompt, n:1, size})});
-      const j=await r.json(); if(!r.ok){ if(r.status===429) continue; continue; }
-      const url=j.data?.[0]?.url || (j.data?.[0]?.b64_json && 'data:image/png;base64,'+j.data[0].b64_json);
-      if(url){ imgHistory.unshift({url,prompt,size}); localStorage.setItem('amin_img_hist', JSON.stringify(imgHistory.slice(0,30))); renderImgHist(); document.getElementById('imgBox').style.display='block'; document.getElementById('genImg').src=url; document.getElementById('imgCap').textContent='✅ '+model; speakText('Картинка готова'); return; }
-    }catch(e){ log('img fail '+e.message); }
-  }
-}
-async function genVid2(){
-  const prompt=document.getElementById('vidPrompt2').value.trim(); if(!prompt) return; const k=getKey(); if(!k) return; const list=document.getElementById('vidList'); const id='vid_'+Date.now();
-  list.insertAdjacentHTML('afterbegin', `<div id="${id}" style="padding:8px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03);font-size:11px">⏳ ${prompt.slice(0,60)}</div>`);
-  try{
-    const r=await fetch('https://apihub.agnes-ai.com/v1/videos',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-video-v2.0', prompt, width:1152, height:768, num_frames:121, frame_rate:24})});
-    const j=await r.json(); if(!r.ok){ document.getElementById(id).textContent='Ошибка '+r.status; return; }
-    const video_id=j.video_id||j.id; document.getElementById(id).textContent='🎬 '+video_id.slice(0,22)+'...';
-    let tries=0; const iv=setInterval(async()=>{
-      tries++; try{
-        let pr=await fetch('https://apihub.agnes-ai.com/agnesapi?video_id='+video_id, {headers:{'Authorization':'Bearer '+k}});
-        let pj=await pr.json(); if(!pr.ok && j.task_id){ pr=await fetch('https://apihub.agnes-ai.com/v1/videos/'+j.task_id, {headers:{'Authorization':'Bearer '+k}}); pj=await pr.json(); }
-        const url=pj.url||pj.video_url||pj.output_url;
-        if(pj.status==='completed' && url){ clearInterval(iv); document.getElementById(id).innerHTML=`✅ <a href="${url}" target="_blank" style="color:var(--accent)">открыть mp4</a> — ${prompt.slice(0,40)}`; document.getElementById('vidBox').style.display='block'; document.getElementById('vidBox').innerHTML=`✅ <a href="${url}" target="_blank" style="color:var(--accent)">открыть</a>`; }
-        else if(pj.status==='failed'){ clearInterval(iv); document.getElementById(id).textContent='❌ Ошибка'; }
-        else if(tries>45){ clearInterval(iv); document.getElementById(id).textContent='⏳ Долго — '+video_id; }
-        else document.getElementById(id).textContent='⏳ '+(pj.status||'queued')+' ('+tries+'/45)';
-      }catch{ if(tries>8){clearInterval(iv); document.getElementById(id).textContent='Ошибка'} }
-    },4000);
-  }catch(e){ document.getElementById(id).textContent='Ошибка '+e.message; }
-}
-// BOOT
-const boot=`Привет, Амин! Я — ${currentMode.toUpperCase()}, твой MARVEL OS. Один сайт — чат, кодинг, картинки, видео. Скажи “Пятница, нарисуй …” или “Джарвис, накоди ...”.`;
-document.getElementById('msgs').innerHTML=`<div class="msg bot">${boot}</div><div class="msg sys">💡 Кодинг — жми 💻, превью — ⛶ или 🌐 Localhost. Руки — щипок/поворот, голос — 🎙️.</div>`;
-let welcomed=false; function welcomeOnce(){ if(welcomed) return; welcomed=true; speakText(greetings[currentMode]); }
-['click','touchstart'].forEach(ev=>document.addEventListener(ev,welcomeOnce,{once:true}));
-log('MARVEL OS ready — один сайт');
+
 </script>
 </body>
 </html>
