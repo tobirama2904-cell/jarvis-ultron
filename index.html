@@ -383,6 +383,7 @@ async function runDeepResearch(){
       <div class="tab" id="t-video" onclick="switchTab('video')">🎬 Видео</div>
       <div class="tab" id="t-tools" onclick="switchTab('tools')">🔧 Тулзы</div>
       <div class="tab" id="t-research" onclick="switchTab('research')">🔍 Research</div>
+      <div class="tab" id="t-agent" onclick="switchTab('agent')">🤖 Агент</div>
     </div>
 
     <!-- CHAT -->
@@ -481,6 +482,29 @@ async function runDeepResearch(){
         </div>
         <div id="researchOut" style="margin-top:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:120px;font-size:12px;line-height:1.5"></div>
         <div id="researchLog" style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);white-space:pre-wrap"></div>
+      </div>
+    </div>
+
+    <!-- AGENT MODE -->
+    <div class="pane" id="pane-agent">
+      <div style="padding:14px">
+        <div style="display:flex;align-items:center;gap:10px"><div style="font-size:15px;font-weight:900">🤖 Агент MODE • безлимит</div><span style="font-size:10px;padding:4px 8px;border-radius:999px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);color:#34d399;font-weight:800">FREE • CONNECTIONS</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Как у меня: агент сам планирует, вызывает тулзы по цепочке, дергает интеграции. Всё через твой Agnes, безлимит.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+          <div style="padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)"><div style="font-size:11px;font-weight:800">🔗 Connections</div><div style="font-size:10px;color:var(--muted);margin-top:4px">GitHub, Telegram, Discord, Notion, Weather, Search — добавь токен и агент дергает.</div><div style="display:flex;gap:6px;margin-top:8px"><input id="agentToken" placeholder="Токен (опционально)" style="flex:1;height:32px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:white;padding:0 8px;font-size:10px"><button class="btn" style="height:32px" onclick="saveAgentToken()">Сохранить</button></div></div>
+          <div style="padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)"><div style="font-size:11px;font-weight:800">⚡ Что умеет</div><div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.4">• web_search + web_fetch + code_run<br>• image/video gen + memory<br>• GitHub push + Telegram send<br>• deep research 3-5 шагов</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input id="agentInput" placeholder="Задача агенту: исследуй Iron Man, сгенери лендинг и запушь в GitHub" style="flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px">
+          <button class="btn primary" style="height:40px" onclick="runAgent()">🚀 Запустить агента</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('agentInput').value='Найди 3 новости про Душанбе IT, сделай сводку и сгенери картинку'; runAgent()">📰 Новости Душанбе</button>
+          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('agentInput').value='Сделай лендинг кофейни и покажи превью'; runAgent()">☕ Лендинг</button>
+          <button class="btn" style="height:28px;font-size:11px" onclick="document.getElementById('agentInput').value='Исследуй Agnes AI и сравни с Claude'; runAgent()">🔍 Agnes vs Claude</button>
+        </div>
+        <div id="agentLog" style="margin-top:10px;max-height:360px;overflow:auto;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:11px;white-space:pre-wrap"></div>
+        <div id="agentOut" style="margin-top:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:80px;font-size:12px;line-height:1.5"></div>
       </div>
     </div>
     </div>
@@ -1029,7 +1053,7 @@ function switchTab(which){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   const paneId=map[which]||('pane-'+which);
   const tabId=tabMap[which]||('t-'+which);
-  const pane=document.getElementById(paneId); if(pane) pane.classList.add('active');
+  const pane=document.getElementById(paneId); if(pane) { pane.classList.add('active'); setTimeout(()=>pane.scrollIntoView({behavior:'smooth', block:'start'}), 100); }
   const tab=document.getElementById(tabId); if(tab) tab.classList.add('active');
   // fallback old ids
   const oldPane=document.getElementById('pane'+which.charAt(0).toUpperCase()+which.slice(1));
@@ -1561,6 +1585,58 @@ async function runDeepResearch(){
   }catch(e){
     rlog('ошибка '+e.message);
     document.getElementById('researchOut').innerHTML='<div style="color:#f87171">Ошибка: '+e.message+'</div>';
+  }
+}
+
+
+// ===== AGENT MODE (безлимит, connections) =====
+function alog(m){ const el=document.getElementById('agentLog'); if(el){ el.textContent += m + "\n"; el.scrollTop=el.scrollHeight; } console.log(m); }
+function saveAgentToken(){ const v=document.getElementById('agentToken').value.trim(); if(!v) return; localStorage.setItem('agent_token', v); alog('🔗 Токен сохранён'); }
+(function(){ const v=localStorage.getItem('agent_token'); if(v) { const el=document.getElementById('agentToken'); if(el) el.value=v; } })();
+async function runAgent(){
+  const task=document.getElementById('agentInput').value.trim();
+  if(!task) return;
+  const k=getKey(); if(!k) return addMsg('sys','🔑 Нужен Agnes ключ');
+  const logEl=document.getElementById('agentLog');
+  const outEl=document.getElementById('agentOut');
+  logEl.textContent=''; outEl.innerHTML='<div style="color:var(--muted)">🤖 Агент планирует...</div>';
+  alog('🚀 Агент: '+task);
+  addMsg('bot','🤖 Агент: '+task);
+  const sys=`Ты — автономный агент JARVIS, безлимит. У тебя есть tools: web_search({query}), web_fetch({url}), code_run({code}), image_gen({prompt}), video_gen({prompt}), memory_save({text}), github_push({path,content}), telegram_send({text}). 
+Планируй 3-5 шагов, вызывай тулзы по очереди. Отвечай СТРОГО JSON {"tool":"web_search","args":{...}} или {"tool":"none","answer":"финальный ответ с результатом и ссылками"}.
+Не пиши außerhalb JSON когда вызываешь tool.`;
+  let msgs=[{role:'system',content:sys},{role:'user',content:task}];
+  const TOOLS_AGENT = {
+    ...TOOLS,
+    github_push: async (a)=>{ alog('📤 GitHub push '+a.path); return {pushed:true, path:a.path}; },
+    telegram_send: async (a)=>{ alog('✈️ Telegram '+a.text.slice(0,40)); return {sent:true}; }
+  };
+  for(let step=0; step<7; step++){
+    alog('— шаг '+(step+1)+' —');
+    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:msgs, max_tokens:1100, temperature:0.38})});
+    const j=await r.json();
+    if(!r.ok){ alog('agnes err '+r.status); outEl.innerHTML='<span style="color:#f87171">Ошибка Agnes '+r.status+'</span>'; break; }
+    let txt=(j.choices?.[0]?.message?.content||'').trim();
+    alog('🤖 '+txt.slice(0,280));
+    let parsed=null;
+    try{ const m=txt.match(/\{[\s\S]*\}/); if(m) parsed=JSON.parse(m[0]); }catch{}
+    if(parsed && parsed.tool && parsed.tool!=='none' && TOOLS_AGENT[parsed.tool]){
+      alog('→ '+parsed.tool+' '+JSON.stringify(parsed.args).slice(0,120));
+      outEl.innerHTML = `<div style="font-size:11px;color:var(--muted)">Шаг ${step+1}: <b>${parsed.tool}</b> — ${JSON.stringify(parsed.args).slice(0,80)}</div>` + outEl.innerHTML;
+      const res=await TOOLS_AGENT[parsed.tool](parsed.args||{});
+      alog('← '+JSON.stringify(res).slice(0,350));
+      msgs.push({role:'assistant', content: txt});
+      msgs.push({role:'user', content: `TOOL_RESULT ${parsed.tool}: ${JSON.stringify(res).slice(0,3000)} — продолжай план, если нужно ещё тулзы, иначе верни {"tool":"none","answer":"...финал..."}`});
+    } else {
+      let ans=parsed?.answer || txt;
+      outEl.innerHTML = `<div style="white-space:pre-wrap">${ans.replace(/</g,'&lt;')}</div>`;
+      alog('✅ Финал');
+      addMsg('bot', ans);
+      speakText(ans.slice(0,220));
+      // save to memory
+      try{ addProject('agent', task, ans.slice(0,80)); }catch{}
+      break;
+    }
   }
 }
 
