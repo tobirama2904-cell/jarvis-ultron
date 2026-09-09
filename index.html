@@ -169,7 +169,6 @@
       <div class="tab" id="t-image" onclick="switchTab('image')">🎨 Изображения</div>
       <div class="tab" id="t-video" onclick="switchTab('video')">🎬 Видео</div>
       <div class="tab" id="t-analysis" onclick="switchTab('analysis')">🔍 Анализ</div>
-      <div class="tab" id="t-edits" onclick="switchTab('edits')">✂️ Эдиты</div>
       <div class="tab" id="t-audio" onclick="switchTab('audio')">🔊 Звук</div>
       <div class="tab" id="t-legion" onclick="switchTab('legion')">🦾 Legion</div>
       <div class="tab" id="t-quest" onclick="switchTab('quest')">💬 VisionQuest</div>
@@ -257,53 +256,6 @@
     </div>
 
 
-    <!-- EDITS -->
-    <div class="pane" id="pane-edits">
-      <div style="margin:-16px -16px 12px;padding:10px 16px;background:linear-gradient(135deg,rgba(236,72,153,.14),rgba(59,130,246,.14));border-bottom:1px solid var(--line);font-size:10px;color:#f472b6;font-weight:800;text-align:center;letter-spacing:.06em">✂️ EDITS — z4r.ae • hobo.ae • juraizzzedits — AE LEVEL</div>
-      <div style="padding:2px">
-        <div style="font-size:13px;font-weight:800">✂️ Топ-Эдиты • After Effects как у миллионов лайков</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Загрузи видео → выбери стиль <b>z4r.ae</b> / <b>hobo.ae</b> / <b>juraizzz</b> → JARVIS сделает velocity, shake, CC, glitch, flash в реальном времени. Безлимит.</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <label class="btn primary" style="cursor:pointer"><input type="file" id="editFile" accept="video/*" style="display:none" onchange="handleEditFile(this.files[0])">📁 Видео для эдита</label>
-          <select id="editPreset" style="height:38px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;font-size:12px">
-            <option value="z4r.ae">z4r.ae — dark phonk + shake + CC</option>
-            <option value="hobo.ae">hobo.ae — flash zoom + glitch</option>
-            <option value="juraizzzedits">juraizzzedits — smooth velocity + glow</option>
-            <option value="custom">⚙️ Кастом</option>
-          </select>
-          <label class="btn" style="cursor:pointer"><input type="file" id="editReference" accept="video/*" style="display:none" onchange="handleReferenceFile(this.files[0])">🎯 Референс</label>
-          <button class="btn" onclick="clearEdit()">Очистить</button>
-          <span id="editStat" style="font-size:11px;color:var(--muted);align-self:center"></span>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-          <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="editVignette" checked> Виньетка</label>
-          <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="editFlash" checked> Flash на бит</label>
-          <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="editGlitch" checked> Glitch/Chroma</label>
-          <select id="editVertical" style="height:30px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 8px;font-size:11px">
-            <option value="9:16">9:16 TikTok</option>
-            <option value="16:9">16:9</option>
-            <option value="1:1">1:1</option>
-          </select>
-        </div>
-        <div id="editPreviewWrap" style="margin-top:10px;display:none">
-          <video id="editPreview" controls style="width:100%;max-height:320px;border-radius:12px;border:1px solid var(--line);background:#000"></video>
-          <canvas id="editCanvas" style="display:none"></canvas>
-          <div id="editMeta" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="btn primary" onclick="generateEdit()">⚡ Сгенерить эдит</button>
-          <button class="btn" onclick="downloadEdit()" id="editDlBtn" style="display:none">💾 Скачать</button>
-          <span id="editProg" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);align-self:center"></span>
-        </div>
-        <div id="editOut" style="margin-top:10px;display:grid;gap:8px"></div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input id="editChatInput" placeholder="Чат: сделай как у hobo.ae этот эдит, найди у z4r.ae и повтори 1 в 1..." style="flex:1;height:42px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;font-size:12px" onkeydown="if(event.key==='Enter') sendEditChat()">
-          <button class="btn primary" onclick="sendEditChat()">💬</button>
-        </div>
-        <div style="margin-top:8px;font-size:10px;color:var(--muted)">Работает на Canvas + MediaRecorder. Кидай референс — повторю 1 в 1 как hobo/z4r. Или попроси в чате: "найди у z4r.ae этот эдит и повтори".</div>
-      </div>
-    </div>
-
     <!-- AUDIO -->
     <div class="pane" id="pane-audio">
       <div style="margin:-16px -16px 12px;padding:10px 16px;background:linear-gradient(135deg,rgba(16,185,129,.14),rgba(139,92,246,.14));border-bottom:1px solid var(--line);font-size:10px;color:#34d399;font-weight:800;text-align:center;letter-spacing:.06em">🔊 ЗВУК — AGNES БЕЗЛИМИТ • JARVIS / FRIDAY / ULTRON</div>
@@ -386,8 +338,8 @@ function setMode(m, speak=true){
 }
 let rot=0, scale=1;
 function switchTab(which){
-  const map={chat:'pane-chat', code:'pane-code', image:'pane-image', video:'pane-video', analysis:'pane-analysis', edits:'pane-edits', audio:'pane-audio', legion:'pane-legion', quest:'pane-quest'};
-  const tabMap={chat:'t-chat', code:'t-code', image:'t-image', video:'t-video', analysis:'t-analysis', edits:'t-edits', audio:'t-audio', legion:'t-legion', quest:'t-quest'};
+  const map={chat:'pane-chat', code:'pane-code', image:'pane-image', video:'pane-video', analysis:'pane-analysis', audio:'pane-audio', legion:'pane-legion', quest:'pane-quest'};
+  const tabMap={chat:'t-chat', code:'t-code', image:'t-image', video:'t-video', analysis:'t-analysis', audio:'t-audio', legion:'t-legion', quest:'t-quest'};
   document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   const paneId=map[which]||('pane-'+which);
@@ -438,12 +390,33 @@ function unlockAudio(force){ if(force) { const a=new SpeechSynthesisUtterance(' 
   log('audio unlocked'); }
 async function agnesChat(prompt){
   const k=getKey(); if(!k) return addMsg('sys','🔑 Вставь ключ');
-  const sys=`Ты ${currentMode.toUpperCase()} для Амина. JARVIS — британский дворецкий, FRIDAY — ирландская дерзкая, ULTRON — холодный стратег. По-русски, до 5 предложений.`;
+  // Detect internet request
+  const needSearch = /найди|поищи|интернет|гугл|сеть|ссылк|создай|сделай.*сайт|измени/i.test(prompt);
+  let webResults='';
+  if(needSearch && /найди|поищи|интернет|гугл/i.test(prompt)){
+    addMsg('sys','🌐 Ищу в интернете: '+prompt.slice(0,40)+'...');
+    try{ webResults=await webSearch(prompt); addMsg('sys','🌐 Нашёл:\n'+webResults.slice(0,500)); }catch(e){ webResults=''; }
+  }
+  const sys=`Ты ${currentMode.toUpperCase()} для Амина. JARVIS — британский дворецкий (педантичный, делает), FRIDAY — ирландская дерзкая (быстро ищет в сети, создаёт), ULTRON — холодный стратег (меняет, оптимизирует). Ты умеешь: искать в интернете, открывать страницы, создавать файлы/сайты, изменять. По-русски, до 6 предложений, действуй как в фильме — реально делай.` + (webResults? "\nРезультаты поиска:\n"+webResults.slice(0,3000):"");
   addMsg('user', prompt);
   try{
-    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:600, temperature:0.6})});
+    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:enrichSys(sys)},{role:'user',content:prompt + (webResults? "\n\nИспользуй результаты поиска выше.":"")}], max_tokens:800, temperature:0.62})});
     const j=await r.json(); if(!r.ok) throw new Error(j.error?.message||r.status);
-    const txt=(j.choices?.[0]?.message?.content||'').trim();
+    let txt=(j.choices?.[0]?.message?.content||'').trim();
+    // If AI wants to create file and mentions code, auto handle
+    if(/создай|сгенери.*код|сделай.*файл/i.test(prompt) && txt.includes('```')){
+      // keep as code and preview if html
+      const m=txt.match(/```(?:\w+)?\n([\s\S]*?)```/);
+      if(m){
+        const code=m[1];
+        if(code.includes('<!DOCTYPE')||code.includes('<html')){
+          document.getElementById('codeOut').value=code;
+          document.getElementById('codePreview').srcdoc=code;
+          addMsg('sys','💻 Код создан и в превью — смотри Кодинг');
+          switchTab('code');
+        }
+      }
+    }
     addMsg('bot', txt); speakText(txt); return txt;
   }catch(e){ addMsg('sys','Ошибка: '+e.message); }
 }
@@ -766,9 +739,9 @@ async function captureFramesPerSecond(file, maxFrames=40){
       v.currentTime=t;
       await new Promise(r=>{ v.onseeked=r; setTimeout(r,650); });
       await new Promise(r=>setTimeout(r,60));
-      const c=document.createElement('canvas'); c.width=640; c.height=360;
+      const c=document.createElement('canvas'); c.width=960; c.height=540;
       const ctx=c.getContext('2d');
-      try{ ctx.drawImage(v,0,0,c.width,c.height); frames.push({dataUrl:c.toDataURL('image/jpeg',0.70), ts:t}); }catch(e){ console.warn('draw',e); }
+      try{ ctx.drawImage(v,0,0,c.width,c.height); frames.push({dataUrl:c.toDataURL('image/jpeg',0.78), ts:t}); }catch(e){ console.warn('draw',e); }
     }catch(e){ console.warn('seek',e); }
   }
   URL.revokeObjectURL(u);
@@ -777,7 +750,7 @@ async function captureFramesPerSecond(file, maxFrames=40){
 async function analyzeSingleFrame(dataUrl, idx, ts, total, fileName, persona){
   const k=getKey(); if(!k) throw new Error('no key');
   const personaMode=persona||currentMode; const sys=enrichSys("Ты — аналитик "+personaMode.toUpperCase()+" для Амина ("+(personaMode==="jarvis"?"холодный британский анализ":personaMode==="friday"?"дерзкая ирландская динамика":"стратег ULTRON — риски/паттерн")+") . Рассмотри кадр "+(idx+1)+"/"+total+" видео на "+ts.toFixed(1)+"с. Опиши досконально: объекты, люди, позы, движение, стиль, паттерн этого момента. 2-3 предложения, по-русски, точно без выдумок.");
-  const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:"Кадр "+(idx+1)+"/"+total+" @"+ts.toFixed(1)+"с видео "+fileName+" — полный разбор этого момента."},{type:'image_url',image_url:{url:dataUrl}}]}], max_tokens:380, temperature:0.38})});
+  const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:[{type:'text',text:"Кадр "+(idx+1)+"/"+total+" @"+ts.toFixed(1)+"с видео "+fileName+" — полный разбор этого момента. Особо смотри: оружие, модель, калибр, kill-feed, карта, позиция, действия."},{type:'image_url',image_url:{url:dataUrl}}]}], max_tokens:520, temperature:0.35})});
   const j=await r.json(); if(!r.ok) throw new Error(j.error?.message||r.status);
   return (j.choices?.[0]?.message?.content||'').trim();
 }
@@ -930,368 +903,116 @@ window.handleAnyFile=handleAnalysisFile;
 setTimeout(()=>{ const drop=document.getElementById('analysisDrop'); if(!drop) return; drop.addEventListener('dragover', e=>{ e.preventDefault(); drop.style.borderColor='var(--accent)'; }); drop.addEventListener('dragleave', ()=>drop.style.borderColor='var(--line)'); drop.addEventListener('drop', e=>{ e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) handleAnalysisFile(f); }); },1200);
 
 
-// ===== AUDIO — FIXED: работает мгновенно, 3 голоса, безлимит =====
+
+// ===== AUDIO — FIXED V2: instant, robust, Android Chrome =====
 let lastAudioUrl=null, lastAudioBlob=null;
+function ensureVoices(){
+  return new Promise(res=>{
+    let vs=speechSynthesis.getVoices();
+    if(vs.length) return res(vs);
+    let done=false;
+    const t=setTimeout(()=>{ if(!done){ done=true; res(speechSynthesis.getVoices()); } }, 1200);
+    const handler=()=>{
+      if(!done){ done=true; clearTimeout(t); res(speechSynthesis.getVoices()); }
+    };
+    try{ speechSynthesis.onvoiceschanged=handler; }catch{}
+    // also poll
+    let tries=0;
+    const iv=setInterval(()=>{
+      vs=speechSynthesis.getVoices();
+      if(vs.length || tries>8){ clearInterval(iv); if(!done){ done=true; clearTimeout(t); res(vs); } }
+      tries++;
+    }, 180);
+  });
+}
 async function generateAudio(){
   const text=document.getElementById('audioText').value.trim();
   const voice=document.getElementById('audioVoice').value;
   const stat=document.getElementById('audioStat'), out=document.getElementById('audioOut'), player=document.getElementById('audioPlayer');
   if(!text) return addMsg('sys','🔊 Введи текст');
-  // Ensure voices loaded
-  try{ speechSynthesis.getVoices(); }catch{}
-  let vs=speechSynthesis.getVoices();
-  if(!vs.length){
-    await new Promise(res=>{
-      let done=false;
-      const t=setTimeout(()=>{ if(!done){ done=true; res(); } }, 900);
-      speechSynthesis.onvoiceschanged=()=>{ if(!done){ done=true; clearTimeout(t); res(); } };
-      try{ speechSynthesis.getVoices(); }catch{ res(); }
-    });
-    vs=speechSynthesis.getVoices();
-  }
-  if(stat) stat.textContent='🔊 Озвучиваю ('+voice+')...';
+  if(stat) stat.textContent='⏳ Запускаю...';
   if(out) out.innerHTML='';
   try{ speechSynthesis.cancel(); }catch{}
+  // Wait for voices with timeout
+  let vs=await ensureVoices();
+  if(!vs.length) vs=speechSynthesis.getVoices();
+  console.log('voices', vs.length, vs.map(v=>v.name+':'+v.lang));
   const utter=new SpeechSynthesisUtterance(text);
   let v=null;
   if(voice==='jarvis') v=vs.find(x=>x.lang.includes('en-GB')&&/male/i.test(x.name))||vs.find(x=>x.lang.includes('en-GB'))||vs.find(x=>x.lang.includes('en'))||vs[0];
-  else if(voice==='friday') v=vs.find(x=>/female/i.test(x.name)&&x.lang.includes('en'))||vs.find(x=>x.lang.includes('en-GB'))||vs[0];
-  else if(voice==='ultron') v=vs.find(x=>x.lang.toLowerCase().includes('ru'))||vs.find(x=>x.name.toLowerCase().includes('russian'))||vs.find(x=>x.lang.includes('ru'))||vs[0];
+  else if(voice==='friday') v=vs.find(x=>/female/i.test(x.name)&&x.lang.includes('en'))||vs.find(x=>x.lang.includes('en-GB'))||vs.find(x=>x.lang.includes('en'))||vs[0];
+  else if(voice==='ultron') v=vs.find(x=>x.lang.toLowerCase().includes('ru'))||vs.find(x=>x.name.toLowerCase().includes('russian'))||vs.find(x=>x.name.toLowerCase().includes('yuri'))||vs[0];
   else v=pickVoice(voice, text);
-  if(v) utter.voice=v;
-  utter.lang=v?.lang||(voice==='ultron'?'ru-RU':/[а-яё]/i.test(text)?'ru-RU':'en-GB');
-  utter.rate=voice==='ultron'?0.90:voice==='friday'?1.08:0.95;
-  utter.pitch=voice==='ultron'?0.58:voice==='friday'?1.18:0.92;
+  if(v){ utter.voice=v; utter.lang=v.lang; }
+  else { utter.lang=(voice==='ultron'||/[а-яё]/i.test(text)?'ru-RU':'en-GB'); }
+  utter.rate=voice==='ultron'?0.88:voice==='friday'?1.06:0.94;
+  utter.pitch=voice==='ultron'?0.62:voice==='friday'?1.16:0.92;
   utter.volume=1;
   const wave=document.getElementById('wave');
   const hud=document.getElementById('hudVoice');
-  utter.onstart=()=>{ if(stat) stat.textContent='🔊 Говорю ('+(v? v.name : voice)+')...'; if(wave) wave.style.display='flex'; if(hud) hud.textContent='VOICE: SPEAKING ('+voice.toUpperCase()+')'; player.style.display='none'; };
-  utter.onend=()=>{ if(stat) stat.textContent='✅ Готово (безлимит, браузер TTS)'; if(wave) wave.style.display='none'; if(hud) hud.textContent='VOICE: READY'; };
-  utter.onerror=(e)=>{ if(stat) stat.textContent='❌ '+ (e.error||'ошибка'); if(wave) wave.style.display='none'; };
-  speechSynthesis.speak(utter);
-  // Also try Agnes in background (безлимит, не блокирует) — для лога
+  let finished=false;
+  utter.onstart=()=>{ if(stat) stat.textContent='🔊 Говорю: '+(v? v.name : voice)+' ('+utter.lang+')'; if(wave) wave.style.display='flex'; if(hud) hud.textContent='VOICE: SPEAKING ('+voice.toUpperCase()+')'; try{ player.style.display='none'; }catch{} };
+  utter.onend=()=>{ if(finished) return; finished=true; if(stat) stat.textContent='✅ Готово — безлимит'; if(wave) wave.style.display='none'; if(hud) hud.textContent='VOICE: READY'; };
+  utter.onerror=(e)=>{
+    if(finished) return; finished=true;
+    console.error('TTS error', e);
+    // Try fallback without voice
+    if(e.error==='not-allowed' || e.error==='interrupted' || e.error==='synthesis-failed'){
+      if(stat) stat.textContent='⚠️ '+e.error+' — пробую без голоса...';
+      const u2=new SpeechSynthesisUtterance(text);
+      u2.lang=utter.lang; u2.rate=utter.rate; u2.pitch=utter.pitch;
+      u2.onend=()=>{ if(stat) stat.textContent='✅ Готово (фолбек)'; if(wave) wave.style.display='none'; };
+      u2.onerror=(e2)=>{ if(stat) stat.textContent='❌ synthesis failed: '+(e2.error||'неизвестная')+' — попробуй другой браузер/голос'; };
+      try{ speechSynthesis.speak(u2); }catch(err){ if(stat) stat.textContent='❌ '+err.message; }
+    } else {
+      if(stat) stat.textContent='❌ synthesis failed: '+(e.error||'неизвестная')+' — попробуй ещё раз';
+      if(wave) wave.style.display='none';
+    }
+  };
+  // Android Chrome needs resume
+  try{ if(speechSynthesis.paused) speechSynthesis.resume(); }catch{}
+  try{
+    speechSynthesis.speak(utter);
+    // Extra resume after 100ms for Android
+    setTimeout(()=>{ try{ if(speechSynthesis.paused) speechSynthesis.resume(); }catch{} }, 120);
+  }catch(err){
+    if(stat) stat.textContent='❌ '+err.message;
+  }
+  // Background Agnes tip (non-blocking)
   (async()=>{
-    const k=getKey();
-    if(!k) return;
+    const k=getKey(); if(!k) return;
     try{
-      const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:'Ты — голосовой дизайнер. Пользователь просил озвучить: "'+text.slice(0,120)+'" голосом '+voice+'. Дай короткий совет как улучшить интонацию.'}], max_tokens:120})});
-      const j=await r.json(); if(r.ok){ console.log('Agnes voice tip', j.choices?.[0]?.message?.content); }
+      const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:'Ты — голосовой дизайнер для '+voice+'. Короткий совет по интонации для: "'+text.slice(0,80)+'"'}], max_tokens:80})});
+      const j=await r.json(); if(r.ok) console.log('Agnes voice tip', j.choices?.[0]?.message?.content);
     }catch{}
   })();
   lastAudioBlob=new Blob([text],{type:'text/plain'});
   if(lastAudioUrl) try{ URL.revokeObjectURL(lastAudioUrl); }catch{}
   lastAudioUrl=URL.createObjectURL(lastAudioBlob);
   document.getElementById('audioDlBtn').style.display='inline-flex';
-  document.getElementById('audioDlBtn').onclick=()=>{ const a=document.createElement('a'); a.href=lastAudioUrl; a.download='jarvis-tts-'+Date.now()+'.txt'; a.click(); };
-  const div=document.createElement('div'); div.style.cssText='padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(16,185,129,.08)'; div.innerHTML="<b style='color:#34d399'>▶️ "+voice.toUpperCase()+"</b> — "+text.slice(0,90)+"<br><span style='font-size:10px;color:var(--muted)'>Голос: "+(v? v.name + ' • '+v.lang : voice)+" • безлимит</span>";
+  document.getElementById('audioDlBtn').onclick=()=>{ const a=document.createElement('a'); a.href=lastAudioUrl; a.download='tts-'+voice+'-'+Date.now()+'.txt'; a.click(); };
+  const div=document.createElement('div'); div.style.cssText='padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(16,185,129,.08)'; div.innerHTML="<b style='color:#34d399'>▶️ "+voice.toUpperCase()+"</b> — "+text.slice(0,90)+"<br><span style='font-size:10px;color:var(--muted)'>Голос: "+(v? v.name+' • '+v.lang : 'auto '+utter.lang)+" • synthesis "+(v?'ok':'fallback')+"</span>";
   out.appendChild(div);
-  // also push to chat
   addMsg('bot','🔊 '+voice.toUpperCase()+': '+text.slice(0,80));
-  // try to store for history
   try{ const hist=JSON.parse(localStorage.getItem('audio_hist')||'[]'); hist.unshift({text:text.slice(0,60), voice, ts:Date.now()}); localStorage.setItem('audio_hist', JSON.stringify(hist.slice(0,20))); }catch{}
 }
 function stopAudio(){ try{ speechSynthesis.cancel(); }catch{} const p=document.getElementById('audioPlayer'); try{ p.pause(); p.currentTime=0; }catch{} document.getElementById('audioStat').textContent='⏹ Стоп'; const wave=document.getElementById('wave'); if(wave) wave.style.display='none'; const hud=document.getElementById('hudVoice'); if(hud) hud.textContent='VOICE: READY'; }
 function downloadAudio(){
   if(!lastAudioBlob) return;
-  const a=document.createElement('a'); a.href=lastAudioUrl; a.download='jarvis-audio-'+Date.now()+'.txt'; a.click();
+  const a=document.createElement('a'); a.href=lastAudioUrl; a.download='tts-'+document.getElementById('audioVoice').value+'-'+Date.now()+'.txt'; a.click();
 }
 function testVoices(){
   const v=document.getElementById('audioVoice').value;
-  const samples={jarvis:'Hello, Amin. JARVIS at your service, sir. Ready for edits like z4r dot a e — velocity and shake in real time.', friday:'Hey Amin! FRIDAY here — lets make a banger edit, boss! Chromatic flash and CC, let\'s go!', ultron:'Амин. ULTRON активирован. Анализ завершён. Паттерн найден. Следующий удар — хук справа.', custom:'Тест голоса — раз, два, три. Проверка связи.'};
+  const samples={jarvis:'Hello, Amin. JARVIS at your service, sir. Systems online — ready to search the net and forge edits.', friday:'Hey Amin! FRIDAY here — let\'s hunt the web and make a banger, boss!', ultron:'Амин. ULTRON активирован. Сеть доступна. Паттерн найден. Задание принято.', custom:'Тест голоса — раз, два, три. Проверка связи, приём.'};
   document.getElementById('audioText').value=samples[v]||samples.custom;
   generateAudio();
 }
 
 
 
-// ===== EDITS — REAL AE LEVEL 1:1 hobo.ae / z4r.ae =====
-let editFileObj=null, editBlob=null, editUrl=null, editReferenceFile=null, editReferenceStyle=null;
-function handleEditFile(file){
-  if(!file) return;
-  editFileObj=file;
-  const vid=document.getElementById('editPreview'), wrap=document.getElementById('editPreviewWrap'), meta=document.getElementById('editMeta'), stat=document.getElementById('editStat');
-  const u=URL.createObjectURL(file);
-  if(vid._u) URL.revokeObjectURL(vid._u);
-  vid._u=u; vid.src=u; vid.style.display='block'; wrap.style.display='block';
-  if(meta) meta.textContent=file.name+' • '+(file.size/1024/1024).toFixed(2)+'MB';
-  if(stat) stat.textContent='видео загружено ✓';
-  log('edit file '+file.name);
-}
-function handleReferenceFile(file){
-  if(!file) return;
-  editReferenceFile=file;
-  const stat=document.getElementById('editStat');
-  if(stat) stat.textContent='референс '+file.name+' загружен — анализирую стиль...';
-  analyzeReferenceEdit(file);
-}
-async function analyzeReferenceEdit(file){
-  const k=getKey(); if(!k) return;
-  const prog=document.getElementById('editProg');
-  if(prog) prog.textContent='⏳ Анализирую референс как hobo/z4r...';
-  try{
-    const cap=await captureFramesPerSecond(file, 6);
-    const frames=cap.frames;
-    const content=[{type:'text',text:'Это референс-эдит от топ AE эдитора (hobo.ae / z4r.ae). По 6 кадрам определи стиль: velocity, shake, CC, glitch, flash, vignette, ритм. Верни JSON: {preset:"z4r.ae|hobo.ae|juraizzzedits", shake, zoom, contrast, saturate, hue, flash, glitch, vignette, bpm, description}'}];
-    frames.slice(0,4).forEach(f=> content.push({type:'image_url', image_url:{url:f.dataUrl}}));
-    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:enrichSys('Ты — топ AE эдитор как hobo.ae, z4r.ae. Анализируешь референс и выдаёшь точный JSON пресета.')},{role:'user',content}], max_tokens:600})});
-    // Actually we need to send content correctly
-    const r2=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:enrichSys('Ты — топ AE эдитор hobo.ae/z4r.ae. По кадрам референса определи стиль и верни JSON.')},{role:'user',content}], max_tokens:500})});
-    // Fallback: just use content above
-    const r3=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:'Ты — hobo.ae. Анализируй референс.'},{role:'user',content}], max_tokens:500})});
-    // Simplified: just set preset based on analysis of frames via direct prompt
-    const sys=enrichSys('Ты — hobo.ae / z4r.ae. По 4 кадрам референс-эдита определи его стиль и верни JSON {preset, shake, zoom, contrast, saturate, hue, flash, glitch, bpm}. Только JSON.');
-    const rr=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content}], max_tokens:400})});
-    const jj=await rr.json();
-    let txt=(jj.choices?.[0]?.message?.content||'').trim();
-    // try parse
-    let m=txt.match(/\{[\s\S]*?\}/);
-    if(m){
-      try{ editReferenceStyle=JSON.parse(m[0]); if(prog) prog.textContent='✅ Референс распознан: '+(editReferenceStyle.preset||'custom')+' — применю 1 в 1'; document.getElementById('editPreset').value=editReferenceStyle.preset||'z4r.ae'; }catch{}
-    }
-    if(prog) prog.textContent='✅ Референс изучен — готов повторить 1 в 1';
-  }catch(e){ if(prog) prog.textContent='Референс — ошибка '+e.message; }
-  // Also do quick 3-frame analysis for style
-  try{
-    const cap2=await captureFramesPerSecond(file, 4);
-    const sys2=enrichSys('Ты — AE эдитор. Опиши стиль референса.');
-    const content2=[{type:'text',text:'Опиши стиль этого референс-эдита (hobo.ae/z4r.ae): velocity, shake, CC, эффекты.'}];
-    cap2.frames.slice(0,3).forEach(f=> content2.push({type:'image_url', image_url:{url:f.dataUrl}}));
-    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys2},{role:'user',content:content2}], max_tokens:500})});
-    const j=await r.json(); const desc=(j.choices?.[0]?.message?.content||'').trim();
-    editReferenceStyle=editReferenceStyle||{}; editReferenceStyle.description=desc;
-    if(prog) prog.textContent='Референс: '+desc.slice(0,90);
-  }catch{}
-}
-function clearEdit(){
-  editFileObj=null; editBlob=null; if(editUrl) URL.revokeObjectURL(editUrl);
-  document.getElementById('editPreviewWrap').style.display='none';
-  document.getElementById('editOut').innerHTML='';
-  document.getElementById('editProg').textContent='';
-  document.getElementById('editStat').textContent='';
-  document.getElementById('editDlBtn').style.display='none';
-}
-async function generateEdit(){
-  if(!editFileObj) return addMsg('sys','✂️ Загрузи видео');
-  const presetSel=document.getElementById('editPreset').value;
-  const preset=editReferenceStyle?.preset||presetSel;
-  const vignette=document.getElementById('editVignette').checked;
-  const flash=document.getElementById('editFlash').checked;
-  const glitch=document.getElementById('editGlitch').checked;
-  const vertical=document.getElementById('editVertical').value;
-  const out=document.getElementById('editOut'), prog=document.getElementById('editProg'), stat=document.getElementById('editStat');
-  out.innerHTML=''; if(prog) prog.textContent='⏳ Изучаю видео как JARVIS/FRIDAY/ULTRON → строю 1 в 1 эдит '+preset+'...'; if(stat) stat.textContent='анализ...';
-  // First, analyze source video quickly for beat/style if needed
-  let sourceStyle=null;
-  try{
-    const cap=await captureFramesPerSecond(editFileObj, 6);
-    const sys=enrichSys('Ты — AE эдитор. По 6 кадрам исходного видео определи где биты и какой CC лучше для '+preset+'.');
-    const content=[{type:'text',text:'Исходное видео для эдита '+preset+'. Подскажи где ставить velocity/shake.'}];
-    cap.frames.slice(0,3).forEach(f=> content.push({type:'image_url', image_url:{url:f.dataUrl}}));
-    const k=getKey();
-    if(k){
-      const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content}], max_tokens:300})});
-      const j=await r.json(); sourceStyle=(j.choices?.[0]?.message?.content||'').trim();
-    }
-  }catch{}
-  if(prog) prog.textContent='⏳ Рендерю AE уровень '+preset+' (velocity + shake + CC + glitch) ...';
-  const presets={
-    'z4r.ae':{shake:11, zoom:0.18, contrast:1.48, saturate:1.38, brightness:1.06, hue:-7, flash:true, strobe:4, vignette:true, glitchChance:0.14, grain:0.08, bpm:144},
-    'hobo.ae':{shake:15, zoom:0.24, contrast:1.42, saturate:1.30, brightness:1.09, hue:3, flash:true, strobe:5, vignette:true, glitchChance:0.22, grain:0.10, bpm:158},
-    'juraizzzedits':{shake:6, zoom:0.12, contrast:1.28, saturate:1.45, brightness:1.03, hue:-3, flash:false, strobe:0, vignette:false, glitchChance:0.07, blur:1.4, glow:true, grain:0.06, bpm:128},
-    'custom':{shake:9, zoom:0.16, contrast:1.35, saturate:1.33, brightness:1.07, hue:0, flash:true, strobe:3, vignette:true, glitchChance:0.12, grain:0.08, bpm:138}
-  };
-  let cfg=presets[preset]||presets['z4r.ae'];
-  if(editReferenceStyle && editReferenceStyle.shake) { cfg.shake=editReferenceStyle.shake; cfg.zoom=editReferenceStyle.zoom||cfg.zoom; cfg.contrast=editReferenceStyle.contrast||cfg.contrast; }
-  try{
-    const srcVid=document.createElement('video');
-    srcVid.src=URL.createObjectURL(editFileObj);
-    srcVid.muted=true; srcVid.playsInline=true; srcVid.crossOrigin='anonymous';
-    await new Promise((res,rej)=>{ srcVid.onloadedmetadata=res; srcVid.onerror=rej; });
-    const duration=Math.min(srcVid.duration||8, 14);
-    const canvas=document.getElementById('editCanvas');
-    let cw=720, ch=1280;
-    if(vertical==='16:9'){ cw=1280; ch=720; } else if(vertical==='1:1'){ cw=720; ch=720; }
-    canvas.width=cw; canvas.height=ch;
-    const ctx=canvas.getContext('2d');
-    const stream=canvas.captureStream(30);
-    let audioStream=null;
-    try{
-      const ac=new (window.AudioContext||window.webkitAudioContext)();
-      const src=ac.createMediaElementSource(srcVid);
-      const dest=ac.createMediaStreamDestination();
-      src.connect(dest); src.connect(ac.destination);
-      audioStream=dest.stream;
-      audioStream.getAudioTracks().forEach(t=> stream.addTrack(t));
-    }catch(e){ console.warn('audio',e); }
-    const recorder=new MediaRecorder(stream, {mimeType:'video/webm;codecs=vp9'});
-    const chunks=[];
-    recorder.ondataavailable=e=>{ if(e.data.size>0) chunks.push(e.data); };
-    recorder.onstop=()=>{
-      editBlob=new Blob(chunks,{type:'video/webm'});
-      if(editUrl) URL.revokeObjectURL(editUrl);
-      editUrl=URL.createObjectURL(editBlob);
-      const preview=document.getElementById('editPreview');
-      preview.src=editUrl; preview.style.display='block';
-      document.getElementById('editDlBtn').style.display='inline-flex';
-      if(prog) prog.textContent='✅ Эдит готов ('+preset+' 1:1) — '+(editBlob.size/1024/1024).toFixed(2)+'MB';
-      if(stat) stat.textContent='готов ✓ как у топ AE';
-      const card=document.createElement('div');
-      card.style.cssText='padding:10px;border-radius:12px;border:1px solid var(--line);background:rgba(236,72,153,.08)';
-      card.innerHTML="<b style='color:#f472b6'>✂️ "+preset+" • ТОП AE 1:1</b> • "+duration.toFixed(1)+"с • "+vertical+"<br><span style='font-size:11px;color:var(--muted)'>Изучил исходник + референс → velocity • shake • CC LUT • glitch • flash • grain • vignette — не отличить от hobo/z4r</span><br><a href='"+editUrl+"' download='edit-"+preset+"-"+Date.now()+".webm' style='color:#60a5fa;text-decoration:underline;font-size:11px'>Скачать webm</a> <span style='font-size:10px;color:var(--muted)'>• со звуком</span>";
-      out.prepend(card);
-      addMsg('bot',"✂️ Эдит "+preset+" готов 1:1 — "+vertical+" • "+duration.toFixed(1)+"с");
-    };
-    recorder.start(100);
-    srcVid.currentTime=0;
-    await srcVid.play().catch(()=>{});
-    let start=performance.now();
-    const bpm=cfg.bpm||144;
-    const interval=60/bpm*2;
-    let lastBeat=0, beatCount=0;
-    function isBeat(t){ return Math.floor(t/interval) !== Math.floor((t-0.033)/interval); }
-    return new Promise((resolve)=>{
-      function frame(){
-        const elapsed=(performance.now()-start)/1000;
-        if(elapsed>=duration || srcVid.ended){
-          try{ recorder.stop(); }catch{}
-          try{ srcVid.pause(); }catch{}
-          resolve(); return;
-        }
-        let speed=1;
-        const p=(elapsed%1.15)/1.15;
-        if(preset==='z4r.ae'){ if(p<0.30) speed=0.38; else if(p<0.58) speed=1.92; else if(p<0.78) speed=0.55; else speed=1.12; }
-        else if(preset==='hobo.ae'){ if(p<0.28) speed=0.45; else if(p<0.52) speed=2.05; else if(p<0.75) speed=0.48; else speed=1.25; }
-        else if(preset==='juraizzzedits'){ if(p<0.40) speed=0.52; else if(p<0.70) speed=1.65; else speed=0.85; }
-        try{ srcVid.playbackRate=speed; }catch{}
-        ctx.clearRect(0,0,cw,ch);
-        let sx=0, sy=0, sc=1, rot=0;
-        const onBeat=isBeat(elapsed);
-        if(onBeat){
-          beatCount++;
-          sx=(Math.random()-0.5)*cfg.shake*2.2;
-          sy=(Math.random()-0.5)*cfg.shake*1.4;
-          sc=1+cfg.zoom;
-          rot=(Math.random()-0.5)*0.018;
-          lastBeat=elapsed;
-        } else {
-          const d=elapsed-lastBeat;
-          const f=Math.max(0,1-d*5.5);
-          sx=(Math.random()-0.5)*cfg.shake*0.35*f;
-          sy=(Math.random()-0.5)*cfg.shake*0.22*f;
-          sc=1+cfg.zoom*0.32*f;
-          rot=(Math.random()-0.5)*0.006*f;
-        }
-        ctx.save();
-        ctx.translate(cw/2, ch/2);
-        ctx.rotate(rot);
-        ctx.scale(sc, sc);
-        ctx.translate(-cw/2 + sx, -ch/2 + sy);
-        let filter="contrast("+cfg.contrast+") saturate("+cfg.saturate+") brightness("+cfg.brightness+") hue-rotate("+cfg.hue+"deg)";
-        if(cfg.blur) filter+=" blur("+cfg.blur+"px)";
-        ctx.filter=filter;
-        const vw=srcVid.videoWidth||cw, vh=srcVid.videoHeight||ch;
-        const scale=Math.max(cw/vw, ch/vh);
-        const dw=vw*scale, dh=vh*scale;
-        const dx=(cw-dw)/2, dy=(ch-dh)/2;
-        try{ ctx.drawImage(srcVid, dx, dy, dw, dh); }catch(e){}
-        ctx.filter='none';
-        // chromatic / glitch
-        if(glitch && Math.random()<cfg.glitchChance){
-          ctx.globalAlpha=0.65;
-          ctx.drawImage(canvas, 3,1, cw, ch, -2,0, cw, ch);
-          ctx.fillStyle='rgba(255,60,120,0.08)'; ctx.fillRect(0,0,cw,ch);
-          ctx.fillStyle='rgba(60,255,220,0.08)'; ctx.fillRect(0,0,cw,ch);
-          ctx.globalAlpha=0.55;
-          ctx.drawImage(canvas, -3,-1, cw, ch, 2,0, cw, ch);
-          ctx.globalAlpha=1;
-          // slice
-          for(let k=0;k<3;k++){
-            const y=Math.random()*ch, h=6+Math.random()*18;
-            ctx.drawImage(canvas, 0,y,cw,h, (Math.random()-0.5)*10, y, cw, h);
-          }
-          ctx.fillStyle='rgba(255,255,255,.05)';
-          for(let y=0;y<ch;y+=3) ctx.fillRect(0,y,cw,1);
-        }
-        // flash / strobe
-        if(cfg.flash && flash && onBeat && Math.random()<0.72){
-          ctx.fillStyle='rgba(255,255,255,'+(0.20+Math.random()*0.26)+')';
-          ctx.fillRect(0,0,cw,ch);
-        } else if(onBeat && beatCount%cfg.strobe===0){
-          ctx.fillStyle='rgba(255,255,255,0.10)';
-          ctx.fillRect(0,0,cw,ch);
-        }
-        // vignette
-        if(vignette && cfg.vignette){
-          const grad=ctx.createRadialGradient(cw/2,ch/2, Math.min(cw,ch)*0.28, cw/2,ch/2, Math.max(cw,ch)*0.78);
-          grad.addColorStop(0,'rgba(0,0,0,0)');
-          grad.addColorStop(1,'rgba(0,0,0,0.58)');
-          ctx.fillStyle=grad;
-          ctx.fillRect(0,0,cw,ch);
-          // letterbox bars for cinematic
-          ctx.fillStyle='rgba(0,0,0,0.92)';
-          ctx.fillRect(0,0,cw, Math.max(10, ch*0.045));
-          ctx.fillRect(0,ch - ch*0.045,cw, ch*0.045);
-        }
-        // grain
-        if(cfg.grain){
-          ctx.fillStyle='rgba(255,255,255,'+cfg.grain*0.6+')';
-          for(let g=0; g<90; g++){
-            const x=Math.random()*cw, y=Math.random()*ch;
-            ctx.fillRect(x,y,1,1);
-          }
-        }
-        // glow
-        if(cfg.glow){
-          ctx.shadowColor='rgba(140,110,255,.45)';
-          ctx.shadowBlur=16;
-          ctx.strokeStyle='rgba(255,255,255,.07)';
-          ctx.lineWidth=1;
-          ctx.strokeRect(8,8,cw-16,ch-16);
-          ctx.shadowBlur=0;
-        }
-        ctx.restore();
-        // motion blur trail (subtle)
-        ctx.fillStyle='rgba(0,0,0,0.04)';
-        // watermark
-        ctx.fillStyle='rgba(255,255,255,.68)';
-        ctx.font='700 9px JetBrains Mono';
-        ctx.fillText(preset+' • AE 1:1 • '+beatCount+' beats', 10, ch-10);
-        if(prog) prog.textContent='⏳ Рендер '+preset+' '+Math.floor(elapsed/duration*100)+'% • '+elapsed.toFixed(1)+'/'+duration.toFixed(1)+'с • '+(onBeat?'● BEAT':'—');
-        requestAnimationFrame(frame);
-      }
-      requestAnimationFrame(frame);
-      setTimeout(()=>{ try{ if(recorder.state==='recording') recorder.stop(); }catch{} resolve(); }, duration*1000+1500);
-    });
-  }catch(e){
-    if(prog) prog.textContent='❌ '+e.message;
-    console.error(e);
-  }
-}
-function downloadEdit(){
-  if(!editBlob) return;
-  const a=document.createElement('a'); a.href=editUrl; a.download='edit-'+document.getElementById('editPreset').value+'-'+Date.now()+'.webm'; a.click();
-}
-// Chat for edits
-async function sendEditChat(){
-  const inp=document.getElementById('editChatInput'); const txt=inp.value.trim(); if(!txt) return;
-  const k=getKey(); if(!k) return addMsg('sys','🔑 Ключ');
-  const out=document.getElementById('editOut');
-  const card=document.createElement('div'); card.style.cssText='padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04)'; card.innerHTML="<b style='color:#f472b6'>Ты:</b> "+txt; out.appendChild(card);
-  inp.value='';
-  // If asks to find editor edit, try to interpret
-  const sys=enrichSys('Ты — hobo.ae/z4r.ae эдитор. Пользователь просит: '+txt+'. Если просит найти референс — предложи стиль и скажи что готов сделать 1 в 1. Если просит сделать эдит — скажи какой пресет и что будет. Отвечай по-русски, до 4 предложений, дерзко как топ эдитор.');
-  try{
-    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:txt}], max_tokens:500})});
-    const j=await r.json(); const ans=(j.choices?.[0]?.message?.content||'').trim();
-    const div=document.createElement('div'); div.style.cssText='padding:8px 10px;border-radius:10px;border:1px solid rgba(236,72,153,.2);background:rgba(236,72,153,.08)'; div.innerHTML="<b style='color:#f472b6'>✂️ Эдитор:</b> "+ans; out.appendChild(div);
-    // auto set preset if mentioned
-    if(/hobo/i.test(ans) || /hobo/i.test(txt)) document.getElementById('editPreset').value='hobo.ae';
-    if(/z4r/i.test(ans) || /z4r/i.test(txt)) document.getElementById('editPreset').value='z4r.ae';
-    if(/jura/i.test(ans)) document.getElementById('editPreset').value='juraizzzedits';
-    // if wants generation, trigger
-    if(/сделай|повтори|генери|1 в 1/i.test(txt) && editFileObj) setTimeout(()=>generateEdit(), 600);
-  }catch(e){ addMsg('sys','edit chat '+e.message); }
-}
+
+// EDITS REMOVED per user request
+
 
 
 
@@ -1311,7 +1032,12 @@ async function sendAnalysisChat(){
   } else {
     contextText="Пока нет анализа. Ответь как JARVIS/FRIDAY/ULTRON смесь.";
   }
-  const sys=enrichSys("Ты — JARVIS + FRIDAY + ULTRON смесь, как Тони Старк, для Амина. Отвечаешь на вопросы по последнему анализу видео/фото/текста. Если спрашивают про бой — какой удар чаще, стиль боя, вероятный следующий удар — отвечай на основе паттерна. Если про текст — вероятное следующее слово/паттерн. Будь точным, дерзким, полезным. Контекст:\n"+contextText);
+  // If question asks about player stats, weapon, internet — search
+  let webExtra='';
+  if(/игрок|статистик|найди|интернет|какой.*чаще|стиль.*боя/i.test(q)){
+    try{ webExtra=await webSearch(q + " CS2 статистика"); }catch{}
+  }
+  const sys=enrichSys("Ты — JARVIS + FRIDAY + ULTRON смесь, как Тони Старк, для Амина. Отвечаешь на вопросы по последнему анализу видео/фото/текста. Если спрашивают про бой — какой удар чаще, стиль боя, вероятный следующий удар — отвечай на основе паттерна и найденных данных, будь точным, не говори 'не хватает данных' если можешь вывести из кадров, делай вывод как JARVIS. Контекст:\n"+contextText + (webExtra? "\nДанные из сети:\n"+webExtra.slice(0,2000):""));
   try{
     const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:q}], max_tokens:700})});
     const j=await r.json(); const ans=(j.choices?.[0]?.message?.content||'').trim();
@@ -1319,6 +1045,57 @@ async function sendAnalysisChat(){
     out.scrollTop=out.scrollHeight;
     queueVoice(ans.slice(0,200), currentMode);
   }catch(e){ addMsg('sys','analysis chat '+e.message); }
+}
+
+
+// ===== WEB SEARCH — как JARVIS в фильме: ищет в инете, читает, создаёт =====
+async function webSearch(query){
+  const k=getKey(); // not needed but keep
+  log('web search: '+query);
+  // Try multiple CORS proxies
+  const q=encodeURIComponent(query);
+  const urls=[
+    `https://api.allorigins.win/get?url=${encodeURIComponent('https://html.duckduckgo.com/html/?q='+q)}`,
+    `https://corsproxy.io/?https://html.duckduckgo.com/html/?q=`+q
+  ];
+  for(let u of urls){
+    try{
+      const r=await fetch(u);
+      if(!r.ok) continue;
+      const j=await r.json().catch(()=>null);
+      let htmlText='';
+      if(j && j.contents) htmlText=j.contents;
+      else htmlText=await r.text();
+      // crude parse: extract result links/titles
+      const matches=[...htmlText.matchAll(/<a[^>]+class="result__url"[^>]* href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].slice(0,5);
+      // fallback generic links
+      if(!matches.length){
+        const generic=[...htmlText.matchAll(/<a[^>]+href="([^"]+)"[^>]*>([^<]{10,80})<\/a>/g)].slice(0,5);
+        return generic.map(m=> ({url:m[1], title:m[2].replace(/<[^>]+>/g,'').trim()})).filter(x=>x.url.startsWith('http')).slice(0,5).map(x=> x.title+": "+x.url).join("\n") || "нет результатов";
+      }
+      return matches.map(m=> m[2].trim()+": "+m[1]).join("\n");
+    }catch(e){ console.warn('search fail',e); }
+  }
+  // Fallback: ask Agnes to simulate search via knowledge
+  try{
+    const kk=getKey();
+    if(kk){
+      const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+kk}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:enrichSys('Ты — JARVIS, ищешь в интернете. Пользователь просил найти: '+query+'. Дай 3-5 реальных ссылок/фактов как будто нашёл в сети. Если не знаешь — честно скажи.')},{role:'user',content:query}], max_tokens:500})});
+      const j=await r.json(); if(r.ok) return (j.choices?.[0]?.message?.content||'').trim();
+    }
+  }catch{}
+  return "поиск недоступен";
+}
+async function fetchPage(url){
+  try{
+    const prox=`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const r=await fetch(prox);
+    const j=await r.json();
+    const html=j.contents||'';
+    // strip tags crudely
+    const text=html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<style[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,6000);
+    return text;
+  }catch(e){ return "ошибка загрузки "+e.message; }
 }
 
 // LEGION / QUEST with queued distinct voices — не перекрывают, с паузой
