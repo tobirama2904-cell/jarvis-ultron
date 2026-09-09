@@ -1,0 +1,10 @@
+{
+  "name": "JARVIS ULTRON FRIDAY — Marvel Level",
+  "short_name": "JARVIS ULTRON",
+  "description": "Marvel JARVIS FRIDAY ULTRON с лицом, голосом, Agnes AI free unlimited + Puter + Kilo + OVH",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#04060D",
+  "theme_color": "#00D9FF",
+  "icons": [{"src":"https://via.placeholder.com/192/00D9FF/001018?text=J","sizes":"192x192","type":"image/png"},{"src":"https://via.placeholder.com/512/00D9FF/001018?text=J","sizes":"512x512","type":"image/png"}]
+}
