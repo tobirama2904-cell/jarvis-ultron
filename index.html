@@ -107,6 +107,7 @@
       <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="voiceToggle" checked> Озвучка</label>
       <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="gestureToggle" checked> Жесты</label>
       <button class="btn" onclick="testVoice()">🔊 Тест</button>
+      <button class="btn" onclick="testMic()" style="border-style:dashed">🎤 тест</button>
     </div>
     <div style="padding:0 10px 6px;display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn primary" onclick="quick('Привет, кто ты?')">Кто ты?</button>
@@ -379,53 +380,67 @@ function testVoice(){
   setTimeout(()=>{ if(voices.length===0) log('⚠️ голосов 0 — нажми ещё раз 🔓 Вкл звук, Chrome должен загрузить'); }, 900);
 }
 
-// MIC - надёжно
+// MIC - надёжно, теперь без обязательного wake
 let rec=null, listening=false;
 function initRec(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){ log('SpeechRecognition нет'); return null; }
-  const r=new SR(); r.lang='ru-RU'; r.continuous=true; r.interimResults=false; r.maxAlternatives=1;
-  r.onstart=()=>{ log('микрофон старт'); document.getElementById('hudVoice').textContent='VOICE: LISTENING'; };
+  if(!SR){ log('SpeechRecognition нет — нужен Chrome/Edge'); return null; }
+  const r=new SR(); r.lang='ru-RU'; r.continuous=true; r.interimResults=true; r.maxAlternatives=1;
+  r.onstart=()=>{ log('микрофон старт — говори, Амин'); document.getElementById('hudVoice').textContent='VOICE: LISTENING...'; document.getElementById('micBtn').classList.add('live'); };
   r.onresult=e=>{
-    const t=e.results[e.results.length-1][0].transcript.trim();
-    log('услышал: '+t);
-    document.getElementById('hudVoice').textContent='VOICE: "'+t.slice(0,22)+'"';
-    const hasWake=/джарвис|пятниц|ультрон|jarvis|friday|ultron/i.test(t);
-    if(document.getElementById('wakeToggle')?.checked){
-      // если есть чек wake — требуем имя, иначе подсказка
-      if(hasWake){
-        if(/пятниц/i.test(t)) setMode('friday',false);
-        else if(/ультрон/i.test(t)) setMode('ultron',false);
-        else if(/джарвис/i.test(t)) setMode('jarvis',false);
-        const cmd=t.replace(/джарвис|пятниц.*|ультрон|jarvis|friday|ultron/gi,'').trim()||'привет';
-        addMsg('user','🎙️ '+t); handle(cmd);
-      }else{
-        log('скажи имя: Джарвис/Пятница/Ультрон');
-        document.getElementById('hudVoice').textContent='скажи "Джарвис..."';
-      }
-    }else{
-      addMsg('user','🎙️ '+t); handle(t);
+    // берём последний финальный + показываем промежуточный
+    let interim=''; let final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const txt=e.results[i][0].transcript;
+      if(e.results[i].isFinal) final+=txt+' ';
+      else interim+=txt+' ';
+    }
+    const show=(final||interim).trim();
+    if(show) document.getElementById('hudVoice').textContent='VOICE: "'+show.slice(0,24)+'"';
+    if(final){
+      const t=final.trim();
+      log('услышал ФИНАЛ: '+t);
+      // авто-переключение режима по имени если сказал
+      if(/пятниц/i.test(t)) setMode('friday',false);
+      else if(/ультрон/i.test(t)) setMode('ultron',false);
+      else if(/джарвис|jarvis/i.test(t)) setMode('jarvis',false);
+      // убираем имя из команды если есть, но не требуем его
+      const cmd=t.replace(/джарвис|пятниц.*|ультрон|jarvis|friday|ultron/gi,'').trim() || t;
+      addMsg('user','🎙️ '+t); handle(cmd);
+      // сразу перезапуск для следующей команды (на некоторых Android нужен)
+      // не трогаем rec — он continuous
     }
   };
-  r.onerror=e=>{ log('mic error '+e.error); if(e.error==='not-allowed') addMsg('sys','🎙️ Микрофон запрещён — нажми замок в адресе → Разрешить микрофон → Перезагрузи. Нужен HTTPS и Chrome.'); if(e.error==='audio-capture') addMsg('sys','🎙️ Нет микрофона'); };
-  r.onend=()=>{ log('mic end, listening='+listening); if(listening) try{r.start()}catch{ setTimeout(()=>{ if(listening) try{r.start()}catch{} },600);} };
+  r.onerror=e=>{ log('mic error '+e.error+' msg:'+(e.message||'')); if(e.error==='not-allowed') addMsg('sys','🎙️ Микрофон запрещён — замок в адресе → Разрешить → Перезагрузи (HTTPS нужен)'); if(e.error==='no-speech') log('no-speech — тихо'); if(e.error==='audio-capture') addMsg('sys','🎙️ Нет микрофона'); if(e.error==='network') log('network — проверь интернет'); };
+  r.onend=()=>{ log('mic end, listening='+listening); if(listening){ log('перезапуск mic...'); try{ r.start(); log('rec.start ok (restart)'); }catch(err){ log('restart fail '+err.message); setTimeout(()=>{ if(listening) try{ r.start(); log('retry start ok'); }catch(e2){ log('retry fail '+e2.message); } },700);} } };
+  r.onspeechend=()=>{ log('speech end'); };
+  r.onaudiostart=()=>{ log('audio start'); };
   return r;
 }
 function toggleMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const btn=document.getElementById('micBtn');
-  if(!SR){ addMsg('sys','🎙️ Голос только в Chrome/Edge на HTTPS. На iPhone — пиши текстом, отвечу голосом.'); log('no SR'); return; }
+  if(!SR){ addMsg('sys','🎙️ Голос только в Chrome/Edge на HTTPS. На iPhone — пиши текстом, отвечу голосом.'); log('no SR — '+navigator.userAgent.slice(0,60)); return; }
   if(!rec) rec=initRec();
+  if(!rec){ log('rec null'); return; }
   listening=!listening;
   if(listening){
-    unlockAudio();
-    try{ rec.start(); log('rec.start ok'); }catch(e){ log('rec.start fail '+e.message); }
-    btn.classList.add('live'); btn.textContent='■ Стоп'; document.getElementById('hudVoice').textContent='VOICE: LISTENING...'; document.getElementById('wave').style.display='flex'; speaking=true;
-    addMsg('sys','🎙️ Слушаю, Амин — скажи "Джарвис сделай..." или "Пятница нарисуй..."');
+    unlockAudio(true);
+    log('пытаюсь rec.start...');
+    try{ rec.start(); log('rec.start ВЫЗВАН'); }catch(e){ log('rec.start fail '+e.name+' '+e.message); // пробуем пересоздать
+      rec=initRec(); try{ rec.start(); log('rec.start retry ok'); }catch(e2){ log('retry fail '+e2.message); listening=false; return; }
+    }
+    btn.classList.add('live'); btn.textContent='■ Стоп'; document.getElementById('hudVoice').textContent='VOICE: LISTENING... говори!'; document.getElementById('wave').style.display='flex';
+    addMsg('sys','🎙️ Слушаю, Амин — говори что угодно: "привет", "нарисуй кота", "сделай видео". Имя можно не говорить!');
   }else{
-    try{ rec.stop(); }catch{}
-    btn.classList.remove('live'); btn.textContent='🎙️ Слушать'; document.getElementById('hudVoice').textContent='VOICE: OFF'; document.getElementById('wave').style.display='none'; speaking=false; log('mic стоп');
+    try{ rec.stop(); log('rec.stop'); }catch(e){ log('stop fail '+e.message); }
+    btn.classList.remove('live'); btn.textContent='🎙️ Слушать'; document.getElementById('hudVoice').textContent='VOICE: OFF'; document.getElementById('wave').style.display='none'; log('mic стоп');
   }
+}
+// доп тест: показать что браузер слышит без отправки
+function testMic(){
+  log('тест mic — нажми 🎙️ и скажи что-нибудь, смотри лог и VOICE: "..."');
+  if(!listening) toggleMic();
 }
 
 // Agnes
