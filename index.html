@@ -147,6 +147,74 @@
       <button class="btn primary" style="min-width:52px" onclick="send()">→</button>
     </div>
   </div>
+
+  <!-- DEDICATED SECTIONS: CODING / IMAGE / VIDEO -->
+  <div class="card" style="grid-column:1/-1">
+    <div style="display:flex;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line);align-items:center;flex-wrap:wrap">
+      <b style="font-family:'Syne',sans-serif;font-size:11px">⚡ Быстрые разделы</b>
+      <div style="display:flex;gap:6px;margin-left:8px">
+        <button class="btn primary" id="tabCode" onclick="switchTab('code')">💻 Кодинг</button>
+        <button class="btn" id="tabImg" onclick="switchTab('img')">🎨 Изображения</button>
+        <button class="btn" id="tabVid" onclick="switchTab('vid')">🎬 Видео</button>
+      </div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-left:auto">Agnes 2.5-flash free безлимит для всего</span>
+    </div>
+
+    <!-- CODING -->
+    <div id="paneCode" style="padding:10px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:700">Кодинг • agnes-2.5-flash (уровень Opus 4.7)</span>
+        <select id="codeLang" style="height:32px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 10px;font-size:11px">
+          <option value="html">HTML + CSS + JS (превью)</option>
+          <option value="javascript">JavaScript</option>
+          <option value="python">Python</option>
+          <option value="react">React</option>
+          <option value="vue">Vue</option>
+          <option value="nextjs">Next.js</option>
+          <option value="php">PHP</option>
+        </select>
+        <button class="btn primary" onclick="genCode()">⚡ Сгенерить</button>
+        <button class="btn" onclick="runCode()">▶️ Запустить</button>
+        <button class="btn" onclick="copyCode()">📋 Копи</button>
+        <button class="btn" onclick="downloadCode()">💾 Скачать</button>
+      </div>
+      <input id="codePrompt" placeholder="Что накодить? напр: Лендинг для кофейни в Душанбе с меню и корзиной, адаптив" style="width:100%;height:38px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;font-size:13px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:340px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace">КОД</div>
+          <textarea id="codeOut" placeholder="Тут появится код от Agnes 2.5-flash..." style="flex:1;min-height:300px;border-radius:10px;border:1px solid var(--line);background:#070B1E;color:#EAF1FF;padding:10px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;resize:vertical;outline:none"></textarea>
+          <div id="codeStat" style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">готов • free безлимит</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;justify-content:space-between;align-items:center"><span>ПРЕВЬЮ + КОНСОЛЬ</span><button class="btn" style="height:24px;padding:0 8px;font-size:10px" onclick="document.getElementById('codePreview').srcdoc=document.getElementById('codeOut').value">↻ Обновить</button></div>
+          <iframe id="codePreview" sandbox="allow-scripts" style="flex:1;min-height:200px;border-radius:10px;border:1px solid var(--line);background:white"></iframe>
+          <div id="codeConsole" style="height:90px;border-radius:10px;border:1px solid var(--line);background:#0A0F1E;color:#6CFFC8;font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px;overflow:auto">консоль: ждёт запуска...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMAGE -->
+    <div id="paneImg" style="display:none;padding:10px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <input id="imgPrompt2" placeholder="Что нарисовать? напр: Киберпанк Душанбе, закат, 4K" style="flex:1;min-width:220px;height:38px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;font-size:13px">
+        <select id="imgSize" style="height:38px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 10px;font-size:11px"><option>1024x1024</option><option>1152x768</option><option>768x1152</option></select>
+        <button class="btn primary" onclick="genImg2()">🎨 Генерить</button>
+      </div>
+      <div id="imgGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;min-height:120px"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Модель: agnes-image-2.1/2.0-flash • free безлимит • история хранится локально</div>
+    </div>
+
+    <!-- VIDEO -->
+    <div id="paneVid" style="display:none;padding:10px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <input id="vidPrompt2" placeholder="Промпт видео: полет над Душанбе на закате, cinematic 5с" style="flex:1;min-width:220px;height:38px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;font-size:13px">
+        <button class="btn primary" onclick="genVid2()">🎬 Генерить видео</button>
+      </div>
+      <div id="vidList" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Модель: agnes-video-v2.0 • async • free безлимит</div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -656,6 +724,145 @@ document.getElementById('msgs').innerHTML=`<div class="msg bot">${boot}</div><di
 let welcomed=false; function welcomeOnce(){ if(welcomed) return; welcomed=true; speakText(greetings[currentMode]); }
 ['click','touchstart'].forEach(ev=>document.addEventListener(ev,welcomeOnce,{once:true}));
 log('готов. нажми 🔊 Тест для проверки голоса, 📷 для камеры, 🎙️ для микрофона');
+
+// ========== TABS ==========
+function switchTab(which){
+  document.getElementById('paneCode').style.display=which==='code'?'block':'none';
+  document.getElementById('paneImg').style.display=which==='img'?'block':'none';
+  document.getElementById('paneVid').style.display=which==='vid'?'block':'none';
+  document.getElementById('tabCode').className='btn'+(which==='code'?' primary':'');
+  document.getElementById('tabImg').className='btn'+(which==='img'?' primary':'');
+  document.getElementById('tabVid').className='btn'+(which==='vid'?' primary':'');
+  log('tab '+which);
+}
+
+// ========== CODING (agnes-2.5-flash, free безлимит) ==========
+async function genCode(){
+  const prompt=document.getElementById('codePrompt').value.trim();
+  const lang=document.getElementById('codeLang').value;
+  if(!prompt) return addMsg('sys','💻 Напиши что накодить');
+  const k=getKey(); if(!k){ addMsg('sys','🔑 Вставь Agnes ключ сверху'); return; }
+  const sys=`Ты — топ-кодер уровня Claude Opus 4.7, но ты Agnes 2.5-flash free безлимит. Пиши чистый рабочий код без воды. Язык: ${lang}. Всегда отдавай ПОЛНЫЙ файл, готовый к запуску. Если html — отдавай один html-файл с <style> и <script> внутри, с красивым дизайном. Если python/js/react — отдавай полный код с примером. Отвечай ТОЛЬКО кодом в \`\`\` блоке, без лишнего текста.`;
+  document.getElementById('codeStat').textContent='⏳ Генерю через agnes-2.5-flash...';
+  addMsg('bot','💻 Кодю для Амина: "'+prompt.slice(0,60)+'" → agnes-2.5-flash');
+  log('coding '+lang+' "'+prompt.slice(0,30)+'"');
+  try{
+    const r=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},
+      body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:sys},{role:'user',content:prompt}], max_tokens:4000, temperature:0.45})
+    });
+    const j=await r.json();
+    if(!r.ok){ document.getElementById('codeStat').textContent='Ошибка '+r.status; log('code err '+r.status); return; }
+    let txt=(j.choices?.[0]?.message?.content||'').trim();
+    // вытаскиваем ```code```
+    const m=txt.match(/```(?:\w+)?\n([\s\S]*?)```/);
+    if(m) txt=m[1].trim();
+    // если html без блока — берём как есть
+    document.getElementById('codeOut').value=txt;
+    document.getElementById('codeStat').textContent='✅ Готово ('+txt.length+' симв) — жми Запустить';
+    log('code done '+txt.length);
+    speakText('Готово, Амин. Код сгенерирован agnes два пять.');
+    // авто-превью если html
+    if(lang==='html' || txt.trim().startsWith('<!DOCTYPE') || txt.includes('<html')){
+      document.getElementById('codePreview').srcdoc=txt;
+      document.getElementById('codeConsole').textContent='превью обновлено • html';
+    }
+  }catch(e){ document.getElementById('codeStat').textContent='Ошибка '+e.message; log('code fail '+e.message); }
+}
+function runCode(){
+  const code=document.getElementById('codeOut').value;
+  const lang=document.getElementById('codeLang').value;
+  const con=document.getElementById('codeConsole');
+  try{
+    if(lang==='html' || code.includes('<!DOCTYPE') || code.includes('<html')){
+      document.getElementById('codePreview').srcdoc=code;
+      con.textContent='▶️ HTML запущен в превью справа';
+      log('run html preview');
+    }else if(lang==='javascript'){
+      con.textContent='';
+      const oldLog=console.log;
+      let out='';
+      console.log=(...args)=>{ out+=args.join(' ')+'\\n'; oldLog(...args); };
+      try{ const res=Function(code)(); con.textContent='▶️ Результат:\\n'+out+(res!==undefined?String(res):''); } catch(err){ con.textContent='❌ '+err.message; }
+      console.log=oldLog;
+      log('run js');
+    }else{
+      con.textContent='ℹ️ Для '+lang+' — скопируй код в VS Code / Replit. Превью только для HTML/JS.';
+    }
+  }catch(e){ con.textContent='❌ '+e.message; }
+}
+function copyCode(){ navigator.clipboard.writeText(document.getElementById('codeOut').value); log('код скопирован'); addMsg('sys','📋 Код скопирован'); }
+function downloadCode(){
+  const code=document.getElementById('codeOut').value;
+  const lang=document.getElementById('codeLang').value;
+  const ext={html:'html',javascript:'js',python:'py',react:'jsx',vue:'vue',nextjs:'js',php:'php'}[lang]||'txt';
+  const blob=new Blob([code],{type:'text/plain'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='amin-'+Date.now()+'.'+ext; a.click(); URL.revokeObjectURL(url);
+  log('скачан '+ext);
+}
+
+// ========== IMAGE DEDICATED ==========
+let imgHistory=JSON.parse(localStorage.getItem('amin_img_hist')||'[]');
+function renderImgHist(){
+  document.getElementById('imgGrid').innerHTML=imgHistory.slice(0,12).map(o=>`<div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#000"><img src="${o.url}" style="width:100%;display:block"><div style="padding:6px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.prompt.slice(0,40)}</div></div>`).join('')||'<span style="color:var(--muted);font-size:11px">история пуста</span>';
+}
+renderImgHist();
+async function genImg2(){
+  const prompt=document.getElementById('imgPrompt2').value.trim()||document.getElementById('imgPrompt').value.trim();
+  if(!prompt) return addMsg('sys','🎨 Напиши промпт');
+  const size=document.getElementById('imgSize').value;
+  const k=getKey(); if(!k) return addMsg('sys','🔑 Нужен ключ');
+  addMsg('bot','🎨 Изображение: "'+prompt.slice(0,60)+'"');
+  log('img2 '+prompt.slice(0,30));
+  for(const model of ['agnes-image-2.1-flash','agnes-image-2.0-flash']){
+    try{
+      const r=await fetch('https://apihub.agnes-ai.com/v1/images/generations',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model, prompt, n:1, size})});
+      const j=await r.json(); if(!r.ok){ if(r.status===429) continue; log('img err '+r.status); continue; }
+      const url=j.data?.[0]?.url || (j.data?.[0]?.b64_json && 'data:image/png;base64,'+j.data[0].b64_json);
+      if(url){
+        imgHistory.unshift({url, prompt, size, t:Date.now()}); localStorage.setItem('amin_img_hist', JSON.stringify(imgHistory.slice(0,30)));
+        renderImgHist();
+        // также в главный бокс
+        document.getElementById('imgBox').classList.add('show'); document.getElementById('genImg').src=url; document.getElementById('imgCap').textContent='✅ '+model;
+        speakText('Готово, Амин. Картинка создана.');
+        log('img ok '+model); return;
+      }
+    }catch(e){ log('img fail '+e.message); }
+  }
+  log('img 429');
+}
+
+// ========== VIDEO DEDICATED ==========
+async function genVid2(){
+  const prompt=document.getElementById('vidPrompt2').value.trim()||document.getElementById('vidPrompt')?.value.trim();
+  if(!prompt) return addMsg('sys','🎬 Напиши промпт видео');
+  // reuse existing generateVideo but also show in paneVid
+  const k=getKey(); if(!k) return addMsg('sys','🔑 Нужен ключ');
+  const list=document.getElementById('vidList');
+  const id='vid_'+Date.now();
+  list.insertAdjacentHTML('afterbegin', `<div id="${id}" style="padding:8px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);font-size:11px">⏳ ${prompt.slice(0,60)} ...</div>`);
+  // вызываем существующий generateVideo который пишет в vidBox, но также апдейтим этот элемент
+  // сделаем прямой вызов
+  try{
+    const r=await fetch('https://apihub.agnes-ai.com/v1/videos',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-video-v2.0', prompt, width:1152, height:768, num_frames:121, frame_rate:24})});
+    const j=await r.json(); if(!r.ok){ document.getElementById(id).textContent='Ошибка '+r.status; return; }
+    const video_id=j.video_id||j.id;
+    document.getElementById(id).textContent='🎬 '+video_id.slice(0,22)+' ... опрашиваю';
+    let tries=0; const iv=setInterval(async()=>{
+      tries++; try{
+        let pr=await fetch('https://apihub.agnes-ai.com/agnesapi?video_id='+video_id, {headers:{'Authorization':'Bearer '+k}});
+        let pj=await pr.json();
+        if(!pr.ok && j.task_id){ pr=await fetch('https://apihub.agnes-ai.com/v1/videos/'+j.task_id, {headers:{'Authorization':'Bearer '+k}}); pj=await pr.json(); }
+        const url=pj.url||pj.video_url||pj.output_url;
+        if(pj.status==='completed' && url){ clearInterval(iv); document.getElementById(id).innerHTML=`✅ <a href="${url}" target="_blank" style="color:var(--accent)">открыть mp4</a> — ${prompt.slice(0,40)}`; document.getElementById('vidBox').classList.add('show'); document.getElementById('vidBox').innerHTML=`✅ Видео готово: <a href="${url}" target="_blank" style="color:var(--accent)">открыть</a>`; }
+        else if(pj.status==='failed'){ clearInterval(iv); document.getElementById(id).textContent='❌ Ошибка'; }
+        else if(tries>45){ clearInterval(iv); document.getElementById(id).textContent='⏳ Долго — '+video_id; }
+        else document.getElementById(id).textContent='⏳ '+(pj.status||'queued')+' ('+tries+'/45) '+prompt.slice(0,30);
+      }catch{ if(tries>8){clearInterval(iv); document.getElementById(id).textContent='Ошибка опроса'} }
+    },4000);
+  }catch(e){ document.getElementById(id).textContent='Ошибка '+e.message; }
+}
+
 </script>
 </body>
 </html>
