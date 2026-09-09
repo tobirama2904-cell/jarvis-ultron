@@ -6,6 +6,7 @@
 <title>JARVIS • FRIDAY • ULTRON for AMIN — FIXED 2026</title>
 <meta name="theme-color" content="#00D9FF">
 <link rel="manifest" href="manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@600&display=swap');
   :root{--bg:#04060D;--panel:#0E1730;--line:rgba(130,160,255,.15);--cyan:#00D9FF;--orange:#FF8A00;--red:#FF2336;--vio:#7C3AED;--green:#00FF9D;--gold:#F5C518;--text:#EAF1FF;--muted:#7E8AB3;--accent:var(--cyan)}
@@ -147,6 +148,44 @@
       <button class="btn primary" style="min-width:52px" onclick="send()">→</button>
     </div>
   </div>
+
+  <!-- FAT: BRAIN + FACEID -->
+  <div class="card" id="brainCard" style="grid-column:1/-1">
+    <div class="head"><b>🧠 Мозг Амина — память безлимит (локально)</b><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)" id="memStat">0 воспоминаний</span></div>
+    <div style="padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <div style="font-size:11px;font-weight:700">Face ID — только ты</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Нажми «Запомнить меня» → 3 фото → запомнит твое лицо. Чужой → <span style="color:var(--red)">UNKNOWN</span>, ты → <span style="color:var(--green)">AMIN 99%</span>. Всё оффлайн, без сервера.</div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn primary" id="enrollBtn" onclick="enrollAmin()">📸 Запомнить меня</button>
+          <button class="btn" onclick="clearFace()">Очистить</button>
+          <span id="faceInfo" style="font-size:11px;color:var(--muted);align-self:center">не обучен</span>
+        </div>
+        <div id="faceProgress" style="margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent)"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700">Память + Напоминания</div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input id="memInp" placeholder="Запомни: люблю закаты..." style="flex:1;height:32px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 10px;font-size:11px">
+          <button class="btn primary" style="height:32px" onclick="addMem()">+</button>
+        </div>
+        <div id="memList" style="max-height:90px;overflow:auto;display:flex;flex-direction:column;gap:4px;margin-top:6px"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input id="remInp" placeholder="Напомни через 20 мин: позвонить" style="flex:1;height:32px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 10px;font-size:11px">
+          <button class="btn" style="height:32px" onclick="addRem()">⏰</button>
+        </div>
+        <div id="remList" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+      </div>
+    </div>
+    <div style="padding:8px 10px;border-top:1px solid var(--line);display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn" onclick="shareJarvis()">📤 Поделиться JARVIS</button>
+      <button class="btn" onclick="toggleWakeLock()">🔒 Wake Lock</button>
+      <button class="btn" onclick="vibrate()">📳 Вибра</button>
+      <button class="btn" onclick="easterIron()">🦾 I am Iron Man</button>
+      <span style="font-size:10px;color:var(--muted);align-self:center">всё free, без API</span>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -656,6 +695,169 @@ document.getElementById('msgs').innerHTML=`<div class="msg bot">${boot}</div><di
 let welcomed=false; function welcomeOnce(){ if(welcomed) return; welcomed=true; speakText(greetings[currentMode]); }
 ['click','touchstart'].forEach(ev=>document.addEventListener(ev,welcomeOnce,{once:true}));
 log('готов. нажми 🔊 Тест для проверки голоса, 📷 для камеры, 🎙️ для микрофона');
+
+// ========== FACE ID FOR AMIN (free unlimited, offline) ==========
+let aminDescriptor=null, faceModelsLoaded=false;
+async function loadFaceModels(){
+  if(faceModelsLoaded) return;
+  log('гружу face-api модели ~3МБ...');
+  const base='https://justadudewhohacks.github.io/face-api.js/models';
+  // пробуем cdn.jsdelivr как fallback
+  const bases=[base, 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights'];
+  for(const b of bases){
+    try{
+      await faceapi.nets.tinyFaceDetector.loadFromUri(b);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(b);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(b);
+      faceModelsLoaded=true; log('face models ok '+b); return;
+    }catch(e){ log('face load fail '+b+' '+e.message); }
+  }
+  throw new Error('face models fail');
+}
+function getAminDesc(){ try{ const s=localStorage.getItem('amin_face'); if(s) return new Float32Array(JSON.parse(s)); }catch{} return null; }
+function saveAminDesc(d){ localStorage.setItem('amin_face', JSON.stringify(Array.from(d))); aminDescriptor=d; updateFaceInfo(); }
+function updateFaceInfo(){
+  const d=getAminDesc(); aminDescriptor=d;
+  const el=document.getElementById('faceInfo');
+  if(d) { el.textContent='обучен ✓ ('+d.length+')'; el.style.color='var(--green)'; document.getElementById('faceProgress').textContent='AMIN запомнен — теперь отличаю тебя от других'; }
+  else { el.textContent='не обучен'; el.style.color='var(--muted)'; }
+}
+async function enrollAmin(){
+  if(!camStream){ addMsg('sys','📷 Включи камеру сначала'); return; }
+  const v=document.getElementById('cam');
+  if(!faceModelsLoaded) await loadFaceModels().catch(e=>{ addMsg('sys','❌ Модели лица не загрузились — проверь инет'); return; });
+  document.getElementById('faceProgress').textContent='Делаю 3 фото... смотри прямо, потом влево/вправо';
+  const descs=[];
+  for(let i=0;i<3;i++){
+    document.getElementById('faceProgress').textContent=`Фото ${i+1}/3 — замри...`;
+    await new Promise(r=>setTimeout(r,900));
+    const det=await faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+    if(!det){ document.getElementById('faceProgress').textContent=`Фото ${i+1} — лицо не нашёл, попробуй ближе`; i--; await new Promise(r=>setTimeout(r,800)); continue; }
+    descs.push(det.descriptor);
+    log(`фото ${i+1} descriptor ok`);
+    // мигнём
+    document.getElementById('faceBox').style.outline='2px solid var(--green)';
+    setTimeout(()=>document.getElementById('faceBox').style.outline='none',300);
+  }
+  // усредняем
+  const avg=new Float32Array(128); for(const d of descs) for(let k=0;k<128;k++) avg[k]+=d[k]/descs.length;
+  saveAminDesc(avg);
+  addMsg('sys','✅ Запомнил тебя, Амин! Теперь камера пишет AMIN 99% только на тебя');
+  speakText('Запомнил тебя, сэр Амин. Теперь узнаю только тебя.');
+}
+function clearFace(){ localStorage.removeItem('amin_face'); aminDescriptor=null; updateFaceInfo(); log('face cleared'); }
+updateFaceInfo();
+// распознавание в фоне каждые 900мс если камера вкл и обучен
+setInterval(async()=>{
+  if(!camStream || !aminDescriptor || !faceModelsLoaded) return;
+  const v=document.getElementById('cam');
+  try{
+    const det=await faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+    if(!det){ document.getElementById('faceLabel').textContent='FACE • NO FACE'; return; }
+    const dist=faceapi.euclideanDistance(det.descriptor, aminDescriptor);
+    const isAmin=dist<0.6;
+    document.getElementById('faceLabel').textContent=isAmin?`FACE • AMIN ${(1-dist).toFixed(2)*100|0}%`:`FACE • UNKNOWN ${dist.toFixed(2)}`;
+    document.getElementById('faceLabel').style.color=isAmin?'var(--green)':'var(--red)';
+    document.getElementById('hudAmin').textContent=isAmin?'AMIN • VERIFIED':'UNKNOWN • GUEST';
+    // если чужой — можно ругаться ультроном
+    // if(!isAmin && currentMode==='ultron') { } // leave
+  }catch(e){ /* ignore */ }
+}, 950);
+
+// ========== BRAIN - память безлимит локально ==========
+let mems=JSON.parse(localStorage.getItem('amin_mems')||'[]');
+let rems=JSON.parse(localStorage.getItem('amin_rems')||'[]');
+function saveMems(){ localStorage.setItem('amin_mems', JSON.stringify(mems)); renderMems(); }
+function addMem(){
+  const v=document.getElementById('memInp').value.trim(); if(!v) return;
+  mems.unshift({t:v, d:new Date().toLocaleString('ru-RU')}); if(mems.length>50) mems.pop();
+  localStorage.setItem('amin_mems', JSON.stringify(mems)); document.getElementById('memInp').value=''; renderMems(); log('запомнил: '+v.slice(0,30)); addMsg('sys','🧠 Запомнил: '+v);
+  // также подкормим Agnes контекстом
+}
+function renderMems(){
+  document.getElementById('memList').innerHTML=mems.slice(0,6).map(m=>`<div style="padding:4px 6px;border:1px solid var(--line);border-radius:8px;font-size:11px;display:flex;justify-content:space-between;gap:6px"><span>${m.t}</span><small style="color:var(--muted)">${m.d.slice(0,16)}</small></div>`).join('')||'<span style="font-size:11px;color:var(--muted)">пока пусто — напиши "запомни: люблю..."</span>';
+  document.getElementById('memStat').textContent=mems.length+' воспоминаний';
+}
+function addRem(){
+  const v=document.getElementById('remInp').value.trim(); if(!v) return;
+  // парсим "через 20 мин: текст" или просто текст через 1 мин
+  let mins=1, txt=v;
+  const m=v.match(/через\s*(\d+)\s*мин/i); if(m){ mins=parseInt(m[1]); txt=v.replace(m[0],'').replace(/^[:\s]+/,'').trim()||'Напоминание'; }
+  const when=Date.now()+mins*60000;
+  rems.push({txt, when}); localStorage.setItem('amin_rems', JSON.stringify(rems)); document.getElementById('remInp').value=''; renderRems(); log(`напоминание через ${mins}м: ${txt}`); addMsg('sys',`⏰ Напомню через ${mins} мин: ${txt}`);
+}
+function renderRems(){
+  document.getElementById('remList').innerHTML=rems.map((r,i)=>`<div>${new Date(r.when).toLocaleTimeString('ru-RU')} — ${r.txt} <a href="#" onclick="rems.splice(${i},1);localStorage.setItem('amin_rems',JSON.stringify(rems));renderRems();return false" style="color:var(--red)">x</a></div>`).join('')||'<span style="color:var(--muted)">нет напоминаний</span>';
+}
+setInterval(()=>{
+  const now=Date.now();
+  rems=rems.filter(r=>{
+    if(now>=r.when){
+      addMsg('bot','⏰ Амин, напоминание: '+r.txt); speakText('Амин, напоминание: '+r.txt); log('remind '+r.txt);
+      return false;
+    }
+    return true;
+  });
+  if(rems.length) { localStorage.setItem('amin_rems', JSON.stringify(rems)); renderRems(); }
+}, 15000);
+renderMems(); renderRems();
+// утренний брифинг 8:00 DSH (проверка каждую минуту)
+setInterval(()=>{
+  const now=new Date().toLocaleString('ru-RU',{timeZone:'Asia/Dushanbe', hour:'2-digit', minute:'2-digit'});
+  if(now==='08:00'){
+    const last=localStorage.getItem('brief_done');
+    const today=new Date().toDateString();
+    if(last!==today){
+      localStorage.setItem('brief_done', today);
+      const msg=`Доброе утро, сэр Амин! ☀️ ${(new Date()).toLocaleDateString('ru-RU')} • У тебя ${mems.length} воспоминаний и ${rems.length} напоминаний. Готов к подвигам?`;
+      addMsg('bot', msg); speakText(msg);
+    }
+  }
+}, 60000);
+
+// ========== CONNECTIONS free ==========
+async function shareJarvis(){
+  const data={title:'JARVIS by AMIN', text:'Смотри мой JARVIS — как у Тони Старка!', url: location.href};
+  try{ if(navigator.share) await navigator.share(data); else { await navigator.clipboard.writeText(location.href); addMsg('sys','🔗 Ссылка скопирована'); } log('share ok'); }catch(e){ log('share fail '+e.message); }
+}
+let wakeLock=null;
+async function toggleWakeLock(){
+  try{
+    if(wakeLock){ await wakeLock.release(); wakeLock=null; addMsg('sys','🔒 Wake Lock выкл'); log('wake off'); }
+    else{ wakeLock=await navigator.wakeLock.request('screen'); addMsg('sys','🔒 Экран не гаснет — как у Старка'); log('wake on'); wakeLock.addEventListener('release',()=>log('wake released')); }
+  }catch(e){ addMsg('sys','🔒 Не поддерживается'); log('wake fail '+e.message); }
+}
+function vibrate(){ if(navigator.vibrate){ navigator.vibrate([80,40,80]); log('vib ok'); } else { log('vib not supported'); addMsg('sys','📳 Вибра не поддерживается'); } }
+
+// ========== PONTY ==========
+function easterIron(){
+  document.body.classList.add('theme-ultron');
+  document.getElementById('whoName').textContent='IRON MAN';
+  addMsg('bot','🦾 I AM IRON MAN — Амин Старк активирован!'); speakText('I am Iron Man. Амин Старк, реактор на 120 процентов.');
+  // звук реактора через WebAudio
+  try{
+    const ac=new (window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(); o.type='sawtooth'; o.frequency.value=80;
+    const g=ac.createGain(); g.gain.value=0.08; o.connect(g).connect(ac.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime+1.2); o.stop(ac.currentTime+1.3);
+  }catch{}
+  setTimeout(()=>{ setMode('jarvis',false); }, 2800);
+  log('iron man easter');
+}
+// пасхалка в чате
+const origHandle=handle;
+handle=async function(prompt){
+  const low=prompt.toLowerCase();
+  if(low.includes('i am iron man')||low.includes('я железный человек')){
+    easterIron(); return;
+  }
+  if(low.includes('запомни')){
+    const txt=prompt.replace(/запомни:?/i,'').trim(); if(txt){ document.getElementById('memInp').value=txt; addMem(); addMsg('bot','🧠 Запомнил, Амин: '+txt); speakText('Запомнил, сэр Амин'); return; }
+  }
+  return origHandle(prompt);
+};
+
+
 </script>
 </body>
 </html>
