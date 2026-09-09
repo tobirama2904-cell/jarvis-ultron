@@ -141,6 +141,7 @@
       <button class="btn" id="wakeBtn" onclick="toggleWake()">🎙️ WAKE</button>
       <button class="btn" id="liveBtn" onclick="toggleLiveVision()">👁️ LIVE</button>
       <button class="btn" id="coachBtn" onclick="toggleGameCoach()">🎮 Коуч</button>
+      <button class="btn" id="flipBtn" onclick="flipCam()">🔄 Зад</button>
       <span id="wakeStat" style="font-size:10px;color:var(--muted);align-self:center"></span>
     </div>
     <div style="padding:0 14px 10px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
@@ -413,10 +414,14 @@ document.getElementById('inp').addEventListener('keydown', e=>{ if(e.key==='Ente
 
 // MIC
 let rec=null, micActive=false;
-function toggleMic(){
+async function toggleMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR) return addMsg('sys','Микрофон не поддерживается');
+  if(!SR) return addMsg('sys','Микрофон не поддерживается — используй Chrome');
   if(micActive){ try{ rec.stop(); }catch{} return; }
+  try{
+    const perm=await navigator.mediaDevices.getUserMedia({audio:true});
+    perm.getTracks().forEach(t=>t.stop());
+  }catch(e){ log('mic perm '+e.message); }
   rec=new SR(); rec.lang='ru-RU'; rec.continuous=false; rec.interimResults=false;
   rec.onstart=()=>{ micActive=true; document.getElementById('micBtn').classList.add('primary'); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • LISTENING'; log('mic on'); };
   rec.onend=()=>{ micActive=false; document.getElementById('micBtn').classList.remove('primary'); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; };
@@ -443,18 +448,27 @@ async function toggleCam(){
     try{ await initHands(v); }catch(e){ log('hands fail '+e.message); }
   }catch(e){ log('камера ошибка '+e.message); document.getElementById('faceOff').innerHTML='<span style="color:#FF8A00">Нет доступа<br><span style="font-size:10px">'+e.message.slice(0,50)+'</span></span>'; document.getElementById('faceOff').style.display='grid'; }
 }
-function flipCam(){ window._camFacing=window._camFacing==='user'?'environment':'user'; const v=document.getElementById('cam'); if(v) v.style.transform=window._camFacing==='user'?'scaleX(-1)':'none'; if(camStream){ toggleCam(); setTimeout(toggleCam, 500);} log('flip '+window._camFacing); }
-async function initHands(video){
-  if(!window.Hands){
-    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'; s.onload=res; s.onerror=()=>rej(new Error('hands.js fail')); document.head.appendChild(s); });
-    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+async function flipCam(){
+  window._camFacing = window._camFacing==='user' ? 'environment' : 'user';
+  const v=document.getElementById('cam');
+  const btn=document.getElementById('flipBtn');
+  if(btn) btn.textContent = window._camFacing==='environment' ? '🤳 Фронт' : '🔄 Зад';
+  log('flip to '+window._camFacing);
+  // Properly restart camera with new facingMode
+  if(window.camStream || (v && v.srcObject)){
+    await toggleCam(); // off
+    await new Promise(r=>setTimeout(r, 400));
+    await toggleCam(); // on with new facing
+  } else {
+    // Just set transform for next start
+    if(v) v.style.transform = window._camFacing==='user' ? 'scaleX(-1)' : 'none';
   }
-  hands=new Hands({locateFile:(f)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-  hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.68, minTrackingConfidence:0.68});
-  hands.onResults(onHandResults);
-  camera=new Camera(video,{onFrame:async()=>{ await hands.send({image:video}); }, width:640, height:480});
-  camera.start(); log('hands on');
+  // If LIVE is on, restart it with rear
+  if(typeof liveVisionActive !== 'undefined' && liveVisionActive){
+    stopLiveVision(); setTimeout(()=>startLiveVision(), 800);
+  }
 }
+
 function drawFaceFrame(ctx, box){ ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent'); ctx.lineWidth=2; ctx.strokeRect(4,4,box.clientWidth-8,box.clientHeight-8); }
 function onHandResults(res){
   const canvas=document.getElementById('faceOv'), ctx=canvas.getContext('2d');
@@ -679,19 +693,27 @@ function toggleSunBurst(){
     sunGroup.children.forEach(ch=>{ if(ch.userData.orig){ ch.position.copy(ch.userData.orig.p); ch.scale.copy(ch.userData.orig.s); } if(ch.isPoints) buildParticleSun(); });
   }
 }
-function flipCam(){ window._camFacing=window._camFacing==='user'?'environment':'user'; const v=document.getElementById('cam'); if(v) v.style.transform=window._camFacing==='user'?'scaleX(-1)':'none'; if(window.camStream){ toggleCam(); setTimeout(toggleCam, 500);} log('flip '+window._camFacing); }
-
-// VISION + ANALYSIS — PREMIUM v4: per-second frames, per-frame + synthesis, pattern
-async function compressImage(dataUrl, maxW=1024){
-  return new Promise(res=>{
-    const img=new Image(); img.onload=()=>{
-      const scale=Math.min(1, maxW/img.width);
-      const c=document.createElement('canvas'); c.width=img.width*scale; c.height=img.height*scale;
-      const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,c.width,c.height);
-      res(c.toDataURL('image/jpeg', 0.72));
-    }; img.onerror=()=>res(dataUrl); img.src=dataUrl;
-  });
+async function flipCam(){
+  window._camFacing = window._camFacing==='user' ? 'environment' : 'user';
+  const v=document.getElementById('cam');
+  const btn=document.getElementById('flipBtn');
+  if(btn) btn.textContent = window._camFacing==='environment' ? '🤳 Фронт' : '🔄 Зад';
+  log('flip to '+window._camFacing);
+  // Properly restart camera with new facingMode
+  if(window.camStream || (v && v.srcObject)){
+    await toggleCam(); // off
+    await new Promise(r=>setTimeout(r, 400));
+    await toggleCam(); // on with new facing
+  } else {
+    // Just set transform for next start
+    if(v) v.style.transform = window._camFacing==='user' ? 'scaleX(-1)' : 'none';
+  }
+  // If LIVE is on, restart it with rear
+  if(typeof liveVisionActive !== 'undefined' && liveVisionActive){
+    stopLiveVision(); setTimeout(()=>startLiveVision(), 800);
+  }
 }
+
 async function getVideoDuration(file){
   const u=URL.createObjectURL(file);
   const v=document.createElement('video');
@@ -982,10 +1004,20 @@ window.genImg2 = async function(){
 
 // Voice control + WAKE
 let wakeActive=false, wakeRec=null;
-function initWake(){
+async function initWake(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR) { log('wake: no SR'); return; }
+  if(!SR) { log('wake: no SR'); addMsg('sys','❌ WAKE не поддерживается в этом браузере — попробуй Chrome Android'); return; }
   if(wakeActive) return;
+  // Request mic permission first (needed for Android)
+  try{
+    const perm=await navigator.mediaDevices.getUserMedia({audio:true});
+    perm.getTracks().forEach(t=>t.stop());
+    log('mic permission granted for WAKE');
+  }catch(e){
+    log('mic perm fail '+e.message);
+    addMsg('sys','🎙️ WAKE нужен доступ к микрофону — разреши');
+    // still try
+  }
   wakeActive=true;
   wakeRec=new SR();
   wakeRec.lang='ru-RU';
@@ -1060,8 +1092,13 @@ function startLiveVision(){
   log('LIVE vision on (1 запрос/4с, RPM-safe)');
   const b=document.getElementById('liveBtn'); if(b){ b.classList.add('primary'); b.textContent='👁️ LIVE ●'; }
   (async()=>{
+    // Prefer rear camera for LIVE as user requested — more convenient
+    if(!window._camFacing) window._camFacing='environment';
     if(!camStream){
-      addMsg('sys','👁️ LIVE нужен доступ к камере...');
+      addMsg('sys','👁️ LIVE нужен доступ к камере (задняя)...');
+      window._camFacing='environment';
+      const v=document.getElementById('cam'); if(v) v.style.transform='none';
+      const fb=document.getElementById('flipBtn'); if(fb) fb.textContent='🤳 Фронт';
       await toggleCam();
       await new Promise(r=>setTimeout(r,900));
       if(!camStream){ addMsg('sys','❌ Камера не доступна для LIVE'); stopLiveVision(); return; }
@@ -1084,6 +1121,8 @@ function startLiveVision(){
       const txt=(j.choices?.[0]?.message?.content||'').trim();
       if(txt){
         addMsg('bot','👁️ LIVE: '+txt);
+        try{ if(document.getElementById('voiceToggle')?.checked) queueVoice(txt.slice(0,180), currentMode); }catch{}
+        try{ const hud=document.getElementById('hudVoice'); if(hud) hud.textContent='VOICE: LIVE'; setTimeout(()=>{ if(hud) hud.textContent='VOICE: READY'; }, 1800); }catch{}
         // Proactive memory: store
         try{ addProject('live', txt.slice(0,60)); }catch{}
       }
@@ -1187,8 +1226,12 @@ function startGameCoach(){
   log('Game Coach LIVE on');
   const b=document.getElementById('coachBtn'); if(b){ b.classList.add('primary'); b.textContent='🎮 Коуч ●'; }
   (async()=>{
+    if(!window._camFacing) window._camFacing='environment';
     if(!camStream){
-      addMsg('sys','🎮 Коуч нужен экран/камера...');
+      addMsg('sys','🎮 Коуч нужен экран/камера (задняя)...');
+      window._camFacing='environment';
+      const v=document.getElementById('cam'); if(v) v.style.transform='none';
+      const fb=document.getElementById('flipBtn'); if(fb) fb.textContent='🤳 Фронт';
       await toggleCam();
       await new Promise(r=>setTimeout(r,900));
       if(!camStream){ addMsg('sys','❌ Камера нужна для коуча'); stopGameCoach(); return; }
