@@ -380,15 +380,17 @@ function testVoice(){
   setTimeout(()=>{ if(voices.length===0) log('⚠️ голосов 0 — нажми ещё раз 🔓 Вкл звук, Chrome должен загрузить'); }, 900);
 }
 
-// MIC - надёжно, теперь без обязательного wake
-let rec=null, listening=false;
+// MIC - надёжно, теперь без обязательного wake + с проверкой микрофона
+let rec=null, listening=false, micStream=null, micMeterRAF=null;
 function initRec(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){ log('SpeechRecognition нет — нужен Chrome/Edge'); return null; }
+  if(!SR){ log('SpeechRecognition нет — нужен Chrome/Edge v80+'); return null; }
   const r=new SR(); r.lang='ru-RU'; r.continuous=true; r.interimResults=true; r.maxAlternatives=1;
-  r.onstart=()=>{ log('микрофон старт — говори, Амин'); document.getElementById('hudVoice').textContent='VOICE: LISTENING...'; document.getElementById('micBtn').classList.add('live'); };
+  r.onstart=()=>{ log('микрофон старт — говори громко, Амин'); document.getElementById('hudVoice').textContent='VOICE: LISTENING...'; document.getElementById('micBtn').classList.add('live'); };
+  r.onaudiostart=()=>{ log('audio start — микрофон живой'); };
+  r.onsoundstart=()=>{ log('sound start — слышу звук'); };
+  r.onspeechstart=()=>{ log('speech start — слышу речь'); };
   r.onresult=e=>{
-    // берём последний финальный + показываем промежуточный
     let interim=''; let final='';
     for(let i=e.resultIndex;i<e.results.length;i++){
       const txt=e.results[i][0].transcript;
@@ -396,43 +398,73 @@ function initRec(){
       else interim+=txt+' ';
     }
     const show=(final||interim).trim();
-    if(show) document.getElementById('hudVoice').textContent='VOICE: "'+show.slice(0,24)+'"';
+    if(show) document.getElementById('hudVoice').textContent='VOICE: "'+show.slice(0,28)+'"';
+    if(interim) log('промежуточно: '+interim.trim());
     if(final){
       const t=final.trim();
-      log('услышал ФИНАЛ: '+t);
-      // авто-переключение режима по имени если сказал
+      log('✅ ФИНАЛ: '+t);
       if(/пятниц/i.test(t)) setMode('friday',false);
       else if(/ультрон/i.test(t)) setMode('ultron',false);
       else if(/джарвис|jarvis/i.test(t)) setMode('jarvis',false);
-      // убираем имя из команды если есть, но не требуем его
       const cmd=t.replace(/джарвис|пятниц.*|ультрон|jarvis|friday|ultron/gi,'').trim() || t;
       addMsg('user','🎙️ '+t); handle(cmd);
-      // сразу перезапуск для следующей команды (на некоторых Android нужен)
-      // не трогаем rec — он continuous
     }
   };
-  r.onerror=e=>{ log('mic error '+e.error+' msg:'+(e.message||'')); if(e.error==='not-allowed') addMsg('sys','🎙️ Микрофон запрещён — замок в адресе → Разрешить → Перезагрузи (HTTPS нужен)'); if(e.error==='no-speech') log('no-speech — тихо'); if(e.error==='audio-capture') addMsg('sys','🎙️ Нет микрофона'); if(e.error==='network') log('network — проверь интернет'); };
-  r.onend=()=>{ log('mic end, listening='+listening); if(listening){ log('перезапуск mic...'); try{ r.start(); log('rec.start ok (restart)'); }catch(err){ log('restart fail '+err.message); setTimeout(()=>{ if(listening) try{ r.start(); log('retry start ok'); }catch(e2){ log('retry fail '+e2.message); } },700);} } };
-  r.onspeechend=()=>{ log('speech end'); };
-  r.onaudiostart=()=>{ log('audio start'); };
+  r.onerror=e=>{ log('❌ mic error '+e.error+' '+(e.message||'')); if(e.error==='not-allowed') addMsg('sys','🎙️ Доступ запрещён — нажми замок в адресе → Микрофон → Разрешить → Перезагрузи страницу'); if(e.error==='no-speech') log('no-speech — ты молчал 5с, говорю громче'); if(e.error==='audio-capture') addMsg('sys','🎙️ Микрофон занят другим приложением'); if(e.error==='network') addMsg('sys','🌐 Сеть для распознавания (Google) заблокирована — попробуй VPN или пиши текстом, я отвечу голосом'); if(e.error==='aborted') log('aborted'); };
+  r.onend=()=>{ log('mic end, listening='+listening); if(listening){ log('перезапуск через 0.6с...'); setTimeout(()=>{ if(listening) try{ r.start(); log('restart ok'); }catch(err){ log('restart fail '+err.message); } },600);} };
+  r.onnomatch=()=>{ log('nomatch — не понял'); };
   return r;
 }
-function toggleMic(){
+function startMeter(stream){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    const ac=new AC(); const src=ac.createMediaStreamSource(stream); const analyser=ac.createAnalyser(); analyser.fftSize=256; src.connect(analyser);
+    const data=new Uint8Array(analyser.frequencyBinCount);
+    function tick(){
+      if(!listening) { try{ac.close()}catch{}; return; }
+      analyser.getByteFrequencyData(data);
+      let sum=0; for(let v of data) sum+=v; const avg=sum/data.length;
+      // показываем громкость в HUD
+      if(avg>8) document.getElementById('hudVoice').textContent='VOICE: 🔊 '+Math.round(avg)+'% слышу!';
+      micMeterRAF=requestAnimationFrame(tick);
+    }
+    tick();
+  }catch(e){ log('meter fail '+e.message); }
+}
+async function toggleMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const btn=document.getElementById('micBtn');
-  if(!SR){ addMsg('sys','🎙️ Голос только в Chrome/Edge на HTTPS. На iPhone — пиши текстом, отвечу голосом.'); log('no SR — '+navigator.userAgent.slice(0,60)); return; }
+  if(!SR){ addMsg('sys','🎙️ Распознавание только в Chrome/Edge на HTTPS (Android/ПК). На iPhone — пиши текстом.'); log('no SR UA='+navigator.userAgent.slice(0,70)); return; }
   if(!rec) rec=initRec();
   if(!rec){ log('rec null'); return; }
   listening=!listening;
   if(listening){
     unlockAudio(true);
-    log('пытаюсь rec.start...');
-    try{ rec.start(); log('rec.start ВЫЗВАН'); }catch(e){ log('rec.start fail '+e.name+' '+e.message); // пробуем пересоздать
-      rec=initRec(); try{ rec.start(); log('rec.start retry ok'); }catch(e2){ log('retry fail '+e2.message); listening=false; return; }
+    // 1) явно просим доступ к микрофону чтобы показать диалог и получить громкость
+    try{
+      log('запрос mic getUserMedia...');
+      micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      log('mic permission OK — микрофон живой, громкость покажу');
+      startMeter(micStream);
+      // не закрываем сразу — оставим для уровня, закроем при stop
+    }catch(e){
+      log('getUserMedia fail '+e.name+' '+e.message);
+      addMsg('sys','🎙️ Нет доступа к микрофону: '+e.message+' — замок в адресе → Разрешить');
+      listening=false; return;
     }
-    btn.classList.add('live'); btn.textContent='■ Стоп'; document.getElementById('hudVoice').textContent='VOICE: LISTENING... говори!'; document.getElementById('wave').style.display='flex';
-    addMsg('sys','🎙️ Слушаю, Амин — говори что угодно: "привет", "нарисуй кота", "сделай видео". Имя можно не говорить!');
+    log('пытаюсь rec.start() lang=ru-RU continuous...');
+    try{ rec.start(); log('rec.start ВЫЗВАН'); }catch(e){
+      log('rec.start fail '+e.name+' '+e.message);
+      rec=initRec(); try{ rec.start(); log('retry ok'); }catch(e2){ log('retry fail '+e2.name+' '+e2.message); if(micStream) micStream.getTracks().forEach(t=>t.stop()); listening=false; return; }
+    }
+    btn.classList.add('live'); btn.textContent='■ Стоп'; document.getElementById('hudVoice').textContent='VOICE: LISTENING... говори громко!'; document.getElementById('wave').style.display='flex';
+    addMsg('sys','🎙️ Слушаю, Амин — говори что угодно громко: "привет", "нарисуй кота". Смотри VOICE: "текст" и лог.');
+    // таймаут если 6с нет ФИНАЛ — подсказка
+    setTimeout(()=>{ if(listening && document.getElementById('hudVoice').textContent.includes('LISTENING')){ log('⚠️ 6с нет результата — говори громче, ближе к микрофону, проверь интернет (Google STT нужен)'); } },6500);
   }else{
+    try{ if(micStream) micStream.getTracks().forEach(t=>t.stop()); }catch{}
+    if(micMeterRAF) cancelAnimationFrame(micMeterRAF);
     try{ rec.stop(); log('rec.stop'); }catch(e){ log('stop fail '+e.message); }
     btn.classList.remove('live'); btn.textContent='🎙️ Слушать'; document.getElementById('hudVoice').textContent='VOICE: OFF'; document.getElementById('wave').style.display='none'; log('mic стоп');
   }
