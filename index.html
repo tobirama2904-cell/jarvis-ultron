@@ -32,7 +32,7 @@
   .dot{width:7px;height:7px;border-radius:50%;background:#5A6A95} .dot.on{background:var(--green);box-shadow:0 0 8px var(--green)} .dot.wait{background:var(--gold);animation:blink 1s infinite} @keyframes blink{50%{opacity:.4}}
   /* LAYOUT — один большой сайт */
   .shell{position:relative;z-index:2;max-width:1440px;margin:0 auto;padding:16px;display:grid;grid-template-columns:420px 1fr;gap:16px}
-  .card{background:rgba(14,23,48,.78);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+  .card{background:rgba(14,23,48,.78);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:20px;overflow:visible;box-shadow:0 10px 40px rgba(0,0,0,.25)}
   .card-head{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
   .card-head b{font-family:'Syne',sans-serif;font-size:12px;letter-spacing:.04em}
   /* HERO LEFT */
@@ -55,10 +55,10 @@
   @keyframes wave{to{height:14px}}
   .log{padding:8px 12px;border-top:1px solid var(--line);background:rgba(0,0,0,.18);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);min-height:30px;max-height:70px;overflow:auto}
   /* RIGHT — TABS */
-  .tabs{display:flex;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02);flex-wrap:wrap}
+  .tabs{display:flex;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line);background:rgba(10,18,40,.96);flex-wrap:wrap;position:sticky;top:0;z-index:10;backdrop-filter:blur(8px)}
   .tab{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-weight:700;font-size:12px;cursor:pointer;transition:.15s}
   .tab.active{background:var(--accent);color:#061018;border-color:var(--accent)}
-  .pane{padding:14px;display:none;min-height:520px}
+  .pane{padding:14px;display:none;min-height:320px}
   .pane.active{display:block}
   .pane h3{font-family:'Syne',sans-serif;font-size:14px;margin-bottom:6px}
   .pane p{font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px}
@@ -443,6 +443,7 @@ async function runDeepResearch(){
       <div id="vidList" style="display:flex;flex-direction:column;gap:8px"></div>
     <!-- TOOLS -->
     <div class="pane" id="pane-tools">
+      <div style="margin:-14px -14px 12px;padding:8px 14px;background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.15));border-bottom:1px solid var(--line);font-size:10px;color:var(--accent);font-weight:800;text-align:center">↓ Пиши задачу здесь — поле ниже</div>
       <div style="padding:14px">
         <div style="font-size:13px;font-weight:800">🔧 Tool Calling • безлимит • Agnes 2.5-flash</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px">AI сам вызывает инструменты: <b>web_search</b>, <b>web_fetch</b>, <b>code_run</b>, <b>image/video gen</b>, <b>memory</b>. Всё локально, безлимит.</div>
@@ -467,6 +468,7 @@ async function runDeepResearch(){
     </div>
     <!-- RESEARCH -->
     <div class="pane" id="pane-research">
+      <div style="margin:-14px -14px 12px;padding:8px 14px;background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.15));border-bottom:1px solid var(--line);font-size:10px;color:var(--accent);font-weight:800;text-align:center">↓ Пиши задачу здесь — поле ниже</div>
       <div style="padding:14px">
         <div style="font-size:13px;font-weight:800">🔍 Deep Research • безлимит</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px">Многошаговый ресёрч: AI делает 3-5 поисков, читает страницы, синтезирует отчёт с источниками. Всё бесплатно, через твой ключ Agnes.</div>
@@ -487,6 +489,7 @@ async function runDeepResearch(){
 
     <!-- AGENT MODE -->
     <div class="pane" id="pane-agent">
+      <div style="margin:-14px -14px 12px;padding:8px 14px;background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.15));border-bottom:1px solid var(--line);font-size:10px;color:var(--accent);font-weight:800;text-align:center">↓ Пиши задачу здесь — поле ниже</div>
       <div style="padding:14px">
         <div style="display:flex;align-items:center;gap:10px"><div style="font-size:15px;font-weight:900">🤖 Агент MODE • безлимит</div><span style="font-size:10px;padding:4px 8px;border-radius:999px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);color:#34d399;font-weight:800">FREE • CONNECTIONS</span></div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px">Как у меня: агент сам планирует, вызывает тулзы по цепочке, дергает интеграции. Всё через твой Agnes, безлимит.</div>
@@ -1053,7 +1056,7 @@ function switchTab(which){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   const paneId=map[which]||('pane-'+which);
   const tabId=tabMap[which]||('t-'+which);
-  const pane=document.getElementById(paneId); if(pane) { pane.classList.add('active'); setTimeout(()=>pane.scrollIntoView({behavior:'smooth', block:'start'}), 100); }
+  const pane=document.getElementById(paneId); if(pane) { pane.classList.add('active'); setTimeout(()=>{ const card=pane.closest('.card'); if(card) card.scrollIntoView({behavior:'smooth', block:'start'}); else pane.scrollIntoView({behavior:'smooth', block:'start'}); }, 120); }
   const tab=document.getElementById(tabId); if(tab) tab.classList.add('active');
   // fallback old ids
   const oldPane=document.getElementById('pane'+which.charAt(0).toUpperCase()+which.slice(1));
