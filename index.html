@@ -108,11 +108,18 @@
       <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="gestureToggle" checked> Жесты</label>
       <button class="btn" onclick="testVoice()">🔊 Тест</button>
     </div>
-    <div style="padding:0 10px 10px;display:flex;gap:6px;flex-wrap:wrap">
+    <div style="padding:0 10px 6px;display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn primary" onclick="quick('Привет, кто ты?')">Кто ты?</button>
       <button class="btn" onclick="quick('Нарисуй Тони Старка в Душанбе, закат 4K')">🎨 Нарисуй</button>
       <button class="btn" onclick="quick('Сгенерируй видео: полет над Душанбе на закате')">🎬 Видео</button>
       <button class="btn" onclick="unlockAudio(true)">🔓 Вкл звук</button>
+    </div>
+    <div style="padding:0 10px 10px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px">
+      <button class="btn" onclick="rot-=0.4; log('↺ влево')">↺</button>
+      <button class="btn" onclick="rot+=0.4; log('↻ вправо')">↻</button>
+      <button class="btn" onclick="scale=Math.min(1.7,scale+0.12); log('зум + '+scale.toFixed(2))">＋ зум</button>
+      <button class="btn" onclick="scale=Math.max(0.6,scale-0.12); log('зум - '+scale.toFixed(2))">－</button>
+      <span style="font-size:10px;color:var(--muted);align-self:center">тащи пальцем по орбите — тоже крутит</span>
     </div>
     <div class="log" id="log">лог: готов для Амина...</div>
   </div>
@@ -312,13 +319,25 @@ function unlockAudio(manual=false){
 }
 ['click','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ if(!audioUnlocked) unlockAudio(); },{once:true}));
 let voices=[];
-function loadVoices(){ voices=speechSynthesis.getVoices(); }
-speechSynthesis.onvoiceschanged=loadVoices; loadVoices();
-function pickVoice(m){
+function loadVoices(){ voices=speechSynthesis.getVoices(); if(voices.length) log('голосов: '+voices.length+' — '+voices.map(v=>v.name+'/'+v.lang).slice(0,3).join(' | ')); }
+speechSynthesis.onvoiceschanged=()=>{ loadVoices(); log('голоса обновлены: '+voices.length); }; loadVoices();
+setTimeout(loadVoices, 800);
+function pickVoice(m, text=''){
   loadVoices();
+  const isRu=/[а-яё]/i.test(text);
+  if(isRu){
+    // для русского текста — русские голоса
+    const ruWants={
+      jarvis:['Google русский','Pavel','Microsoft Pavel','Dmitry','Yuri','ru-RU'],
+      friday:['Google русский','Irina','Microsoft Irina','Svetlana','Alena','Milena','ru-RU'],
+      ultron:['Google русский','Pavel','Dmitry','ru-RU']
+    }[m];
+    for(const w of ruWants){ const v=voices.find(x=>x.name.includes(w)||x.lang===w||x.lang.startsWith('ru')); if(v) return v; }
+    const ru=voices.find(x=>x.lang.startsWith('ru')); if(ru) return ru;
+  }
   const want={jarvis:['Google UK English Male','Daniel','Arthur','Microsoft George','en-GB'], friday:['Google UK English Female','Samantha','Aria','Jenny','en-IE','en-GB'], ultron:['Google UK English Male','Alex','David','en-GB']}[m];
   for(const w of want){ const v=voices.find(x=>x.name.includes(w)||x.lang===w); if(v) return v; }
-  return voices.find(x=>x.lang.startsWith('en-'))||voices[0];
+  return voices.find(x=>x.lang.startsWith('en-'))||voices[0]||voices.find(x=>x.lang.startsWith('ru-'));
 }
 async function speakText(text){
   if(!document.getElementById('voiceToggle').checked){ log('озвучка выкл'); return; }
@@ -339,10 +358,11 @@ async function speakText(text){
   }
   // браузер
   try{
+    if(speechSynthesis.paused) speechSynthesis.resume();
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(clean);
-    const v=pickVoice(currentMode); if(v){ u.voice=v; log('voice '+v.name+' '+v.lang); } else log('voice default');
-    u.lang=v?.lang||'en-GB'; u.rate=currentMode==='ultron'?0.84: currentMode==='friday'?1.06:0.94; u.pitch=currentMode==='ultron'?0.62: currentMode==='friday'?1.2:0.9; u.volume=1;
+    const v=pickVoice(currentMode, clean); if(v){ u.voice=v; log('voice '+v.name+' '+v.lang); } else { log('voice default, всего голосов: '+voices.length+' ['+voices.map(x=>x.lang).slice(0,4).join(',')+']'); }
+    u.lang=v?.lang|| (/[а-яё]/i.test(clean)?'ru-RU':'en-GB'); u.rate=currentMode==='ultron'?0.84: currentMode==='friday'?1.06:0.94; u.pitch=currentMode==='ultron'?0.62: currentMode==='friday'?1.2:0.9; u.volume=1;
     u.onend=()=>{ speaking=false; document.getElementById('wave').style.display='none'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; log('speech done'); };
     u.onerror=e=>{ speaking=false; document.getElementById('wave').style.display='none'; log('speech error '+e.error); };
     speechSynthesis.speak(u);
@@ -350,7 +370,14 @@ async function speakText(text){
     setTimeout(()=>{ if(speaking && !speechSynthesis.speaking){ log('speech не стартовал, пробую снова'); speechSynthesis.speak(u); } },1200);
   }catch(e){ log('speak fail '+e.message); speaking=false; document.getElementById('wave').style.display='none'; }
 }
-function testVoice(){ unlockAudio(true); speakText(greetings[currentMode]+' Амин, проверка голоса '+currentMode+'. Скажи Джарвис сделай что-нибудь.'); }
+function testVoice(){
+  unlockAudio(true);
+  // бип чтобы доказать что звук вообще работает
+  try{ const AC=window.AudioContext||window.webkitAudioContext; if(AC){ const ac=new AC(); const o=ac.createOscillator(); const g=ac.createGain(); o.type='sine'; o.frequency.value=720; g.gain.value=0.12; o.connect(g).connect(ac.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime+0.35); o.stop(ac.currentTime+0.36); log('бип 720Гц ok'); } }catch(e){ log('бип fail '+e.message); }
+  setTimeout(()=> speakText(greetings[currentMode]+' Амин, проверка голоса '+currentMode+'. Если слышишь меня — голос работает. Скажи Джарвис сделай что-нибудь.'), 400);
+  // покажем какие голоса есть
+  setTimeout(()=>{ if(voices.length===0) log('⚠️ голосов 0 — нажми ещё раз 🔓 Вкл звук, Chrome должен загрузить'); }, 900);
+}
 
 // MIC - надёжно
 let rec=null, listening=false;
