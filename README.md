@@ -28,3 +28,11 @@ Agnes — единственная full-modal free API (текст+картин�
 
 ### Деплой
 Уже настроен GitHub Pages (branch main). Просто `git push` → https://tobirama2904-cell.github.io/jarvis-ultron/
+
+## V14 — Wave-1 (10.09.2026): Core engine 2.0
+- Модули: `index.html` + `js/core.js` (движок) + `js/app.js` (приложение)
+- Очередь 18 RPM + ретраи, стриминг чата, история диалога, характеры персон
+- Кнопка «🔍 Всё» (самодиагностика), индикатор движка, лог-панель (клик по логу)
+- PWA: локальные иконки, manifest, service worker (сеть-первая)
+- Безопасность: захардкоженный ключ удалён из кода
+- Фикс: sticky-вкладки перекрывали чат, дубли функций, compressImage/sendAnalysisChat
