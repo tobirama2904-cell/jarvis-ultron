@@ -1,5 +1,5 @@
 /* JARVIS SW v14.1: сеть-первая для своих файлов (обновы сразу), кэш для CDN */
-const V = 'jarvis-v14-1';
+const V = 'jarvis-v15-1';
 const CORE = ['./', './index.html', './manifest.json', './js/core.js', './js/app.js'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(V).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()).catch(() => {}));

@@ -275,5 +275,5 @@ window.aiFetch=aiFetch; window.aiStreamChat=aiStreamChat; window.PERSONAS=PERSON
 window.ChatHist=ChatHist; window.runSelfCheck=runSelfCheck; window.openSelfCheck=openSelfCheck;
 window.copyCheckReport=copyCheckReport; window.toggleLogPanel=toggleLogPanel;
 window.setEngine=setEngine; window.friendlyError=friendlyError;
-window.Core={v:'wave1',rpmUsed:rpmUsed,maxPerMin:MAX_PER_MIN};
+window.Core={v:'v15-waves2-6',rpmUsed:rpmUsed,maxPerMin:MAX_PER_MIN};
 })();

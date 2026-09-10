@@ -15,6 +15,7 @@ function setMode(m, speak=true){
   const dt=document.getElementById('dotText'); if(dt) dt.textContent=m.toUpperCase();
   log('режим '+m);
   if(scene3d) buildParticleSun();
+  try{ if(window.Stage) Stage.tintSun(); }catch(e){}
   if(speak){ addMsg('bot', m==='jarvis'?'🇬🇧 JARVIS включён, сэр Амин.':'FRIDAY на связи!'+(m==='ultron'?' ULTRON проснулся.':'')); speakText(greetings[m]); }
 }
 let rot=0, scale=1;
@@ -74,6 +75,7 @@ async function agnesChat(prompt){
     try{ queueVoice(last.text.slice(0,160), currentMode); }catch{}
     return last.text;
   }
+  try{ if(window.Brain){ const local=await Brain.tryLocal(prompt); if(local){ if(local.silent) return; addMsg('user',prompt); addMsg('bot',local); try{ queueVoice(String(local).slice(0,280),currentMode); }catch{} return local; } } }catch(e){}
   const needSearch=/найди|поищи|интернет|гугл|сеть|ссылк/i.test(prompt);
   let webResults='';
   if(needSearch){
@@ -102,8 +104,7 @@ async function agnesChat(prompt){
   };
   try{
     const hist=(typeof ChatHist!=='undefined')?ChatHist.forAPI():[{role:'user',content:prompt}];
-    const done=await aiStreamChat({messages:[{role:'system',content:sys},...hist],max_tokens:900,temperature:0.62,
-      onToken:(t)=>{ full+=t; div.textContent=full; list.scrollTop=list.scrollHeight; speakNew(); }});
+    const done=await (window.Brain?Brain.chatWithTools({sys:sys,hist:hist,onToken:(t)=>{ full+=t; div.textContent=full; list.scrollTop=list.scrollHeight; speakNew(); }}):aiStreamChat({messages:[{role:'system',content:sys},...hist],max_tokens:900,temperature:0.62,onToken:(t)=>{ full+=t; div.textContent=full; list.scrollTop=list.scrollHeight; speakNew(); }}));
     if(!full&&done){ full=done; div.textContent=full; }
     full=(full||'').replace(/\{"type"\s*:\s*"search"[^}]*\}/gi,'').trim();
     if(!full&&webResults) full=webResults.slice(0,1200);
@@ -139,54 +140,38 @@ async function send(){
 document.getElementById('inp').addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
 
 // MIC
-let rec=null, micActive=false;
+let rec=null, micActive=false, micWantOff=false;
 async function toggleMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR) return addMsg('sys','Микрофон не поддерживается — используй Chrome');
-  if(micActive){ try{ rec.stop(); }catch{} return; }
-  // WAKE и Слушать не могут вместе — паузим WAKE
+  if(micActive){ micWantOff=true; try{ rec.stop(); }catch{} return; }
   let wasWake=false;
-  if(typeof wakeActive !== 'undefined' && wakeActive){
-    wasWake=true;
-    try{ if(wakeRec) wakeRec.stop(); }catch{}
-    wakeActive=false;
-    log('WAKE paused for mic');
-  }
-  try{
-    const perm=await navigator.mediaDevices.getUserMedia({audio:true});
-    perm.getTracks().forEach(t=>t.stop());
-  }catch(e){ log('mic perm '+e.message); }
-  rec=new SR(); rec.lang='ru-RU'; rec.continuous=false; rec.interimResults=false;
-  rec.onstart=()=>{ micActive=true; document.getElementById('micBtn').classList.add('primary'); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • LISTENING'; log('mic on'); };
-  rec.onend=()=>{
-    micActive=false; document.getElementById('micBtn').classList.remove('primary'); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY';
-    if(wasWake){
-      // Resume WAKE after mic done
-      setTimeout(()=>{ try{ initWake(); }catch{} }, 600);
-      log('WAKE resumed after mic');
-    }
+  if(typeof wakeActive!=='undefined'&&wakeActive){ wasWake=true; try{ if(wakeRec) wakeRec.stop(); }catch{} wakeActive=false; log('WAKE paused for mic'); }
+  try{ const perm=await navigator.mediaDevices.getUserMedia({audio:true}); perm.getTracks().forEach(t=>t.stop()); }catch(e){ log('mic perm '+e.message); }
+  micWantOff=false;
+  rec=new SR(); rec.lang='ru-RU'; rec.continuous=true; rec.interimResults=true; rec.maxAlternatives=1;
+  let finalBuf='';
+  rec.onstart=()=>{ micActive=true; document.getElementById('micBtn').classList.add('primary'); document.getElementById('micBtn').textContent='🎙️ Стоп'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • LISTENING'; log('mic on (непрерывно)'); };
+  rec.onend=()=>{ if(micWantOff||!micActive){ micActive=false; try{ document.getElementById('micBtn').classList.remove('primary'); document.getElementById('micBtn').textContent='🎙️ Слушать'; document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; }catch{} if(wasWake) setTimeout(()=>{ try{ initWake(); }catch{} },600); return; }
+    try{ rec.start(); }catch(e){ setTimeout(()=>{ try{rec.start();}catch{} },700); } };
+  rec.onresult=(e)=>{ if(window._speaking) return;
+    let interim='',fin='';
+    for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) fin+=r[0].transcript+' '; else interim+=r[0].transcript; }
+    if(fin){ finalBuf=(finalBuf+' '+fin).trim(); document.getElementById('inp').value=finalBuf; }
+    else if(interim){ document.getElementById('inp').value=(finalBuf+' '+interim).trim(); }
+    clearTimeout(window._micSendT);
+    window._micSendT=setTimeout(()=>{ const v=document.getElementById('inp').value.trim(); if(v&&micActive){ finalBuf=''; document.getElementById('inp').value=''; send(); } },1500);
   };
-  rec.onresult=(e)=>{ const t=e.results[0][0].transcript; document.getElementById('inp').value=t; send(); };
-  rec.onerror=(e)=>{
-    if(e.error==='aborted' || e.error==='no-speech'){
-      log('mic '+e.error+' — ignore');
-      micActive=false;
-      document.getElementById('micBtn').classList.remove('primary');
-      if(wasWake) setTimeout(()=>{ try{ initWake(); }catch{} }, 600);
-      return;
-    }
-    addMsg('sys','Mic error '+e.error); micActive=false;
-    if(wasWake) setTimeout(()=>{ try{ initWake(); }catch{} }, 800);
-  };
-  rec.start();
+  rec.onerror=(e)=>{ if(e.error==='aborted'||e.error==='no-speech'){ if(e.error==='no-speech'&&!micWantOff){ try{rec.start();}catch{} } return; } addMsg('sys','Mic: '+e.error); };
+  try{ rec.start(); }catch(e){ addMsg('sys','Mic: '+e.message); }
 }
 
 // CAM + HANDS
-let camStream=null, hands=null, camera=null, handActive=false, lastPinchDist=0;
+let camStream=null, hands=null, camera=null, handActive=false, lastPinchDist=0, handsRaf=null;
 async function toggleCam(){
   const v=document.getElementById('cam'), off=document.getElementById('faceOff'), btn=document.getElementById('camBtn');
   if(camStream){
-    try{ if(camera) camera.stop(); }catch{} try{ if(hands) hands.close(); }catch{}
+    try{ if(handsRaf) cancelAnimationFrame(handsRaf); handsRaf=null; }catch{} try{ if(hands){ await hands.close(); } hands=null; }catch{} try{ if(window.Stage) Stage.faceReset(); }catch{}
     camStream.getTracks().forEach(t=>t.stop()); camStream=null; v.srcObject=null;
     off.style.display='grid'; btn.textContent='📷 Камера'; document.getElementById('hudHand').textContent='HAND: OFF'; handActive=false; log('камера выкл'); return;
   }
@@ -200,16 +185,23 @@ async function toggleCam(){
   }catch(e){ log('камера ошибка '+e.message); document.getElementById('faceOff').innerHTML='<span style="color:#FF8A00">Нет доступа<br><span style="font-size:10px">'+e.message.slice(0,50)+'</span></span>'; document.getElementById('faceOff').style.display='grid'; }
 }
 async function initHands(video){
+  try{ if(handsRaf) cancelAnimationFrame(handsRaf); handsRaf=null; }catch{}
   if(!window.Hands){
     await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'; s.onload=res; s.onerror=()=>rej(new Error('hands.js fail')); document.head.appendChild(s); });
-    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
   }
   hands=new Hands({locateFile:(f)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
   hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.68, minTrackingConfidence:0.68});
   hands.onResults(onHandResults);
-  camera=new Camera(video,{onFrame:async()=>{ await hands.send({image:video}); }, width:640, height:480});
-  camera.start(); log('hands on');
+  let lastSend=0;
+  const loop=async()=>{
+    if(!camStream){ handsRaf=null; return; }
+    const now=performance.now();
+    try{ if(video.readyState>=2&&now-lastSend>66){ lastSend=now; await hands.send({image:video}); } }catch(e){}
+    handsRaf=requestAnimationFrame(loop);
+  };
+  handsRaf=requestAnimationFrame(loop); log('hands on (свой цикл, без camera_utils)');
 }
+
 async function flipCam(){
   window._camFacing = window._camFacing==='user' ? 'environment' : 'user';
   const v=document.getElementById('cam');
@@ -259,6 +251,12 @@ function onHandResults(res){
     window.handControl3d.lastX=cx; window.handControl3d.lastY=cy;
     if(dist<0.05){ if(lastPinchDist===0) lastPinchDist=dist; const d=(dist-lastPinchDist); scale=Math.max(0.6,Math.min(1.7, scale - d*4)); document.getElementById('hudHand').textContent='HAND: PINCH'; }
     else lastPinchDist=0;
+    const _tips=[8,12,16,20],_pips=[6,10,14,18];
+    let ext=0; for(let gi=0;gi<4;gi++){ if(lm[_tips[gi]].y<lm[_pips[gi]].y) ext++; }
+    if(lm[4].x<lm[3].x-0.03) ext++;
+    const nowG=Date.now();
+    if(ext>=5&&(!window._gestTs||nowG-window._gestTs>2500)){ window._gestTs=nowG; try{ document.getElementById('hudHand').textContent='HAND: ✋ СТОП'; stopAll(); }catch{} }
+    else if(ext===0&&(!window._gestTs2||nowG-window._gestTs2>2500)){ window._gestTs2=nowG; try{ document.getElementById('hudHand').textContent='HAND: ✊ WAKE'; toggleWake(); }catch{} }
     const angle=Math.atan2(mid.y-wr.y, mid.x-wr.x); rot+= (angle*0.02);
     // sun control via handControl3d handled in animateSun
   } else { handActive=false; document.getElementById('hudHand').textContent='HAND: OFF'; if(window.handControl3d){ window.handControl3d.pinching=false; window.handControl3d.oneFingerUp=false; window.handControl3d.twoFingers=false; } drawFaceFrame(ctx, box); }
@@ -798,7 +796,9 @@ async function initWake(){
     const last=e.results[e.results.length-1];
     const txt=last[0].transcript.toLowerCase().trim();
     console.log('wake heard', txt);
-    if(txt.includes('джарвис') || txt.includes('жарвис') || txt.includes('jarvis')){
+    if(window._speaking) return;
+    if(Date.now()<(window._dialogUntil||0)&&txt.length>2){ log('DIALOG: '+txt); handleVoiceCommand(txt,txt); window._dialogUntil=Date.now()+9000; return; }
+    if(/джарвис|жарвис|jarvis|пятниц|friday|фрайд|ультрон|ultron/.test(txt)){
       // WAKE triggered
       log('WAKE: '+txt);
       addMsg('sys','🎙️ WAKE: '+txt);
@@ -806,15 +806,15 @@ async function initWake(){
       const dot=document.getElementById('dot'); if(dot) dot.classList.add('wait');
       setTimeout(()=>{ const d=document.getElementById('dot'); if(d) d.classList.remove('wait'); }, 1200);
       // Extract command after wake
-      let cmd=txt.replace(/.*джарвис[, ]*/,'').replace(/.*жарвис[, ]*/,'').replace(/.*jarvis[, ]*/,'').trim();
+      let cmd=txt.replace(/.*(джарвис|жарвис|jarvis|пятница|пятниц|friday|фрайди|ультрон|ultron)[, ]*/,'').trim();
       if(!cmd) cmd=txt;
-      handleVoiceCommand(cmd, txt);
+      handleVoiceCommand(cmd, txt); window._dialogUntil=Date.now()+9000;
       // Speak ack
-      if(document.getElementById('voiceToggle')?.checked) queueVoice('Слушаю, сэр.', 'jarvis');
+      if(document.getElementById('voiceToggle')?.checked) queueVoice(currentMode==='jarvis'?'Слушаю, сэр.':currentMode==='friday'?'Слушаю, босс!':'Говори.', currentMode);
     } else if(wakeActive && txt.length>3){
       // Also handle direct commands without wake if contains control words
       if(/увеличь|уменьши|солнце|вспышка|камера|код|нарисуй|анализ/i.test(txt)){
-        handleVoiceCommand(txt, txt);
+        handleVoiceCommand(txt, txt); window._dialogUntil=Date.now()+9000;
       }
     }
   };
@@ -843,6 +843,17 @@ function toggleLiveVision(){ if(liveVisionActive) stopLiveVision(); else startLi
 function toggleGameCoach(){ if(gameCoachActive) stopGameCoach(); else startGameCoach(); }
 function handleVoiceCommand(cmd, raw){
   const low=cmd.toLowerCase();
+  if(/^(стоп|замолчи|тихо|молчи|хватит)/.test(low)){ stopAll(); return; }
+  if(/брифинг|утренний/.test(low)){ Brain.morningBriefing(); return; }
+  if(/который час|^время|сколько времени/.test(low)){ const t='Сейчас '+new Date().toLocaleString('ru-RU',{timeZone:'Asia/Dushanbe',hour:'2-digit',minute:'2-digit'}); addMsg('bot','🕒 '+t); try{queueVoice(t,currentMode);}catch{} return; }
+  if(/^погода/.test(low)){ Brain.weatherQuick(); return; }
+  if(/^курс|валют/.test(low)){ Brain.ratesQuick(); return; }
+  if(/напомни/.test(low)){ Brain.remindQuick(cmd); return; }
+  if(/запомни/.test(low)){ const f=cmd.replace(/запомни(ть)?/i,'').trim(); if(f){ Brain.Facts.add(f); addMsg('bot','🧠 Запомнил: '+f); try{queueVoice('Запомнил.',currentMode);}catch{} } return; }
+  if(/^переведи/.test(low)){ Brain.translateFlow(cmd); return; }
+  if(/^совет\s*:/.test(low)){ Brain.councilInChat(cmd.replace(/^совет\s*:/i,'').trim()); return; }
+  if(/что нового|новости/.test(low)){ Brain.freshNews(cmd); return; }
+
   if(/увеличь.*солнце|больше солнце|увеличь/i.test(low) && low.includes('солнце')){ scale=Math.min(1.7, scale+0.22); log('voice: scale up'); return; }
   if(/уменьши.*солнце|меньше солнце/i.test(low)){ scale=Math.max(0.6, scale-0.22); log('voice: scale down'); return; }
   if(/вспышка|взорви/i.test(low)){ toggleSunBurst(); return; }
@@ -1008,6 +1019,7 @@ function stopGameCoach(){ gameCoachActive=false; clearInterval(gameCoachTimer); 
 setTimeout(()=>{ log('WAKE/LIVE/COACH ready — жми кнопки'); }, 800);
 
 // LEGION / QUEST with queued distinct voices — не перекрывают, с паузой
+function stopAll(){ try{ speechSynthesis.cancel(); }catch{} try{ voiceQueue=[]; }catch{} window._speaking=false; micWantOff=true; try{ if(rec) rec.stop(); }catch{} try{ addMsg('sys','⏹ Остановлено'); log('stopAll'); }catch{} }
 let voiceQueue=[], voicePlaying=false;
 function queueVoice(text, persona){
   if(!document.getElementById('voiceToggle')?.checked) return;
@@ -1026,20 +1038,23 @@ async function playVoiceQueue(){
     const hud=document.getElementById('hudVoice'); if(hud) hud.textContent='VOICE: SPEAKING ('+ (persona||old).toUpperCase()+')';
     const wave=document.getElementById('wave'); if(wave) wave.style.display='flex';
     await new Promise(res=>{
+      window._speaking=true;
       try{ speechSynthesis.cancel(); }catch{}
       const u=new SpeechSynthesisUtterance(text);
+      const cyr=/[а-яё]/i.test(text);
+      const ruPool=voices.filter(x=>x.lang&&x.lang.toLowerCase().indexOf('ru')===0);
+      const enPool=voices.filter(x=>x.lang&&x.lang.toLowerCase().indexOf('en')===0);
       let v=null;
-      if(persona==='jarvis') v=voices.find(x=>x.lang.includes('en-GB')&&/male/i.test(x.name))||voices.find(x=>x.lang.includes('en-GB'))||voices.find(x=>x.lang.includes('en'))||voices[0];
-      else if(persona==='friday') v=voices.find(x=>/female/i.test(x.name)&&x.lang.includes('en'))||voices.find(x=>x.lang.includes('en-GB'))||voices[0];
-      else if(persona==='ultron') v=voices.find(x=>x.lang.toLowerCase().includes('ru'))||voices.find(x=>x.lang.includes('en-US'))||voices[0];
-      else v=pickVoice(persona||old, text);
+      if(cyr&&ruPool.length){ v=(persona==='friday'?(ruPool.find(x=>/female|anna|alena|irina|milena|katrina|мария|анна/i.test(x.name))||ruPool[0]):ruPool[0]); }
+      else if(!cyr&&enPool.length){ v=(persona==='jarvis'?(enPool.find(x=>x.lang.indexOf('en-GB')===0)||enPool[0]):persona==='friday'?(enPool.find(x=>/female/i.test(x.name))||enPool[0]):enPool[0]); }
+      else v=ruPool[0]||enPool[0]||voices[0];
       if(v) u.voice=v;
-      u.lang=v?.lang||(persona==='ultron'? 'ru-RU' : /[а-яё]/i.test(text)? 'ru-RU':'en-GB');
+      u.lang=(v&&v.lang)||(cyr?'ru-RU':'en-GB');
       u.rate=persona==='ultron'?0.86:persona==='friday'?1.07:0.93;
       u.pitch=persona==='ultron'?0.62:persona==='friday'?1.16:0.92;
       u.volume=1;
       let done=false;
-      const fin=()=>{ if(done) return; done=true; if(hud) hud.textContent='VOICE: READY'; if(wave) wave.style.display='none'; res(); };
+      const fin=()=>{ if(done) return; done=true; window._speaking=false; if(hud) hud.textContent='VOICE: READY'; if(wave) wave.style.display='none'; res(); };
       u.onend=fin; u.onerror=fin;
       try{ speechSynthesis.speak(u); }catch{ fin(); }
       setTimeout(fin, 9000);
