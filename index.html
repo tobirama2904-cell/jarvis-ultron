@@ -95,8 +95,7 @@
   @media(max-width:640px){body{padding-top:58px} :root{--navH:58px} .brand b{font-size:15px !important} .mark{width:42px;height:42px;font-size:15px;border-radius:12px} .stage{height:320px} .face{width:132px;height:96px}}
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
 </head>
 <body class="theme-jarvis">
 <div class="aura"></div><div class="grid"></div>
@@ -344,28 +343,24 @@ async function testAgnes(){
     document.getElementById('agnesStat').textContent=r.ok?'Agnes OK ✓ (agnes-2.5-flash)':'ошибка '+r.status;
   }catch(e){ document.getElementById('agnesStat').textContent='ошибка '+e.message; }
 }
-document.getElementById('agnesKey').value=getKey()||'sk-22J77EfguZlFo2k8dIGSwmrRrRWmI8IvTeZawIBRtZ9gI23d';
+document.getElementById('agnesKey').value=getKey();
 if(getKey()||document.getElementById('agnesKey').value) testAgnes();
 let voices=[]; function loadVoices(){ try{ voices=speechSynthesis.getVoices(); }catch{} }
-speechSynthesis.onvoiceschanged=loadVoices; loadVoices(); setTimeout(loadVoices,600);
-function pickVoice(mode, text){
-  const isRu=/[а-яё]/i.test(text||'');
-  if(!voices.length) try{ voices=speechSynthesis.getVoices(); }catch{}
-  if(mode==='ultron') return voices.find(v=>v.lang.toLowerCase().includes('ru'))||voices.find(v=>v.lang.includes('en-US'))||voices[0];
-  if(mode==='friday') return voices.find(v=>/female/i.test(v.name)&&v.lang.includes('en'))||voices.find(v=>v.lang.includes('en-GB'))||voices.find(v=>v.lang.includes('en'))||voices[0];
-  return voices.find(v=>v.lang.includes('en-GB'))||voices.find(v=>v.lang.includes('en'))||voices[0];
+speechSynthesis.onvoiceschanged=loadVoices; loadVoices(); setTimeout(loadVoices,600); setTimeout(loadVoices,2000);
+let _audioUnlocked=false;
+function unlockAudio(force){
+  if(_audioUnlocked && !force) return; _audioUnlocked=true;
+  try{ const a=new SpeechSynthesisUtterance(' '); a.volume=0; a.rate=2; speechSynthesis.speak(a); }catch{}
+  loadVoices();
+  log('audio unlocked — voices '+voices.length);
 }
+['pointerdown','touchend','keydown'].forEach(ev=>document.addEventListener(ev, ()=>unlockAudio(), {once:true, passive:true}));
+function pickVoice(mode, text){ return pickVoiceFor(text, mode); }
 let speaking=false;
 function speakText(text){
   if(!document.getElementById('voiceToggle')?.checked) return;
   queueVoice(text, currentMode);
 }
-function unlockAudio(force){ if(force) { try{ const a=new SpeechSynthesisUtterance(' '); a.volume=0; speechSynthesis.speak(a); }catch{} } document.addEventListener('click', ()=>{ try{ speechSynthesis.getVoices(); }catch{} }, {once:true});
-  document.addEventListener('touchend', ()=>{ try{ speechSynthesis.getVoices(); }catch{} }, {once:true});
-  log('audio unlocked — voices '+speechSynthesis.getVoices().length); }
-function unlockAudio(force){ if(force) { const a=new SpeechSynthesisUtterance(' '); speechSynthesis.speak(a); } document.addEventListener('click', ()=>{ try{ speechSynthesis.getVoices(); }catch{} }, {once:true});
-  document.addEventListener('touchend', ()=>{ try{ speechSynthesis.getVoices(); }catch{} }, {once:true});
-  log('audio unlocked'); }
 async function agnesChat(prompt){
   const k=getKey(); if(!k) return addMsg('sys','🔑 Вставь ключ');
   // Detect internet request
@@ -411,27 +406,23 @@ async function send(){
   const low=val.toLowerCase();
   inp.value='';
   if(low.includes('нарисуй')||low.includes('сгенери')&&low.includes('картин')){ switchTab('image'); document.getElementById('imgPrompt2').value=val; genImg2(); return; }
-  if(low.includes('видео')||low.includes('сделай видео')){ switchTab('video'); document.getElementById('vidPrompt2').value=val; genVid2(); return; }
-  if(low.includes('код')||low.includes('сделай сайт')||low.includes('лендинг')){ switchTab('code'); document.getElementById('codePrompt').value=val; genCode(); return; }
+  if(/(^|[^а-яa-z])видео([^а-яa-z]|$)/i.test(low)){ switchTab('video'); document.getElementById('vidPrompt2').value=val; genVid2(); return; }
+  if(/(^|[^а-яa-z])код([^а-яa-z]|$)/i.test(low)||low.includes('сделай сайт')||low.includes('лендинг')){ switchTab('code'); document.getElementById('codePrompt').value=val; genCode(); return; }
   if(low.includes('анализ')||low.includes('проанализируй')){ switchTab('analysis'); return; }
   agnesChat(val);
 }
 document.getElementById('inp').addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
 
-// MIC
+// MIC — одиночное распознавание «Слушать», честно паузит WAKE и возобновляет его
 let rec=null, micActive=false;
 async function toggleMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR) return addMsg('sys','Микрофон не поддерживается — используй Chrome');
   if(micActive){ try{ rec.stop(); }catch{} return; }
-  // WAKE и Слушать не могут вместе — паузим WAKE
-  let wasWake=false;
-  if(typeof wakeActive !== 'undefined' && wakeActive){
-    wasWake=true;
-    try{ if(wakeRec) wakeRec.stop(); }catch{}
-    wakeActive=false;
-    log('WAKE paused for mic');
-  }
+  // WAKE и Слушать не могут вместе — паузим WAKE (voicePauseForTTS из VoiceCore)
+  const wasWake = (typeof voice!=='undefined') && voice.wakeOn===true;
+  if(wasWake){ voicePauseForTTS(); log('WAKE paused for mic'); }
+  const resumeWake=()=>{ if(wasWake){ voiceResumeAfterTTS(); log('WAKE resumed after mic'); } };
   try{
     const perm=await navigator.mediaDevices.getUserMedia({audio:true});
     perm.getTracks().forEach(t=>t.stop());
@@ -440,75 +431,117 @@ async function toggleMic(){
   rec.onstart=()=>{ micActive=true; document.getElementById('micBtn').classList.add('primary'); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • LISTENING'; log('mic on'); };
   rec.onend=()=>{
     micActive=false; document.getElementById('micBtn').classList.remove('primary'); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY';
-    if(wasWake){
-      // Resume WAKE after mic done
-      setTimeout(()=>{ try{ initWake(); }catch{} }, 600);
-      log('WAKE resumed after mic');
-    }
+    resumeWake();
   };
-  rec.onresult=(e)=>{ const t=e.results[0][0].transcript; document.getElementById('inp').value=t; send(); };
+  rec.onresult=(e)=>{
+    let t='';
+    for(let i=0;i<e.results.length;i++) if(e.results[i].isFinal) t+=e.results[i][0].transcript+' ';
+    t=t.trim()||e.results[0][0].transcript;
+    if(t){ document.getElementById('inp').value=t; send(); }
+  };
   rec.onerror=(e)=>{
-    if(e.error==='aborted' || e.error==='no-speech'){
-      log('mic '+e.error+' — ignore');
-      micActive=false;
-      document.getElementById('micBtn').classList.remove('primary');
-      if(wasWake) setTimeout(()=>{ try{ initWake(); }catch{} }, 600);
-      return;
-    }
-    addMsg('sys','Mic error '+e.error); micActive=false;
-    if(wasWake) setTimeout(()=>{ try{ initWake(); }catch{} }, 800);
+    if(e.error==='aborted' || e.error==='no-speech'){ log('mic '+e.error+' — ignore'); }
+    else addMsg('sys','Mic error '+e.error);
+    micActive=false;
+    document.getElementById('micBtn').classList.remove('primary');
   };
-  rec.start();
+  try{ rec.start(); }catch(e){ log('mic start '+e.message); micActive=false; resumeWake(); }
 }
 
 // CAM + HANDS
-let camStream=null, hands=null, camera=null, handActive=false, lastPinchDist=0;
+// ГЛАВНЫЙ ФИКС: MediaPipe Camera (camera_utils) больше НЕ используется —
+// она открывала ВТОРОЙ getUserMedia с дефолтным facingMode:'user' и через 1-2 сек
+// подменяла заднюю камеру фронтальной. Теперь кадры для Hands берём своим rAF-циклом
+// из УЖЕ открытого потока camStream — двойного открытия камеры нет в принципе.
+let camStream=null, hands=null, handRAF=null, handActive=false, lastPinchDist=0, camBusy=false;
+async function openStream(facing){
+  // Каскад: exact → ideal → любая камера (максимум совместимости)
+  const tries=[];
+  if(facing){
+    tries.push({video:{facingMode:{exact:facing}, width:{ideal:640}, height:{ideal:480}}, audio:false});
+    tries.push({video:{facingMode:facing, width:{ideal:640}, height:{ideal:480}}, audio:false});
+  }
+  tries.push({video:{width:{ideal:640}, height:{ideal:480}}, audio:false});
+  let lastErr=null;
+  for(const c of tries){
+    try{
+      const s=await navigator.mediaDevices.getUserMedia(c);
+      const track=s.getVideoTracks()[0];
+      log('камера ок: '+(c.video&&c.video.facingMode?('facing='+JSON.stringify(c.video.facingMode)):'default')+(track?(' ['+track.label.slice(0,40)+']'):''));
+      return s;
+    }catch(e){ lastErr=e; log('камера try '+(c.video&&c.video.facingMode?JSON.stringify(c.video.facingMode):'default')+' — '+e.name); }
+  }
+  throw lastErr||new Error('no camera');
+}
+function stopHandLoop(){
+  if(handRAF){ try{ cancelAnimationFrame(handRAF); }catch{} handRAF=null; }
+  try{ if(hands) hands.close(); }catch{} hands=null;
+}
 async function toggleCam(){
+  if(camBusy){ log('камера занята — пропуск'); return; }
   const v=document.getElementById('cam'), off=document.getElementById('faceOff'), btn=document.getElementById('camBtn');
   if(camStream){
-    try{ if(camera) camera.stop(); }catch{} try{ if(hands) hands.close(); }catch{}
-    camStream.getTracks().forEach(t=>t.stop()); camStream=null; v.srcObject=null;
-    off.style.display='grid'; btn.textContent='📷 Камера'; document.getElementById('hudHand').textContent='HAND: OFF'; handActive=false; log('камера выкл'); return;
+    camBusy=true;
+    try{
+      stopHandLoop();
+      camStream.getTracks().forEach(t=>t.stop()); camStream=null; v.srcObject=null;
+      off.style.display='grid'; btn.textContent='📷 Камера'; document.getElementById('hudHand').textContent='HAND: OFF'; handActive=false; log('камера выкл');
+    }finally{ camBusy=false; }
+    return;
   }
+  camBusy=true;
   try{
     window._camFacing=window._camFacing||'user';
     log('запрос камеры '+window._camFacing+'...');
-    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:window._camFacing, width:{ideal:640}, height:{ideal:480}}, audio:false});
-    v.srcObject=camStream; v.style.transform=window._camFacing==='user'?'scaleX(-1)':'none'; await v.play().catch(()=>{});
+    camStream=await openStream(window._camFacing);
+    v.srcObject=camStream; v.style.transform=window._camFacing==='user'?'scaleX(-1)':'none';
+    await v.play().catch(()=>{});
     off.style.display='none'; btn.textContent='📷 Выкл';
     try{ await initHands(v); }catch(e){ log('hands fail '+e.message); }
   }catch(e){ log('камера ошибка '+e.message); document.getElementById('faceOff').innerHTML='<span style="color:#FF8A00">Нет доступа<br><span style="font-size:10px">'+e.message.slice(0,50)+'</span></span>'; document.getElementById('faceOff').style.display='grid'; }
+  finally{ camBusy=false; }
 }
 async function initHands(video){
+  stopHandLoop();
   if(!window.Hands){
     await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'; s.onload=res; s.onerror=()=>rej(new Error('hands.js fail')); document.head.appendChild(s); });
-    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
   }
   hands=new Hands({locateFile:(f)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-  hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.68, minTrackingConfidence:0.68});
+  hands.setOptions({maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.6, minTrackingConfidence:0.55});
   hands.onResults(onHandResults);
-  camera=new Camera(video,{onFrame:async()=>{ await hands.send({image:video}); }, width:640, height:480});
-  camera.start(); log('hands on');
+  // Свой rAF-цикл по существующему потоку: НИКАКИХ новых getUserMedia здесь нет.
+  const loop=async()=>{
+    if(!camStream || video.srcObject!==camStream){ handRAF=null; return; }
+    try{ if(video.readyState>=2) await hands.send({image:video}); }catch(e){}
+    if(camStream && video.srcObject===camStream) handRAF=requestAnimationFrame(loop); else handRAF=null;
+  };
+  handRAF=requestAnimationFrame(loop);
+  log('hands on (кадры из текущего потока, без второго getUserMedia)');
 }
+let flipPending=false;
 async function flipCam(){
-  window._camFacing = window._camFacing==='user' ? 'environment' : 'user';
+  if(camBusy){ flipPending=true; log('flip: камера занята — применю после'); return; }
+  const was=window._camFacing||'user';
+  window._camFacing = was==='user' ? 'environment' : 'user';
+  window._camFacingTouched=true;
   const v=document.getElementById('cam');
   const btn=document.getElementById('flipBtn');
   if(btn) btn.textContent = window._camFacing==='environment' ? '🤳 Фронт' : '🔄 Зад';
   log('flip to '+window._camFacing);
-  // Properly restart camera with new facingMode
-  if(window.camStream || (v && v.srcObject)){
-    await toggleCam(); // off
-    await new Promise(r=>setTimeout(r, 400));
-    await toggleCam(); // on with new facing
-  } else {
-    // Just set transform for next start
-    if(v) v.style.transform = window._camFacing==='user' ? 'scaleX(-1)' : 'none';
-  }
-  // If LIVE is on, restart it with rear
-  if(typeof liveVisionActive !== 'undefined' && liveVisionActive){
-    stopLiveVision(); setTimeout(()=>startLiveVision(), 800);
-  }
+  if(!camStream){ if(v) v.style.transform = window._camFacing==='user' ? 'scaleX(-1)' : 'none'; return; }
+  camBusy=true;
+  try{
+    stopHandLoop();
+    try{ camStream.getTracks().forEach(t=>t.stop()); }catch{}
+    camStream=null; if(v) v.srcObject=null;
+    await new Promise(r=>setTimeout(r,300));
+  }catch(e){ log('flip fail '+e.message); }
+  camBusy=false;
+  await toggleCam(); // откроет с НОВЫМ facing и перезапустит hands на том же потоке
+  if(flipPending){ flipPending=false; await flipCam(); return; } // быстрый двойной клик не теряется
+  // Если LIVE/Коуч были включены — перезапускаем, УВАЖАЯ выбранный пользователем флип
+  if(typeof liveVisionActive!=='undefined' && liveVisionActive){ stopLiveVision(); setTimeout(()=>startLiveVision(), 600); }
+  if(typeof gameCoachActive!=='undefined' && gameCoachActive){ stopGameCoach(); setTimeout(()=>startGameCoach(), 700); }
 }
 
 function drawFaceFrame(ctx, box){ ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent'); ctx.lineWidth=2; ctx.strokeRect(4,4,box.clientWidth-8,box.clientHeight-8); }
@@ -735,38 +768,6 @@ function toggleSunBurst(){
     sunGroup.children.forEach(ch=>{ if(ch.userData.orig){ ch.position.copy(ch.userData.orig.p); ch.scale.copy(ch.userData.orig.s); } if(ch.isPoints) buildParticleSun(); });
   }
 }
-async function initHands(video){
-  if(!window.Hands){
-    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'; s.onload=res; s.onerror=()=>rej(new Error('hands.js fail')); document.head.appendChild(s); });
-    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
-  }
-  hands=new Hands({locateFile:(f)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-  hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.68, minTrackingConfidence:0.68});
-  hands.onResults(onHandResults);
-  camera=new Camera(video,{onFrame:async()=>{ await hands.send({image:video}); }, width:640, height:480});
-  camera.start(); log('hands on');
-}
-async function flipCam(){
-  window._camFacing = window._camFacing==='user' ? 'environment' : 'user';
-  const v=document.getElementById('cam');
-  const btn=document.getElementById('flipBtn');
-  if(btn) btn.textContent = window._camFacing==='environment' ? '🤳 Фронт' : '🔄 Зад';
-  log('flip to '+window._camFacing);
-  // Properly restart camera with new facingMode
-  if(window.camStream || (v && v.srcObject)){
-    await toggleCam(); // off
-    await new Promise(r=>setTimeout(r, 400));
-    await toggleCam(); // on with new facing
-  } else {
-    // Just set transform for next start
-    if(v) v.style.transform = window._camFacing==='user' ? 'scaleX(-1)' : 'none';
-  }
-  // If LIVE is on, restart it with rear
-  if(typeof liveVisionActive !== 'undefined' && liveVisionActive){
-    stopLiveVision(); setTimeout(()=>startLiveVision(), 800);
-  }
-}
-
 async function getVideoDuration(file){
   const u=URL.createObjectURL(file);
   const v=document.createElement('video');
@@ -1055,89 +1056,172 @@ window.genImg2 = async function(){
   return _oldGenImg2();
 };
 
-// Voice control + WAKE
-let wakeActive=false, wakeRec=null;
+// ============ VOICE CORE — WAKE + STT + TTS, единый цикл ============
+// Почему так: на Android Chrome "continuous" SpeechRecognition на самом деле
+// останавливается после каждой фразы (см. issues.chromium.org/40324711), а stop()
+// не всегда кидает onend — поэтому: СВЕЖИЙ экземпляр SR на каждый старт, abort()
+// для мгновенной паузы, один дебаунсер рестарта, interimResults для мгновенной
+// реакции и ПОЛНАЯ пауза распознавания на время TTS (иначе микрофон слышит
+// собственный голос JARVIS и система срабатывает сама на себя).
+const WAKE_WORDS={
+  jarvis:['джарвис','жарвис','джарвес','джервис','чарвис','джаравис','jarvis'],
+  friday:['пятница','пятниц','фрайдей','фрайдай','friday'],
+  ultron:['ультрон','ултрон','альтрон','ultron']
+};
+const SRClass=window.SpeechRecognition||window.webkitSpeechRecognition;
+const voice={ wakeOn:false, rec:null, restartTimer:null, restartDelay:400, ttsPause:0, awaiting:false, awaitTimer:null, handledIdx:-1, handledTxt:'', gen:0, lastWakePersona:'jarvis' };
+// Отладочный хук (и для автотестов): window.JV.voice / .camStream / .micActive / .rec
+window.JV={ voice, get camStream(){ return camStream; }, get hands(){ return hands; }, get micActive(){ return micActive; }, get rec(){ return rec; }, get liveVision(){ return liveVisionActive; }, get coach(){ return gameCoachActive; } };
+function normText(t){ return (t||'').toLowerCase().replace(/ё/g,'е').replace(/[^a-zа-я\s]/gi,' ').replace(/\s+/g,' ').trim(); }
+function matchWake(t){
+  for(const persona in WAKE_WORDS){
+    for(const w of WAKE_WORDS[persona]){
+      const i=t.indexOf(w);
+      if(i>-1) return {persona, rest:t.slice(i+w.length).replace(/^[\s,]+/,'').trim()};
+    }
+  }
+  return null;
+}
+function wakeScheduleRestart(delay){
+  if(!voice.wakeOn) return;
+  if(voice.restartTimer) return; // один рестарт-таймер, никаких штормов
+  voice.restartTimer=setTimeout(()=>{
+    voice.restartTimer=null;
+    if(!voice.wakeOn || voice.ttsPause>0) return;
+    startWakeRec();
+  }, delay||300);
+}
+function startWakeRec(){
+  if(!voice.wakeOn || !SRClass) return;
+  voice.gen++;
+  const myGen=voice.gen;
+  try{ if(voice.rec){ try{ voice.rec.abort(); }catch{} } }catch{}
+  const r=new SRClass(); // свежий экземпляр каждый раз — самое надёжное на Android
+  voice.rec=r; voice.handledIdx=-1;
+  r.lang='ru-RU'; r.continuous=true; r.interimResults=true; r.maxAlternatives=1;
+  r.onstart=()=>{ if(myGen!==voice.gen) return; voice.restartDelay=400; if(voice.wakeOn){ const s=document.getElementById('wakeStat'); if(s) s.textContent='слушаю...'; } };
+  r.onresult=(e)=>{
+    if(!voice.wakeOn || voice.ttsPause>0) return;
+    const res=e.results[e.results.length-1];
+    const idx=e.results.length-1;
+    const isFinal=res.isFinal;
+    const raw=res[0].transcript;
+    voice.handledTxt='';
+    const t=normText(raw);
+    if(!t || (idx===voice.handledIdx && t===voice.handledTxt)) return;
+    const w=matchWake(t);
+    if(w){ voice.handledIdx=idx; voice.handledTxt=t; onWakeTriggered(w, t); return; }
+    if(voice.awaiting && isFinal){
+      // после «Джарвис» следующая фаза = команда (wake-слово уже не обязательно)
+      voice.handledIdx=idx; voice.handledTxt=t;
+      voice.awaiting=false; clearTimeout(voice.awaitTimer);
+      handleVoiceCommand(t, raw);
+      return;
+    }
+    if(!voice.awaiting && isFinal && t.length>3 && /(увелич|уменьш|вспышк|взорви|камер|нарисуй|включи|выключи|открой)/.test(t)){
+      voice.handledIdx=idx; voice.handledTxt=t;
+      handleVoiceCommand(t, raw);
+    }
+  };
+  r.onerror=(e)=>{
+    const err=e.error||'unknown';
+    if(!voice.wakeOn || myGen!==voice.gen) return;
+    if(err==='not-allowed'||err==='service-not-allowed'){ addMsg('sys','🎙️ Доступ к микрофону запрещён — разреши сайт в настройках'); stopWake(); return; }
+    if(err==='audio-capture'){ addMsg('sys','🎙️ Микрофон не найден'); stopWake(); return; }
+    // aborted / no-speech / network / остальное — мягкий рестарт с backoff
+    voice.restartDelay=Math.min(4000, Math.round((voice.restartDelay||400)*1.6));
+    wakeScheduleRestart(voice.restartDelay);
+  };
+  r.onend=()=>{
+    if(myGen!==voice.gen) return; // событие от старого экземпляра — игнор
+    if(voice.wakeOn && voice.ttsPause===0) wakeScheduleRestart(250);
+  };
+  try{ r.start(); }catch(e){ wakeScheduleRestart(500); }
+}
+function onWakeTriggered(w, fullTxt){
+  voice.lastWakePersona=w.persona;
+  // Смена персонажа голосом: «Пятница» → режим FRIDAY (без приветственного спича)
+  if(w.persona!==currentMode && typeof setMode==='function'){ try{ setMode(w.persona, false); }catch{} }
+  const dot=document.getElementById('dot'); if(dot){ dot.classList.add('wait'); setTimeout(()=>{ try{ dot.classList.remove('wait'); }catch{} }, 1200); }
+  log('WAKE ['+w.persona+']: '+fullTxt);
+  addMsg('sys','🎙️ '+w.persona.toUpperCase()+': «'+fullTxt.slice(0,70)+'»');
+  if(w.rest && w.rest.length>1){
+    // «Джарвис включи вспышку» — команда уже в фразе
+    voice.awaiting=false; clearTimeout(voice.awaitTimer);
+    handleVoiceCommand(w.rest, w.rest);
+  } else {
+    // только имя — отвечаем и ждём команду до 8с
+    voice.awaiting=true;
+    const s=document.getElementById('wakeStat'); if(s) s.textContent='жду команду...';
+    const acks={jarvis:'Слушаю, сэр.', friday:'Да, босс?', ultron:'Говори.'};
+    queueVoice(acks[w.persona]||'Слушаю.', w.persona);
+    clearTimeout(voice.awaitTimer);
+    voice.awaitTimer=setTimeout(()=>{
+      voice.awaiting=false;
+      const s2=document.getElementById('wakeStat'); if(s2 && voice.wakeOn) s2.textContent='слушаю...';
+    }, 8000);
+  }
+}
 async function initWake(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR) { log('wake: no SR'); addMsg('sys','❌ WAKE не поддерживается в этом браузере — попробуй Chrome Android'); return; }
-  if(wakeActive) return;
-  // Request mic permission first (needed for Android)
+  if(!SRClass){ log('wake: no SR'); addMsg('sys','❌ WAKE не поддерживается в этом браузере — попробуй Chrome (Android или десктоп)'); return; }
+  if(voice.wakeOn) return;
+  unlockAudio();
+  // Разрешение микрофона запрашиваем заранее — иначе Android переспрашивает в цикле
   try{
     const perm=await navigator.mediaDevices.getUserMedia({audio:true});
     perm.getTracks().forEach(t=>t.stop());
     log('mic permission granted for WAKE');
   }catch(e){
     log('mic perm fail '+e.message);
-    addMsg('sys','🎙️ WAKE нужен доступ к микрофону — разреши');
-    // still try
+    addMsg('sys','🎙️ WAKE нужен доступ к микрофону — разреши и нажми ещё раз');
+    return;
   }
-  wakeActive=true;
-  wakeRec=new SR();
-  wakeRec.lang='ru-RU';
-  wakeRec.continuous=true;
-  wakeRec.interimResults=false;
-  wakeRec.maxAlternatives=1;
-  wakeRec.onresult=(e)=>{
-    const last=e.results[e.results.length-1];
-    const txt=last[0].transcript.toLowerCase().trim();
-    console.log('wake heard', txt);
-    if(txt.includes('джарвис') || txt.includes('жарвис') || txt.includes('jarvis')){
-      // WAKE triggered
-      log('WAKE: '+txt);
-      addMsg('sys','🎙️ WAKE: '+txt);
-      // Visual feedback
-      const dot=document.getElementById('dot'); if(dot) dot.classList.add('wait');
-      setTimeout(()=>{ const d=document.getElementById('dot'); if(d) d.classList.remove('wait'); }, 1200);
-      // Extract command after wake
-      let cmd=txt.replace(/.*джарвис[, ]*/,'').replace(/.*жарвис[, ]*/,'').replace(/.*jarvis[, ]*/,'').trim();
-      if(!cmd) cmd=txt;
-      handleVoiceCommand(cmd, txt);
-      // Speak ack
-      if(document.getElementById('voiceToggle')?.checked) queueVoice('Слушаю, сэр.', 'jarvis');
-    } else if(wakeActive && txt.length>3){
-      // Also handle direct commands without wake if contains control words
-      if(/увеличь|уменьши|солнце|вспышка|камера|код|нарисуй|анализ/i.test(txt)){
-        handleVoiceCommand(txt, txt);
-      }
-    }
-  };
-  wakeRec.onend=()=>{ if(wakeActive){ setTimeout(()=>{ try{ wakeRec.start(); }catch(e){ log('wake restart fail '+e.message); } }, 600); } };
-  wakeRec.onerror=(e)=>{
-    if(e.error==='aborted' || e.error==='no-speech'){ log('wake '+e.error+' — restart'); if(wakeActive) setTimeout(()=>{ try{ wakeRec.start(); }catch{} }, 800); return; }
-    log('wake err '+e.error);
-    if(wakeActive) setTimeout(()=>{ try{ wakeRec.start(); }catch{} }, 1500);
-  };
-  try{
-    wakeRec.start();
-    log('WAKE active — скажи "Эй Джарвис"');
-    document.getElementById('handStat').textContent='🎙️ WAKE on';
-    const b=document.getElementById('wakeBtn'); if(b){ b.classList.add('primary'); b.textContent='🎙️ WAKE ●'; }
-    const s=document.getElementById('wakeStat'); if(s) s.textContent='слушает...';
-    addMsg('sys','🎙️ WAKE включён — скажи "Эй Джарвис" + команда');
-  }catch(e){
-    log('wake start fail '+e.message);
-    addMsg('sys','🎙️ WAKE ошибка: '+e.message+' — проверь разрешение микрофона');
-    const s=document.getElementById('wakeStat'); if(s) s.textContent='ошибка';
-  }
+  voice.wakeOn=true;
+  voice.ttsPause=0; voice.awaiting=false;
+  clearTimeout(voice.restartTimer); voice.restartTimer=null;
+  startWakeRec();
+  log('WAKE active — скажи «Джарвис» / «Пятница» / «Ультрон» + команда');
+  const hs=document.getElementById('handStat'); if(hs) hs.textContent='🎙️ WAKE on';
+  const b=document.getElementById('wakeBtn'); if(b){ b.classList.add('primary'); b.textContent='🎙️ WAKE ●'; }
+  const s=document.getElementById('wakeStat'); if(s) s.textContent='слушаю...';
+  addMsg('sys','🎙️ WAKE включён — скажи «Джарвис, …» / «Пятница, …» / «Ультрон, …»');
 }
-function stopWake(){ wakeActive=false; try{ if(wakeRec) wakeRec.stop(); }catch{} document.getElementById('handStat').textContent='🖐️ off'; const b=document.getElementById('wakeBtn'); if(b){ b.classList.remove('primary'); b.textContent='🎙️ WAKE'; } const s=document.getElementById('wakeStat'); if(s) s.textContent='off'; log('WAKE off'); }
-function toggleWake(){ if(wakeActive) stopWake(); else initWake(); }
+function stopWake(){
+  voice.wakeOn=false; voice.awaiting=false;
+  clearTimeout(voice.awaitTimer); voice.awaitTimer=null;
+  clearTimeout(voice.restartTimer); voice.restartTimer=null;
+  voice.gen++;
+  try{ if(voice.rec){ voice.rec.abort(); } }catch{}
+  voice.rec=null;
+  const hs=document.getElementById('handStat'); if(hs) hs.textContent='🖐️ off';
+  const b=document.getElementById('wakeBtn'); if(b){ b.classList.remove('primary'); b.textContent='🎙️ WAKE'; }
+  const s=document.getElementById('wakeStat'); if(s) s.textContent='off';
+  log('WAKE off');
+}
+function toggleWake(){ if(voice.wakeOn) stopWake(); else initWake(); }
+// Пауза/резюм распознавания вокруг TTS (защита от эха и audio-focus конфликтов)
+function voicePauseForTTS(){ voice.ttsPause++; if(voice.wakeOn){ voice.gen++; try{ if(voice.rec) voice.rec.abort(); }catch{} } }
+function voiceResumeAfterTTS(){ voice.ttsPause=Math.max(0, voice.ttsPause-1); if(voice.wakeOn && voice.ttsPause===0) wakeScheduleRestart(200); }
 function toggleLiveVision(){ if(liveVisionActive) stopLiveVision(); else startLiveVision(); }
 function toggleGameCoach(){ if(gameCoachActive) stopGameCoach(); else startGameCoach(); }
 function handleVoiceCommand(cmd, raw){
-  const low=cmd.toLowerCase();
-  if(/увеличь.*солнце|больше солнце|увеличь/i.test(low) && low.includes('солнце')){ scale=Math.min(1.7, scale+0.22); log('voice: scale up'); return; }
-  if(/уменьши.*солнце|меньше солнце/i.test(low)){ scale=Math.max(0.6, scale-0.22); log('voice: scale down'); return; }
-  if(/вспышка|взорви/i.test(low)){ toggleSunBurst(); return; }
-  if(/камера|включи камеру/i.test(low)){ toggleCam(); return; }
-  if(/слушай|микрофон/i.test(low)){ toggleMic(); return; }
-  if(/нарисуй|сгенери.*картин|изоб/i.test(low)){ switchTab('image'); document.getElementById('imgPrompt2').value=cmd; genImg2(); return; }
-  if(/видео|сделай видео/i.test(low)){ switchTab('video'); document.getElementById('vidPrompt2').value=cmd; genVid2(); return; }
-  if(/код|сайт|лендинг|сделай.*код/i.test(low)){ switchTab('code'); document.getElementById('codePrompt').value=cmd; genCode(); return; }
-  if(/анализ|проанализируй/i.test(low)){ switchTab('analysis'); addMsg('sys','🎙️ Анализ: кинь файл'); return; }
-  if(/легион|рой/i.test(low)){ switchTab('legion'); document.getElementById('legionInput').value=cmd; runLegionPane(); return; }
-  if(/память|запомни/i.test(low)){ saveAboutMe(); return; }
-  if(/что видишь|что там|что видишь сейчас/i.test(low)){
+  const low=normText(cmd);
+  if(!low) return;
+  // «Стоп» — мгновенно глушим TTS (защита от зацикливания)
+  if(/^(стоп|тише|замолчи|хватит)\b/.test(low) || low==='стоп'){ try{ voiceQueue.length=0; speechSynthesis.cancel(); }catch{} log('voice: тихо'); return; }
+  if(/увелич|больше/.test(low) && /солнц/.test(low)){ scale=Math.min(1.7, scale+0.22); log('voice: scale up'); return; }
+  if(/уменьш|меньше/.test(low) && /солнц/.test(low)){ scale=Math.max(0.6, scale-0.22); log('voice: scale down'); return; }
+  if(/вспышк|взорви|взрыв/.test(low)){ toggleSunBurst(); return; }
+  if(/камер/.test(low)){ toggleCam(); return; }
+  if(/слушай|микрофон/.test(low) && !/перестан/.test(low)){ toggleMic(); return; }
+  if(/нарисуй|сгенерируй картин|картинку/.test(low)){ switchTab('image'); document.getElementById('imgPrompt2').value=cmd; genImg2(); return; }
+  if(/видео/.test(low)){ switchTab('video'); document.getElementById('vidPrompt2').value=cmd; genVid2(); return; }
+  if(/(^|\s)код(\s|$)|сайт|лендинг|сделай код/.test(low)){ switchTab('code'); document.getElementById('codePrompt').value=cmd; genCode(); return; }
+  if(/анализ|проанализируй/.test(low)){ switchTab('analysis'); addMsg('sys','🎙️ Анализ: кинь файл'); return; }
+  if(/легион|рой/.test(low)){ switchTab('legion'); document.getElementById('legionInput').value=cmd; runLegionPane(); return; }
+  if(/память|запомни/.test(low)){ saveAboutMe(); return; }
+  if(/выключи wak|отключи wak|выключи слушан/.test(low)){ stopWake(); return; }
+  if(/что видишь|что там/.test(low)){
     const last=window.lastLiveSeen || JSON.parse(localStorage.getItem('lastLiveSeen')||'null');
     if(last && last.text){
       addMsg('bot','👁️ LIVE сейчас: '+last.text);
@@ -1159,13 +1243,12 @@ function startLiveVision(){
   log('LIVE vision on (1 запрос/4с, RPM-safe)');
   const b=document.getElementById('liveBtn'); if(b){ b.classList.add('primary'); b.textContent='👁️ LIVE ●'; }
   (async()=>{
-    // Prefer rear camera for LIVE as user requested — more convenient
-    if(!window._camFacing) window._camFacing='environment';
+    // Задняя камера по умолчанию, НО если пользователь сам флипнул — уважаем его выбор
+    if(!window._camFacingTouched){ window._camFacing='environment'; }
     if(!camStream){
-      addMsg('sys','👁️ LIVE нужен доступ к камере (задняя)...');
-      window._camFacing='environment';
-      const v=document.getElementById('cam'); if(v) v.style.transform='none';
-      const fb=document.getElementById('flipBtn'); if(fb) fb.textContent='🤳 Фронт';
+      addMsg('sys','👁️ LIVE нужен доступ к камере ('+(window._camFacing==='user'?'фронт':'задняя')+')...');
+      const v=document.getElementById('cam'); if(v) v.style.transform=window._camFacing==='user'?'scaleX(-1)':'none';
+      const fb=document.getElementById('flipBtn'); if(fb) fb.textContent=window._camFacing==='environment'?'🤳 Фронт':'🔄 Зад';
       await toggleCam();
       await new Promise(r=>setTimeout(r,900));
       if(!camStream){ addMsg('sys','❌ Камера не доступна для LIVE'); stopLiveVision(); return; }
@@ -1201,48 +1284,6 @@ function startLiveVision(){
   document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • LIVE';
 }
 function stopLiveVision(){ liveVisionActive=false; clearInterval(liveVisionTimer); document.getElementById('hudState').textContent=currentMode.toUpperCase()+' • STANDBY'; const b=document.getElementById('liveBtn'); if(b){ b.classList.remove('primary'); b.textContent='👁️ LIVE'; } log('LIVE off'); addMsg('sys','👁️ LIVE выкл'); }
-
-// Legion x10 upgrade
-window.runLegionPane = async function(){
-  const task=document.getElementById('legionInput').value.trim(); if(!task) return;
-  const k=getKey(); if(!k) return addMsg('sys','🔑 Ключ');
-  const logEl=document.getElementById('legionLog'), outEl=document.getElementById('legionOut');
-  logEl.textContent=''; outEl.textContent='⏳ Legion x10 думает (очередь 3, RPM-safe)...\n'; addMsg('bot','🦾 Legion x10: '+task);
-  const roles=[
-    {id:'jarvis', sys:'Ты JARVIS — стратегия, план, архитектура. 2 предложения.'},
-    {id:'friday', sys:'Ты FRIDAY — действия, инструменты, быстро. 2 предложения.'},
-    {id:'ultron', sys:'Ты ULTRON — риски, слабость, оптимизация. 2 предложения.'},
-    {id:'jarvis2', persona:'jarvis', sys:'Ты JARVIS-2 — альтернативный план, креатив. 2 предложения.'},
-    {id:'friday2', persona:'friday', sys:'Ты FRIDAY-2 — ресурсы, время. 2 предложения.'},
-    {id:'ultron2', persona:'ultron', sys:'Ты ULTRON-2 — угрозы, безопасность. 2 предложения.'},
-    {id:'vision', persona:'jarvis', sys:'Ты VISION — этика, баланс. 2 предложения.'},
-    {id:'tony', persona:'friday', sys:'Ты TONY — идея, продукт, вау. 2 предложения.'},
-    {id:'pepper', persona:'friday', sys:'Ты PEPPER — пользователь, удобство. 2 предложения.'},
-    {id:'rhodes', persona:'ultron', sys:'Ты RHODES — операции, логистика. 2 предложения.'}
-  ];
-  let results=[];
-  // concurrency 3
-  let idx=0;
-  async function worker(){
-    while(idx < roles.length){
-      const i=idx++;
-      const r=roles[i];
-      logEl.textContent+=`→ ${r.id.toUpperCase()}...\n`;
-      const pr=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:enrichSys(r.sys)},{role:'user',content:task}], max_tokens:320, temperature:0.58})});
-      const pj=await pr.json(); const txt=(pj.choices?.[0]?.message?.content||'...').trim();
-      results[i]=txt;
-      logEl.textContent+=`${r.id.toUpperCase()}: ${txt.slice(0,80)}\n\n`;
-      outEl.textContent+=`[${r.id.toUpperCase()}] ${txt}\n\n`;
-      queueVoice(txt.slice(0,140), r.persona||r.id.replace(/2$/,'')); 
-      await new Promise(res=>setTimeout(res, 380));
-    }
-  }
-  await Promise.all([worker(), worker(), worker()]);
-  logEl.textContent+='→ Синтез 10 → финал...\n';
-  const synth=await fetch('https://apihub.agnes-ai.com/v1/chat/completions',{method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+k}, body: JSON.stringify({model:'agnes-2.5-flash', messages:[{role:'system',content:enrichSys('Сведи 10 мнений Iron Legion в единый координированный план, как JARVIS. Выдели лучшее, отбрось риск.')},{role:'user',content:`Задача: ${task}\n`+results.map((t,i)=> roles[i].id.toUpperCase()+": "+t).join("\n")}], max_tokens:900})});
-  const sj=await synth.json(); const final=(sj.choices?.[0]?.message?.content||'').trim();
-  outEl.textContent+=`—— ФИНАЛ x10 ——\n${final}`; logEl.textContent+='✅ Legion x10 готов\n'; addMsg('bot',`🦾 Legion x10 финал:\n${final}`); queueVoice(final.slice(0,220), currentMode);
-};
 
 // File Agent — real like JARVIS
 async function fileAgentCreate(filename, content){
@@ -1296,12 +1337,11 @@ function startGameCoach(){
   log('Game Coach LIVE on');
   const b=document.getElementById('coachBtn'); if(b){ b.classList.add('primary'); b.textContent='🎮 Коуч ●'; }
   (async()=>{
-    if(!window._camFacing) window._camFacing='environment';
+    if(!window._camFacingTouched){ window._camFacing='environment'; }
     if(!camStream){
-      addMsg('sys','🎮 Коуч нужен экран/камера (задняя)...');
-      window._camFacing='environment';
-      const v=document.getElementById('cam'); if(v) v.style.transform='none';
-      const fb=document.getElementById('flipBtn'); if(fb) fb.textContent='🤳 Фронт';
+      addMsg('sys','🎮 Коуч нужен экран/камера ('+(window._camFacing==='user'?'фронт':'задняя')+')...');
+      const v=document.getElementById('cam'); if(v) v.style.transform=window._camFacing==='user'?'scaleX(-1)':'none';
+      const fb=document.getElementById('flipBtn'); if(fb) fb.textContent=window._camFacing==='environment'?'🤳 Фронт':'🔄 Зад';
       await toggleCam();
       await new Promise(r=>setTimeout(r,900));
       if(!camStream){ addMsg('sys','❌ Камера нужна для коуча'); stopGameCoach(); return; }
@@ -1340,40 +1380,57 @@ function queueVoice(text, persona){
   voiceQueue.push({text: text.slice(0,340).replace(/[#*_`]/g,''), persona});
   if(!voicePlaying) playVoiceQueue();
 }
+// Голос под текст: русский текст → ТОЛЬКО русский голос (en-голос читает кириллицу
+// кашей/молчит), persona различаем темпом и тоном. Английский текст → голос по persona.
+function pickVoiceFor(text, persona){
+  if(!voices.length){ try{ voices=speechSynthesis.getVoices(); }catch{} }
+  const ru=/[а-яё]/i.test(text||'');
+  if(ru){
+    return voices.find(v=>/ru/i.test(v.lang)&&/google/i.test(v.name))
+        || voices.find(v=>/^ru/i.test(v.lang)&&/milena|alena|katya|tatyana|female/i.test(v.name))
+        || voices.find(v=>/^ru/i.test(v.lang))
+        || voices.find(v=>/ru/i.test(v.lang))
+        || voices[0];
+  }
+  if(persona==='friday') return voices.find(v=>/female|zira|samantha/i.test(v.name)&&/^en/i.test(v.lang))||voices.find(v=>v.lang==='en-GB')||voices.find(v=>/^en/i.test(v.lang))||voices[0];
+  if(persona==='ultron') return voices.find(v=>v.lang==='en-US'&&/male|david|daniel/i.test(v.name))||voices.find(v=>v.lang==='en-US')||voices.find(v=>/^en/i.test(v.lang))||voices[0];
+  return voices.find(v=>v.lang==='en-GB'&&/male|daniel|arthur/i.test(v.name))||voices.find(v=>v.lang==='en-GB')||voices.find(v=>/^en/i.test(v.lang))||voices[0];
+}
 async function playVoiceQueue(){
   if(voicePlaying) return; voicePlaying=true;
+  // Пока JARVIS говорит — микрофон WAKE спит (иначе слышит сам себя)
+  const wasWake = (typeof voice!=='undefined') && voice.wakeOn===true;
+  if(wasWake && typeof voicePauseForTTS==='function') voicePauseForTTS();
   // ensure voices loaded
   if(!voices.length) { try{ voices=speechSynthesis.getVoices(); }catch{} await new Promise(r=>setTimeout(r,300)); try{ voices=speechSynthesis.getVoices(); }catch{} }
   while(voiceQueue.length){
     const {text, persona}=voiceQueue.shift();
     const old=currentMode;
-    // hud
     const hud=document.getElementById('hudVoice'); if(hud) hud.textContent='VOICE: SPEAKING ('+ (persona||old).toUpperCase()+')';
     const wave=document.getElementById('wave'); if(wave) wave.style.display='flex';
     await new Promise(res=>{
       try{ speechSynthesis.cancel(); }catch{}
       const u=new SpeechSynthesisUtterance(text);
-      let v=null;
-      if(persona==='jarvis') v=voices.find(x=>x.lang.includes('en-GB')&&/male/i.test(x.name))||voices.find(x=>x.lang.includes('en-GB'))||voices.find(x=>x.lang.includes('en'))||voices[0];
-      else if(persona==='friday') v=voices.find(x=>/female/i.test(x.name)&&x.lang.includes('en'))||voices.find(x=>x.lang.includes('en-GB'))||voices[0];
-      else if(persona==='ultron') v=voices.find(x=>x.lang.toLowerCase().includes('ru'))||voices.find(x=>x.lang.includes('en-US'))||voices[0];
-      else v=pickVoice(persona||old, text);
+      const v=pickVoiceFor(text, persona);
       if(v) u.voice=v;
-      u.lang=v?.lang||(persona==='ultron'? 'ru-RU' : /[а-яё]/i.test(text)? 'ru-RU':'en-GB');
-      u.rate=persona==='ultron'?0.86:persona==='friday'?1.07:0.93;
+      const ru=/[а-яё]/i.test(text);
+      u.lang=(v&&v.lang)||(ru?'ru-RU':'en-GB');
+      u.rate= ru? (persona==='ultron'?0.9:persona==='friday'?1.08:0.98) : (persona==='ultron'?0.86:persona==='friday'?1.07:0.93);
       u.pitch=persona==='ultron'?0.62:persona==='friday'?1.16:0.92;
       u.volume=1;
       let done=false;
       const fin=()=>{ if(done) return; done=true; if(hud) hud.textContent='VOICE: READY'; if(wave) wave.style.display='none'; res(); };
       u.onend=fin; u.onerror=fin;
       try{ speechSynthesis.speak(u); }catch{ fin(); }
-      setTimeout(fin, 9000);
+      // Страховой таймаут — ДИНАМИЧЕСКИЙ (старые жёсткие 9с рубили длинные фразы)
+      setTimeout(fin, Math.min(60000, 3000 + text.length*95));
     });
-    await new Promise(r=>setTimeout(r,420));
+    await new Promise(r=>setTimeout(r,380));
   }
   voicePlaying=false;
   const hud=document.getElementById('hudVoice'); if(hud) hud.textContent='VOICE: READY';
   const wave=document.getElementById('wave'); if(wave) wave.style.display='none';
+  if(wasWake && typeof voiceResumeAfterTTS==='function') voiceResumeAfterTTS();
 }
 window.runLegionPane=async function(){
   const task=document.getElementById('legionInput').value.trim(); if(!task) return;
@@ -1413,10 +1470,23 @@ window.runQuestPane=async function(){
   }
   logEl.textContent+='✅ Спор окончен\n';
 };
+
 window.startLegion=window.runLegionPane; window.startVisionQuest=window.runQuestPane;
 setTimeout(()=>{ const b=document.getElementById('aboutMe'); if(b) b.value=localStorage.getItem('aboutMe')||''; },800);
 window.addEventListener('load', ()=> setTimeout(initHolo3D, 600));
 setTimeout(initHolo3D, 900);
+</script>
+</body>
+</html>
+t(initHolo3D, 900);
+</script>
+</body>
+</html>
+o3D, 900);
+</script>
+</body>
+</html>
+t(initHolo3D, 900);
 </script>
 </body>
 </html>
