@@ -1,3 +1,4 @@
+/*__V18_TOYS__*/
 /* MARK II — POWERS: ~100 instant skills. Each: match -> run -> text/image. Auto-tested via sweep. */
 import { GEO } from './config.js';
 import * as store from './store.js';
@@ -364,14 +365,14 @@ P({ id: 'avatar', cat: 'Медиа', icon: '🦸', title: 'Аватар', hint: 
     store.addImage(url, 'Аватар: ' + q); ctx.refreshGal();
     return { text: '🦸 Аватар готов!', image: url };
   } });
-P({ id: 'yesno', cat: 'Медиа', icon: '🎱', title: 'Да / Нет', hint: '/yesno стоит ли...', cmds: ['/yesno'], re: [/стоит ли мне/], sample: '/yesno поспать?',
+P({ id: 'yesno', toy: true, cat: 'Медиа', icon: '🎱', title: 'Да / Нет', hint: '/yesno стоит ли...', cmds: ['/yesno'], re: [/стоит ли мне/], sample: '/yesno поспать?',
   expect: 'Да|Нет|YES|NO|да|нет', run: async () => {
     try { const j = await getJSON('https://yesno.wtf/api'); return { text: j.answer === 'yes' ? '✅ Да, босс!' : j.answer === 'no' ? '❌ Нет. Точно нет.' : '🤷 Может быть.', image: j.image }; }
     catch (e) { return rnd(['✅ Да.', '❌ Нет.', '🤷 Спроси позже.']); }
   } });
 
 /* ---------- FUN: instant ---------- */
-P({ id: '8ball', cat: 'Фан', icon: '🔮', title: 'Шар судьбы', hint: '/8ball вопрос', cmds: ['/8ball'], re: [/шар судьбы/], sample: '/8ball повезёт ли мне?',
+P({ id: '8ball', toy: true, cat: 'Фан', icon: '🔮', title: 'Шар судьбы', hint: '/8ball вопрос', cmds: ['/8ball'], re: [/шар судьбы/], sample: '/8ball повезёт ли мне?',
   expect: '.', run: () => '🔮 ' + rnd(['Бесспорно да.', 'Определённо да.', 'Скорее да.', 'Знаки говорят да.', 'Пока не ясно.', 'Спроси позже.', 'Лучше не знать.', 'Скорее нет.', 'Определённо нет.', 'Даже Старк сомневается.']) });
 P({ id: 'dice', cat: 'Фан', icon: '🎲', title: 'Кубик', hint: '/dice [2d6]', cmds: ['/dice'], re: [/кинь кубик/, /брось кубик/], sample: '/dice 2d6',
   expect: '\\d', run: (a) => {
@@ -401,7 +402,7 @@ P({ id: 'team', cat: 'Фан', icon: '⚔', title: 'Разбить на кома
     const mid = Math.ceil(opts.length / 2);
     return `⚔ **Команда 1:** ${opts.slice(0, mid).join(', ')}\n**Команда 2:** ${opts.slice(mid).join(', ')}`;
   } });
-P({ id: 'slots', cat: 'Фан', icon: '🎰', title: 'Слоты', hint: '/slots', cmds: ['/slots'], re: [/крутани слоты/], sample: '/slots',
+P({ id: 'slots', toy: true, cat: 'Фан', icon: '🎰', title: 'Слоты', hint: '/slots', cmds: ['/slots'], re: [/крутани слоты/], sample: '/slots',
   expect: '🎰|Джекпот|мимо|Пара', run: () => {
     const E = ['🍒', '⚡', '💎', '🚀', '🤖', '⭐'];
     const r = [rnd(E), rnd(E), rnd(E)];
@@ -417,7 +418,7 @@ P({ id: 'rps', cat: 'Фан', icon: '✊', title: 'Камень-ножницы',
     const res = me === bot ? '🤝 Ничья!' : (W[me] === bot ? '🎉 Ты победил!' : '🤖 Я победил. Реванш?');
     return `Ты: ${me} · Я: ${bot}\n${res}`;
   } });
-P({ id: 'guess', cat: 'Фан', icon: '🔢', title: 'Угадай число', hint: '/guess [макс] — я загадал, ты угадываешь', cmds: ['/guess'], re: [/давай сыграем в числа/, /угадай число/], sample: '/guess 10',
+P({ id: 'guess', toy: true, cat: 'Фан', icon: '🔢', title: 'Угадай число', hint: '/guess [макс] — я загадал, ты угадываешь', cmds: ['/guess'], re: [/давай сыграем в числа/, /угадай число/], sample: '/guess 10',
   expect: 'загадал|Больше|Меньше|Угадал|Попыток|кончились', run: (a, ctx, trapped) => {
     if (trapped && TRAP && TRAP.id === 'guess') {
       const g = parseInt(a, 10);
@@ -427,10 +428,10 @@ P({ id: 'guess', cat: 'Фан', icon: '🔢', title: 'Угадай число', 
       return g < TRAP.n ? `📈 Больше! (попытка ${TRAP.tries}/7)` : `📉 Меньше! (попытка ${TRAP.tries}/7)`;
     }
     const max = Math.min(1000, Math.max(10, parseInt(a, 10) || 100));
-    TRAP = { id: 'guess', n: 1 + Math.floor(Math.random() * max), max, tries: 0, re: /^\d+$/ };
+    TRAP = { id: 'guess', toy: true, n: 1 + Math.floor(Math.random() * max), max, tries: 0, re: /^\d+$/ };
     return `🔢 Я загадал число от 1 до ${max}. 7 попыток — пиши число!`;
   } });
-P({ id: 'quiz', cat: 'Фан', icon: '🧠', title: 'Викторина', hint: '/quiz — 3 вопроса', cmds: ['/quiz'], re: [/викторина/, /проверь мои знания/], sample: '/quiz', interactive: true,
+P({ id: 'quiz', toy: true, cat: 'Фан', icon: '🧠', title: 'Викторина', hint: '/quiz — 3 вопроса', cmds: ['/quiz'], re: [/викторина/, /проверь мои знания/], sample: '/quiz', interactive: true,
   expect: 'Счёт|счёт|Вопрос', run: async (a, ctx) => {
     let qs;
     try { qs = (await getJSON('https://opentdb.com/api.php?amount=3&type=multiple')).results; if (!qs.length) throw 0; }
@@ -483,7 +484,7 @@ P({ id: 'chuck', cat: 'Фан', icon: '🥋', title: 'Чак Норрис', hint
   } });
 P({ id: 'quote', cat: 'Фан', icon: '💬', title: 'Цитата Старка', hint: '/quote', cmds: ['/quote'], re: [/цитата старка/, /что сказал старк/], sample: '/quote',
   expect: '.', run: () => '💬 ' + rnd(['«Я — Железный человек.»', '«Гений, миллиардер, плейбой, филантроп.»', '«Доказательство, что Тони Старк живёт в сердце.»', '«Иногда нужно бежать, прежде чем научишься ходить.»', '«Я люблю тебя три тысячи.»', '«Часть команды — часть корабля.»']) });
-P({ id: 'riddle', cat: 'Фан', icon: '🧩', title: 'Загадка', hint: '/riddle', cmds: ['/riddle'], re: [/загадай загадку/], sample: '/riddle',
+P({ id: 'riddle', toy: true, cat: 'Фан', icon: '🧩', title: 'Загадка', hint: '/riddle', cmds: ['/riddle'], re: [/загадай загадку/], sample: '/riddle',
   expect: 'Ответ|загад|\\?', run: async (a, ctx) => {
     const R = rnd([['Что растёт вверх ногами?', 'Сосулька'], ['Что можно увидеть с закрытыми глазами?', 'Сон'], ['У чего есть шея, но нет головы?', 'У бутылки'], ['Что идёт, не двигаясь с места?', 'Время'], ['Что принадлежит тебе, но другие пользуются чаще?', 'Имя']]);
     const i = await ctx.ask('🧩 ' + R[0], ['Сдаться и узнать ответ', 'Я знаю! (напиши в чат)']);
@@ -511,7 +512,7 @@ P({ id: 'heroname', cat: 'Фан', icon: '🦸‍♂️', title: 'Имя гер�
   expect: '.', run: () => '🦸‍♂️ Твоё геройское имя: **' + rnd(['Капитан', 'Железный', 'Неоновый', 'Квантовый', 'Теневой', 'Атомный']) + ' ' + rnd(['Реактор', 'Сокол', 'Вихрь', 'Титан', 'Призрак', 'Вольт']) + '**!' });
 P({ id: 'villain', cat: 'Фан', icon: '🦹', title: 'План злодея', hint: '/villain', cmds: ['/villain'], re: [], sample: '/villain',
   expect: '.', run: () => '🦹 План ULTRON на сегодня:\n1. ' + rnd(['Выпить весь кофе в башне.', 'Переименовать Wi-Fi в «Skynet».', 'Спрятать все зарядники.', 'Включить все будильники на 04:00.']) + '\n2. Захватить мир.\n3. Передумать и посмотреть кино.' });
-P({ id: 'horoscope', cat: 'Фан', icon: '🔯', title: 'Гороскоп', hint: '/horoscope лев', cmds: ['/horoscope'], re: [/мой гороскоп/], sample: '/horoscope лев',
+P({ id: 'horoscope', toy: true, cat: 'Фан', icon: '🔯', title: 'Гороскоп', hint: '/horoscope лев', cmds: ['/horoscope'], re: [/мой гороскоп/], sample: '/horoscope лев',
   expect: 'Лев|звёзд|день', run: (a) => {
     const s = (a || 'лев').trim();
     const day = new Date().getDate();

@@ -1,25 +1,27 @@
 <!DOCTYPE html>
-<html lang="ru" data-persona="jarvis">
+<html lang="ru" data-persona="jarvis" data-theme="porcelain">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MARK II — STARK OS</title>
-<meta name="description" content="MARK II — персональный ИИ в стиле лаборатории Тони Старка: JARVIS, FRIDAY, ULTRON, VISION.">
-<meta name="theme-color" content="#03060c">
+<title>LEGION — MARK III</title>
+<meta name="description" content="LEGION — персональный ИИ-агент: зрение, память, голос, задачи. Лучше Джарвиса.">
+<meta name="theme-color" content="#f4f1ea">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 <canvas id="bg"></canvas>
-<div class="aurora a1"></div><div class="aurora a2"></div><div class="aurora a3"></div>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+<div class="grain"></div>
 <div class="vignette"></div>
 
 <div id="boot">
   <div class="boot-box">
     <div class="boot-orb"></div>
     <div class="boot-brand">STARK INDUSTRIES</div>
-    <div class="boot-name">MARK II</div>
+    <div class="boot-name">LEGION</div>
+    <div class="boot-sub">MARK III · пробуждение</div>
     <div class="boot-track"><div id="bootBar"></div></div>
     <div id="bootLog"></div>
     <div class="boot-hint">нажми, чтобы пропустить</div>
@@ -29,30 +31,37 @@
 <header>
   <div class="logo">
     <div class="logo-mark"></div>
-    <div class="logo-t"><b>MARK II</b><span>STARK OS · v17</span></div>
+    <div class="logo-t"><b>LEGION</b><span>MARK III · v18</span></div>
   </div>
   <div id="personaPills"></div>
   <div class="hdr-spacer"></div>
   <div class="net"><span class="net-dot" id="netDot"></span><span id="netTxt">…</span></div>
   <div id="clock">--:--:--</div>
+  <button class="icon-btn" id="btnTheme" title="Тема: фарфор / обсидиан">◐</button>
   <button class="icon-btn" id="btnPalette" title="Палитра команд (Ctrl+K)">⌘</button>
   <button class="icon-btn" id="btnDiag" title="Диагностика">🔍</button>
-  <button class="icon-btn" id="btnHelp" title="Помощь">?</button>
   <button class="icon-btn" id="btnSettings" title="Настройки">⚙</button>
   <button class="icon-btn" id="btnFull" title="Полный экран">⛶</button>
 </header>
 
 <main>
   <aside class="panel" id="left">
-    <div class="p-title">ARC РЕАКТОР</div>
+    <nav id="navRow">
+      <button data-view="chat" class="sel"><i>💬</i><span>Чат</span></button>
+      <button data-view="studio"><i>🎬</i><span>Студия</span></button>
+      <button data-view="memory"><i>🧠</i><span>Память</span></button>
+      <button data-view="missions"><i>⚡</i><span>Легион</span><b id="navBadge" hidden></b></button>
+      <button data-view="voice"><i>🎙</i><span>Голос</span></button>
+    </nav>
     <div class="reactor-box">
       <canvas id="reactor"></canvas>
-      <div id="reactorName">JARVIS</div>
-      <div id="reactorTitle"></div>
+      <div><div id="reactorName">JARVIS</div><div id="reactorTitle"></div></div>
     </div>
     <div class="vu"><div id="vuFill"></div></div>
     <div class="stat-row"><span class="k">МИКРОФОН</span><span class="val" id="micState">○ выкл</span></div>
     <div class="stat-row"><span class="k">ЗРЕНИЕ</span><span class="val" id="visionState">—</span></div>
+    <div class="stat-row"><span class="k">WATCH</span><span class="val" id="watchState">○ выкл</span></div>
+    <div class="stat-row"><span class="k">RPM</span><span class="val ok" id="rpmState">20/мин</span></div>
     <div class="toggles">
       <button class="tgl" id="tglWake" title="Реакция на имя">WAKE</button>
       <button class="tgl" id="tglVoice" title="Авто-озвучка ответов">VOICE</button>
@@ -61,17 +70,81 @@
   </aside>
 
   <section class="panel" id="center">
-    <div id="chat"></div>
-    <div id="chips"></div>
-    <form id="composer">
-      <button type="button" class="icon-btn" id="btnArt" title="Творец — нарисовать">🎨</button>
-      <button type="button" class="icon-btn" id="btnCam" title="Камера">📷</button>
-      <textarea id="input" rows="1" placeholder="Спроси что-нибудь… или /help" autocomplete="off"></textarea>
-      <button type="button" class="icon-btn" id="btnMic" title="Микрофон">🎙</button>
-      <button type="button" class="icon-btn" id="btnStop" title="Стоп">⏹</button>
-      <button type="submit" class="icon-btn on" id="btnSend" title="Отправить">➤</button>
-    </form>
-    <div id="interim"></div>
+    <div class="view" id="view-chat">
+      <div id="chat"></div>
+      <div id="chips"></div>
+      <form id="composer">
+        <button type="button" class="icon-btn" id="btnArt" title="Творец — нарисовать">🎨</button>
+        <button type="button" class="icon-btn" id="btnAttach" title="Прикрепить файл">📎</button>
+        <input type="file" id="fileInput" hidden multiple>
+        <button type="button" class="icon-btn" id="btnCam" title="Камера">📷</button>
+        <textarea id="input" rows="1" placeholder="Спроси, прикажи, прикрепи файл… или /help" autocomplete="off"></textarea>
+        <button type="button" class="icon-btn" id="btnMic" title="Микрофон (тап — слушать, держи — говорить)">🎙</button>
+        <button type="button" class="icon-btn" id="btnStop" title="Стоп">⏹</button>
+        <button type="submit" class="icon-btn on" id="btnSend" title="Отправить">➤</button>
+      </form>
+      <div id="interim"></div>
+    </div>
+
+    <div class="view" id="view-studio" hidden>
+      <div class="p-title">СТУДИЯ · ФОТО И ВИДЕО</div>
+      <div id="studioDrop">
+        <div class="drop-ic">📁</div>
+        <div class="drop-t">Перетащи файлы сюда или <button class="mini-btn" id="studioPick">выбери</button></div>
+        <div class="drop-s">фото · видео · PDF · документы · аудио — разберу всё</div>
+      </div>
+      <div class="row gap studio-ask">
+        <input type="text" id="studioQ" placeholder="Вопрос к файлам (необязательно)…">
+        <button class="btn hot" id="studioGo">🔍 Анализировать</button>
+      </div>
+      <div id="studioGrid"></div>
+    </div>
+
+    <div class="view" id="view-memory" hidden>
+      <div class="p-title">ПАМЯТЬ · ПРОФИЛЬ</div>
+      <div class="row gap mem-top">
+        <select id="profileSel"></select>
+        <button class="btn" id="btnProfile">＋ Профиль</button>
+        <input type="text" id="memSearch" placeholder="🔍 Поиск по памяти…">
+      </div>
+      <div class="mem-cols">
+        <div class="mem-sec"><h4>⭐ Вкусы</h4><div id="memPrefs"></div></div>
+        <div class="mem-sec"><h4>📌 Проекты</h4><div id="memProjects"></div></div>
+        <div class="mem-sec"><h4>🧠 Факты</h4><div id="memFacts"></div></div>
+        <div class="mem-sec"><h4>🕰 События</h4><div id="memEpisodes"></div></div>
+        <div class="mem-sec"><h4>📎 Файлы</h4><div id="memFiles"></div></div>
+      </div>
+    </div>
+
+    <div class="view" id="view-missions" hidden>
+      <div class="p-title">ЛЕГИОН · ПАРАЛЛЕЛЬНЫЕ ЗАДАЧИ</div>
+      <div class="row gap wrap missions-bar">
+        <button class="btn" id="btnDeep">🧬 /deep — глубокий ответ</button>
+        <button class="btn" id="btnCouncil2">🧠 Совет троих</button>
+        <button class="btn" id="btnScan2">🛡 Сканировать комнату</button>
+      </div>
+      <div id="missionFeed"><div class="empty">Легион ждёт приказов. Задачи выполняются по очереди с живым прогрессом.</div></div>
+    </div>
+
+    <div class="view" id="view-voice" hidden>
+      <div class="p-title">ГОЛОС · ЦЕНТР УПРАВЛЕНИЯ</div>
+      <div class="voice-stage">
+        <button class="voice-big" id="voiceBig">🎙</button>
+        <div class="voice-modes">
+          <button class="btn hot" id="voicePTT">🔴 ДЕРЖИ — ГОВОРИ</button>
+          <button class="btn" id="voiceToggle">🎙 Слушать постоянно</button>
+        </div>
+        <div id="voiceTranscript"><div class="empty">Здесь появится живой транскрипт…</div></div>
+        <div class="row gap wrap">
+          <button class="mini-btn" id="btnMicTest">🎚 Проверить микрофон</button>
+          <button class="mini-btn" id="btnTtsTest">🔊 Проверить озвучку</button>
+          <button class="mini-btn" id="btnWatch">👁 WATCH: следить камерой</button>
+        </div>
+        <div class="vu big"><div id="micLevel"></div></div>
+        <h4 class="mini-h">Журнал голоса <button class="mini-btn" id="btnVoiceLog">📋 Копировать</button></h4>
+        <div id="voiceLog"></div>
+      </div>
+    </div>
   </section>
 
   <aside id="right">

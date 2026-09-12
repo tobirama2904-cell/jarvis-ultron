@@ -4,7 +4,7 @@ const SKEY = 'mark2_state', KKEY = 'mark2_key';
 const DEFAULTS = () => ({
   v: 1,
   settings: { persona: 'jarvis', voiceURI: '', rate: 1.0, wake: true,
-    autoSpeak: true, sfx: true, confirmBeforeSend: false },
+    autoSpeak: true, sfx: true, confirmBeforeSend: false, autoSubmit: true }, /*__V18_STORE__*/
   facts: [],                                  // {text, ts}
   todos: [],                                  // {text, done, ts}
   reminders: [],                              // {id, text, at, fired}

@@ -1,10 +1,16 @@
 /* MARK II — orchestrator: wires brain, voice, vision, fx, ui. */
 import { APP, PERSONAS, PERSONA_IDS, IMG_STYLES } from './config.js';
 import * as store from './store.js';
-import { friendlyError, genImage, ping, quickChat, lastLatency } from './api.js';
+import { friendlyError, genImage, ping, quickChat, lastLatency, rpmInfo } from './api.js';
 import { answer, fastPath, briefing, council, translateFlow, toolWeather, toolRates, toolNews,
   dushanbeClock, onReminderScheduled, setVisionCtx } from './brain.js';
 import { matchPower, POWERS, trapActive } from './powers.js';
+/*__V18_LEGION__*/
+import { renderMemory, searchMemory, digest, extractFactsLocal, extractLLM,
+  listProfiles, activeProfile, createProfile, switchProfile, addEpisode } from './memory.js';
+import { initAgent, startWatch, stopWatch, watchActive } from './agent.js';
+import { kindOf, analyzeImage, analyzeVideo, analyzePdf, analyzeText, analyzeAudio } from './files.js';
+import { spawn, renderMissions, pendingCount } from './tasks.js';
 import { Voice } from './voice.js';
 import { Vision } from './vision.js';
 import { Sfx, unlockAudio, BgFX, Reactor, confetti } from './fx.js';
@@ -58,6 +64,7 @@ async function send(raw) {
   const text = String(raw || '').trim();
   if (!text) return;
   unlockAudio();
+  extractFactsLocal(text); convoPut('user', text);
   if (S.busy) { toast('Я ещё думаю… ⏹ — прервать', 'warn'); return; }
   if (text.startsWith('/')) { routeCommand(text); return; }
 
@@ -76,7 +83,7 @@ async function send(raw) {
   const fast = fastPath(text);
   if (fast) {
     const h = addAI(S.persona); h.set(fast); h.done(aiActions(h));
-    store.pushHistory('assistant', fast);
+    store.pushHistory('assistant', fast); convoPut('assistant', fast);
     say(fast); Sfx.recv(); afterAnswer();
     return;
   }
@@ -98,7 +105,7 @@ async function send(raw) {
     if (out && !h.text()) h.set(out); // direct (non-stream) reply path
     if (!out) h.set('⚠ Пустой ответ от нейросети. Попробуй переформулировать.');
     h.done(aiActions(h));
-    store.pushHistory('assistant', h.text());
+    store.pushHistory('assistant', h.text()); convoPut('assistant', h.text());
     say(h.text()); Sfx.recv();
     if (S.voice.listening) S.voice.openDialog(9);
   } catch (e) {
@@ -116,7 +123,7 @@ async function offlineIntent(text) {
   const t = text.toLowerCase().trim();
   const emit = (out) => {
     const h = addAI(S.persona); h.set(out); h.done(aiActions(h));
-    store.pushHistory('assistant', out); say(out); Sfx.recv(); afterAnswer();
+    store.pushHistory('assistant', out); convoPut('assistant', out); say(out); Sfx.recv(); afterAnswer();
   };
   if (/^(погода|какая погода|что по погоде|прогноз)/.test(t)) {
     emit(await toolWeather().catch(e => '⚠ ' + e.message)); return true;
@@ -182,7 +189,7 @@ async function runPower(p, arg, cmd, trapped) {
       const h2 = addAI(S.persona);
       h2.set(text); h2.done(aiActions(h2));
     } else { h.set(text); h.done(aiActions(h)); }
-    store.pushHistory('assistant', text);
+    store.pushHistory('assistant', text); convoPut('assistant', text);
   };
   try {
     const r = await p.run(arg || '', buildCtx(), !!trapped, cmd || '');
@@ -206,8 +213,10 @@ function cmdHelp(arg) {
     ['◈', '/brief — утренний брифинг'], ['📰', '/news — новости'], ['🧠', '/council вопрос — совет троих'],
     ['🌐', '/tr текст — перевод'], ['🎨', '/img описание — нарисовать'], ['🎬', '/story идея — раскадровка'],
     ['⏰', '/remind 10 текст'], ['📝', '/todo текст'], ['◈', '/persona friday'], ['🔍', '/diag'], ['🧹', '/clear'],
+    ['🧬', '/deep тема — глубокий разбор'], ['🧠', '/mem — память'], ['🎨', '/theme — тема'],
+    ['👁', '/watch — слежка камерой'], ['🎬', '/studio /memory /missions /voice — разделы'],
   ];
-  const list = POWERS.filter(p => p.id !== 'help' && (!q || p.cat.toLowerCase().includes(q) || p.title.toLowerCase().includes(q) || p.id.includes(q) || (p.hint || '').toLowerCase().includes(q)));
+  const list = POWERS.filter(p => p.id !== 'help' && !p.toy && (!q || p.cat.toLowerCase().includes(q) || p.title.toLowerCase().includes(q) || p.id.includes(q) || (p.hint || '').toLowerCase().includes(q)));
   const cats = {};
   list.forEach(p => { (cats[p.cat] = cats[p.cat] || []).push(p); });
   let out = q ? `❓ По «${arg}»:
@@ -231,6 +240,11 @@ function routeCommand(line) {
      tr: () => arg ? cmdTr(arg) : needArg('Текст: `/tr hello world`'),
      remind: () => cmdRemind(arg), todo: () => { if (!arg) return needArg('`/todo купить молоко`'); store.addTodo(arg); refreshTasks(); sysOk('✓ Задача записана.'); },
      persona: () => switchPersona(arg), diag: cmdDiag, clear: () => { $('#chat').innerHTML = ''; store.clearHistory(); sysOk('Чат очищен.'); },
+     deep: () => arg ? cmdDeep(arg) : needArg('Тема: `/deep стоит ли переезжать в Душанбе`'),
+     mem: () => cmdMem(arg), theme: () => cmdTheme(arg),
+     chat: () => goView('chat'), studio: () => goView('studio'), memory: () => goView('memory'),
+     missions: () => goView('missions'), voice: () => goView('voice'),
+     watch: () => cmdWatch(arg),
      help: () => cmdHelp(arg),
   }[c] || (() => { const pw = matchPower(line); if (pw) runPower(pw.p, pw.arg, pw.cmd, pw.trapped); else sysOk('Неизвестная команда. Напиши /help.'); }))();
   $('#input').value = ''; autoresize();
@@ -294,7 +308,7 @@ async function storyFlow(idea) {
 /* ================= briefing / news / council / translate / remind ================= */
 async function cmdBrief() {
   const h = addAI(S.persona); h.set('◈ Собираю брифинг…'); Sfx.open();
-  try { const b = await briefing({ key: store.getKey(), personaId: S.persona }); h.set(b || '⚠ Пустой ответ, попробуй ещё раз.'); h.done(aiActions(h)); store.pushHistory('assistant', b); say(String(b).slice(0, 500)); }
+  try { const b = await briefing({ key: store.getKey(), personaId: S.persona }); h.set(b || '⚠ Пустой ответ, попробуй ещё раз.'); h.done(aiActions(h)); store.pushHistory('assistant', b); convoPut('assistant', b); say(String(b).slice(0, 500)); }
   catch (e) { h.set('⚠ ' + friendlyError(e)); h.done(); }
 }
 async function cmdNews() {
@@ -310,7 +324,7 @@ async function cmdNews() {
         out = '📰 Дайджест:\n' + d.trim();
       } catch (e) {}
     }
-    h.set(out || '⚠ Пустой ответ, попробуй ещё раз.'); h.done(aiActions(h)); store.pushHistory('assistant', out); say(String(out).slice(0, 400));
+    h.set(out || '⚠ Пустой ответ, попробуй ещё раз.'); h.done(aiActions(h)); store.pushHistory('assistant', out); convoPut('assistant', out); say(String(out).slice(0, 400));
   } catch (e) { h.set('⚠ ' + e.message); h.done(); }
 }
 async function cmdCouncil(q) {
@@ -319,7 +333,7 @@ async function cmdCouncil(q) {
   try {
     const { opinions, final } = await council(q, { key: store.getKey() });
     const t = '🧠 СОВЕТ ТРОИХ\n\n' + opinions.map(([id, x]) => `**${id.toUpperCase()}**: ${x}`).join('\n\n') + `\n\n◈ **ВЕРДИКТ VISION**: ${final}`;
-    h.set(t || '⚠ Пустой ответ, попробуй ещё раз.'); h.done(aiActions(h)); store.pushHistory('assistant', t); say(final);
+    h.set(t || '⚠ Пустой ответ, попробуй ещё раз.'); h.done(aiActions(h)); store.pushHistory('assistant', t); convoPut('assistant', t); say(final);
   } catch (e) { h.set('⚠ ' + friendlyError(e)); h.done(); }
 }
 async function cmdTr(text) {
@@ -376,12 +390,14 @@ function cmdDiag() {
 /* ================= chips ================= */
 function defaultChipDefs() {
   return [
-    { label: '◈ Брифинг', run: () => routeCommand('/brief') },
+    { label: '🧬 /deep', run: () => { $('#input').value = '/deep '; $('#input').focus(); } },
+    { label: '🎬 Студия', run: () => goView('studio') },
+    { label: '🧠 Память', run: () => goView('memory') },
+    { label: '🎙 Голос', run: () => goView('voice') },
     { label: '🌤 Погода', run: () => send('погода') },
-    { label: '💱 Курсы', run: () => send('курс доллара') },
-    { label: '📰 Новости', run: () => routeCommand('/news') },
-    { label: '🎨 Нарисуй…', run: () => openCreatorSheet() },
-    { label: '🧠 Совет троих', run: () => { $('#input').value = '/council '; $('#input').focus(); } },
+    { label: '₿ Крипта', run: () => send('курс биткоина') },
+    { label: '🧠 Совет', run: () => { $('#input').value = '/council '; $('#input').focus(); } },
+    { label: '❓ /help', run: () => routeCommand('/help') },
   ];
 }
 function defaultChips() { chips(defaultChipDefs()); }
@@ -520,7 +536,7 @@ function wireVoice() {
     }
     if (!st.listening && !st.lastErr) S._micErrShown = '';
   };
-  $('#btnMic').onclick = toggleMic;
+  $('#btnMic').onclick = () => toggleMicV18();
   $('#btnStop').onclick = () => {
     S.voice.stopAll();
     if (S.abort) S.abort.abort();
@@ -558,7 +574,7 @@ function wireChrome() {
   });
   $('#btnPalette').onclick = () => { Sfx.click(); openPalette(); };
   $('#btnDiag').onclick = () => { Sfx.click(); cmdDiag(); };
-  $('#btnHelp').onclick = () => { Sfx.click(); openHelp(); };
+  const bH = $('#btnHelp'); if (bH) bH.onclick = () => { Sfx.click(); openHelp(); };
   $('#btnSettings').onclick = () => {
     Sfx.click(); unlockAudio();
     openSettings({ key: store.getKey(), settings: store.get().settings, voices: S.voice.listVoices(),
@@ -605,7 +621,7 @@ function wireChrome() {
     { icon: '?', title: 'Помощь', run: () => cmdHelp('') },
     { icon: '🧹', title: 'Очистить чат', run: () => routeCommand('/clear') },
   ]);
-  POWERS.filter(p => p.id !== 'help').forEach(p => regCommands([{ icon: p.icon,
+  POWERS.filter(p => p.id !== 'help' && !p.toy).forEach(p => regCommands([{ icon: p.icon,
     title: (p.cmds[0] || p.title) + ' — ' + p.title, hint: p.cat, run: () => send(p.sample) }]));
   // net status
   window.addEventListener('online', updateNet);
@@ -645,6 +661,7 @@ async function init() {
   S.reactor.setLevel(0.06);
 
   wireChrome(); wireComposer(); wireVoice(); wireCamera();
+  initV18();
   setVisionCtx({ shot: () => S.vision.snapshot(), live: () => S.vision.live });
   const paintPills = () => $$('#personaPills button').forEach(b => b.classList.toggle('sel', b.dataset.p === S.persona));
   paintPills();
@@ -660,9 +677,10 @@ async function init() {
   window.addEventListener('keydown', () => { S.interacted = true; unlockAudio(); }, { once: true });
 
   // boot overlay (skippable)
-  const bootP = runBoot(['Ядро MARK II … OK', 'Нейролинк Agnes … ' + (store.hasKey() ? 'KEY ✓' : 'NO KEY'),
-    'Голосовой модуль … ' + (S.voice.sttOK ? 'OK' : 'НЕ ПОДДЕРЖИВАЕТСЯ'),
-    'Зрение … READY', 'Память … ' + store.get().facts.length + ' фактов', 'Интерфейс AURORA … OK', 'Силы … ' + POWERS.length + ' шт']);
+  const bootP = runBoot(['Ядро LEGION MARK III … OK', 'Нейролинк Agnes … ' + (store.hasKey() ? 'KEY ✓' : 'NO KEY'),
+    'Голос 4.0 … ' + (S.voice.sttOK ? 'OK' : 'НЕ ПОДДЕРЖИВАЕТСЯ'),
+    'Зрение + WATCH … READY', 'Память v2 … ' + activeProfile().facts.length + ' фактов · ' + activeProfile().name,
+    'Легион задач … READY', 'Интерфейс … ФАРФОР + ОБСИДИАН', 'Полезных сил … ' + POWERS.filter(p => !p.toy).length + ' шт']);
   $('#boot').addEventListener('click', () => { const b = $('#boot'); if (b) { b.classList.add('done'); setTimeout(() => b.remove(), 650); } });
   Sfx.boot();
   await bootP;
@@ -671,17 +689,435 @@ async function init() {
     const h = addAI(S.persona);
     const hr = parseInt(new Intl.DateTimeFormat('ru-RU', { timeZone: 'Asia/Dushanbe', hour: 'numeric' }).format(new Date()), 10);
     const daypart = hr >= 5 && hr < 12 ? 'Доброе утро' : hr >= 12 && hr < 18 ? 'Добрый день' : hr >= 18 && hr < 23 ? 'Добрый вечер' : 'Доброй ночи';
-    const greet = `${daypart}! ${persona().hello}\n\nВо мне **${POWERS.length}+ сил**: рисую 🎨, брифинги ◈, викторины 🧠, крипта ₿, МКС 🛰, мемы 🤣, жесты 🤟 и мимика 🙂. Напиши /help или нажми Ctrl+K.${store.hasKey() ? '' : '\n\n⚠ Вставь API-ключ в ⚙️ — без него часть сил спит.'}`;
+    const greet = `${daypart}! ${persona().hello}\n\nЯ **LEGION**: разделы слева — 💬 чат, 🎬 студия файлов, 🧠 память, ⚡ легион задач, 🎙 голос. Кидай фото и видео прямо в чат 📎, глубокие разборы — через /deep.${store.hasKey() ? '' : '\n\n⚠ Вставь API-ключ в ⚙️ — без него часть сил спит.'}`;
     h.set(greet); h.done(aiActions(h));
-    store.pushHistory('assistant', greet);
+    store.pushHistory('assistant', greet); convoPut('assistant', greet);
   }
   toast(`${APP.name} v${APP.version} — все системы в норме`, 'ok');
+}
+
+/* ================= V18 LEGION ================= */
+const convoBuf = [];
+function convoPut(role, text) { convoBuf.push({ role, text: String(text || '').slice(0, 1200) }); if (convoBuf.length > 40) convoBuf.shift(); }
+function convoText() { return convoBuf.map(m => (m.role === 'user' ? 'Босс' : 'Легион') + ': ' + m.text).join('\n').slice(-6000); }
+let convoExtractedAt = 0;
+async function extractNow() {
+  const ok = await extractLLM(store.getKey(), convoText()).catch(() => false);
+  if (ok) { convoExtractedAt = convoBuf.length; syncMemoryView(); }
+  return ok;
+}
+function textMood() {
+  const last = convoBuf.filter(m => m.role === 'user').slice(-4).map(m => m.text).join(' ');
+  if (/([А-ЯЁ]{6,}|!!!+|дурак|тупой|бесишь|надоед)/.test(last)) return 'angry';
+  if (/(спасибо|круто|супер|отлично|люблю|класс)/i.test(last)) return 'happy';
+  return 'calm';
+}
+
+/* ---- voice log + transcript ---- */
+const voiceLogBuf = [];
+function vlog(msg) {
+  const t = new Date().toLocaleTimeString('ru-RU', { timeZone: 'Asia/Dushanbe' });
+  voiceLogBuf.push(`[${t}] ${msg}`); if (voiceLogBuf.length > 80) voiceLogBuf.shift();
+  const box = $('#voiceLog');
+  if (box) { const d = document.createElement('div'); d.textContent = `[${t}] ${msg}`; box.appendChild(d); while (box.children.length > 80) box.firstChild.remove(); box.scrollTop = 1e6; }
+}
+function transcript(html) {
+  const box = $('#voiceTranscript'); if (!box) return;
+  const e = box.querySelector('.empty'); if (e) e.remove();
+  const d = document.createElement('div'); d.className = 'tr-line'; d.innerHTML = html;
+  box.appendChild(d); while (box.children.length > 30) box.firstChild.remove(); box.scrollTop = 1e6;
+}
+function transcriptLive(t) {
+  const box = $('#voiceTranscript'); if (!box) return;
+  let d = box.querySelector('.tr-live');
+  if (!d) { const e = box.querySelector('.empty'); if (e) e.remove(); d = document.createElement('div'); d.className = 'tr-line tr-live'; box.appendChild(d); }
+  d.textContent = '… ' + t; box.scrollTop = 1e6;
+}
+
+/* ---- router + theme ---- */
+const VIEWS = ['chat', 'studio', 'memory', 'missions', 'voice'];
+let curView = 'chat';
+function goView(name) {
+  if (!VIEWS.includes(name)) name = 'chat';
+  curView = name;
+  VIEWS.forEach(v => { const el = $('#view-' + v); if (el) el.hidden = v !== name; });
+  $$('#navRow button').forEach(b => b.classList.toggle('sel', b.dataset.view === name));
+  if (name === 'memory') syncMemoryView();
+  if (name === 'missions') renderMissions($('#missionFeed'));
+  Sfx.click();
+}
+function cmdTheme(arg) {
+  const t = (arg || '').toLowerCase();
+  const cur = document.documentElement.dataset.theme || 'porcelain';
+  const next = /obsidian|тёмн|темн|dark/.test(t) ? 'obsidian'
+    : /porcelain|фарфор|светл|light/.test(t) ? 'porcelain'
+    : cur === 'porcelain' ? 'obsidian' : 'porcelain';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('mark3_theme', next); } catch (e) {}
+  const mc = document.querySelector('meta[name="theme-color"]');
+  if (mc) mc.content = next === 'obsidian' ? '#0b0d13' : '#f4f1ea';
+  sysOk(next === 'obsidian' ? '◐ Тема: Обсидиан.' : '◐ Тема: Фарфор.');
+}
+
+/* ---- mic v18: permission + intents ---- */
+async function micPermission() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return 'unsupported';
+    if (navigator.permissions && navigator.permissions.query) {
+      try {
+        const st = await navigator.permissions.query({ name: 'microphone' });
+        if (st.state === 'granted') return 'granted';
+        if (st.state === 'denied') return 'denied';
+      } catch (e) {}
+    }
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    s.getTracks().forEach(x => x.stop());
+    return 'granted';
+  } catch (e) { return /NotAllowed|denied|Permission/i.test((e && e.name || '') + (e && e.message || '')) ? 'denied' : 'error'; }
+}
+async function toggleMicV18() {
+  vlog('кнопка микрофона');
+  if (!S.voice.sttOK) { toast('Браузер не умеет распознавать речь. Попробуй Chrome.', 'err'); vlog('STT не поддерживается'); return; }
+  if (!S.voice.listening) {
+    const p = await micPermission();
+    vlog('проверка микрофона: ' + p);
+    if (p === 'denied') { toast('🎙 Доступ запрещён. Разреши микрофон: иконка 🔒 в адресной строке → Микрофон → Разрешить.', 'err', 8000); $('#micState').textContent = '🚫 запрет'; return; }
+    if (p === 'unsupported' || p === 'error') { toast('Микрофон недоступен (нужен HTTPS или localhost + разрешение).', 'err'); return; }
+  }
+  const on = toggleMic();
+  vlog(on ? 'слушаю…' : 'остановлен');
+  const vb = $('#voiceBig'); if (vb) vb.classList.toggle('live', !!on);
+  return on;
+}
+function voiceIntent(t) {
+  const s = t.toLowerCase().trim();
+  if (/^(стоп|стог|отмена|отменить|не отправляй|замолчи)/.test(s)) { toast('🎙 Отменено, ничего не отправляю.', 'info'); vlog('интент: отмена'); return true; }
+  let m = s.match(/^(очисти|очистить|почисти)\s+(чат|историю)/);
+  if (m) { routeCommand('/clear'); vlog('интент: очистить чат'); return true; }
+  m = s.match(/^открой\s+(студию|память|голос|чат|легион|миссии|задачи)/);
+  if (m) { const map = { 'студию': 'studio', 'память': 'memory', 'голос': 'voice', 'чат': 'chat', 'легион': 'missions', 'миссии': 'missions', 'задачи': 'missions' }; goView(map[m[1]]); vlog('интент: открыть ' + m[1]); return true; }
+  if (/^(нарисуй|создай картин|сгенерируй изобр)/.test(s)) { routeCommand('/img ' + t); vlog('интент: нарисовать'); return true; }
+  return false;
+}
+async function micTest() {
+  const fill = $('#micLevel');
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ac = new AC(), src = ac.createMediaStreamSource(s), an = ac.createAnalyser();
+    an.fftSize = 256; src.connect(an);
+    const buf = new Uint8Array(an.frequencyBinCount);
+    vlog('тест микрофона: говори…');
+    toast('🎚 Говори — смотри полоску (5 сек)', 'info');
+    const t0 = Date.now();
+    await new Promise(res => { const iv = setInterval(() => {
+      an.getByteFrequencyData(buf);
+      let mx = 0; for (let i = 0; i < buf.length; i++) mx = Math.max(mx, buf[i]);
+      if (fill) fill.style.width = Math.round((mx / 255) * 100) + '%';
+      if (Date.now() - t0 > 5000) { clearInterval(iv); res(); }
+    }, 90); });
+    s.getTracks().forEach(x => x.stop()); ac.close().catch(() => {});
+    if (fill) fill.style.width = '0';
+    vlog('тест микрофона: OK'); toast('🎚 Микрофон работает', 'ok');
+  } catch (e) { vlog('тест микрофона: ' + (e.name || e.message)); toast('🎙 Нет доступа: ' + (e.name || ''), 'err'); }
+}
+function initVoiceView() {
+  const big = $('#voiceBig');
+  if (big) big.onclick = () => toggleMicV18();
+  const vt = $('#voiceToggle');
+  if (vt) vt.onclick = () => toggleMicV18();
+  const ptt = $('#voicePTT');
+  if (ptt) {
+    let held = false;
+    const down = async e => {
+      e.preventDefault();
+      if (held) return; held = true; ptt.classList.add('held');
+      vlog('PTT: держу');
+      if (!S.voice.sttOK) { toast('STT недоступен', 'err'); return; }
+      const p = await micPermission();
+      if (p !== 'granted') { toast('🎙 Нет доступа к микрофону', 'err'); vlog('PTT: нет доступа (' + p + ')'); return; }
+      if (!S.voice.listening) S.voice.startListen();
+      S.voice.openDialog(120);
+      const vb = $('#voiceBig'); if (vb) vb.classList.add('live');
+    };
+    const up = () => {
+      if (!held) return; held = false; ptt.classList.remove('held');
+      vlog('PTT: отпустил');
+      setTimeout(() => { try { S.voice.stopListen(); } catch (e) {} const vb = $('#voiceBig'); if (vb) vb.classList.remove('live'); }, 600);
+    };
+    ptt.addEventListener('pointerdown', down);
+    window.addEventListener('pointerup', up);
+    ptt.addEventListener('touchstart', down, { passive: false });
+    ptt.addEventListener('touchend', up);
+  }
+  const mt = $('#btnMicTest'); if (mt) mt.onclick = micTest;
+  const tt = $('#btnTtsTest'); if (tt) tt.onclick = () => {
+    unlockAudio();
+    const n = S.voice.listVoices().length;
+    vlog('тест озвучки, голосов: ' + n);
+    S.voice.speak('Легион на связи. Озвучка работает.', S.persona);
+    toast(`🔊 Голосов: ${n}`, 'info');
+  };
+  const cp = $('#btnVoiceLog'); if (cp) cp.onclick = () => navigator.clipboard.writeText(voiceLogBuf.join('\n')).then(() => toast('Журнал скопирован', 'ok')).catch(() => toast('Не скопировалось', 'warn'));
+  const bw = $('#btnWatch'); if (bw) bw.onclick = () => cmdWatch('');
+  const _oi = S.voice.onInterim;
+  S.voice.onInterim = t => { try { _oi(t); } catch (e) {} transcriptLive(t); };
+  S.voice.onFinal = t => {
+    $('#interim').textContent = '🎙 «' + t.slice(0, 80) + '»';
+    setTimeout(() => { const el = $('#interim'); if (el && el.textContent.charCodeAt(0) === 0xD83C) el.textContent = ''; }, 4000);
+    transcript('🎙 «' + esc(t) + '»'); vlog('финал: ' + t.slice(0, 90));
+    const live = document.querySelector('#voiceTranscript .tr-live'); if (live) live.remove();
+    if (S.voice.speaking) { toast('🎙 Услышал, но я говорю — жми ⏹ чтобы прервать', 'warn'); return; }
+    if (voiceIntent(t)) return;
+    if (store.get().settings.autoSubmit === false) { $('#input').value = t; autoresize(); goView('chat'); $('#input').focus(); vlog('в поле ввода (автоотправка выкл)'); return; }
+    send(t);
+  };
+  const _os = S.voice.onState;
+  S.voice.onState = st => { try { _os(st); } catch (e) {}
+    const vb = $('#voiceBig'); if (vb) vb.classList.toggle('live', !!st.listening);
+    if (st.lastErr) vlog('ошибка STT: ' + st.lastErr);
+  };
+  vlog('голосовой модуль готов (STT: ' + (S.voice.sttOK ? 'да' : 'нет') + ')');
+}
+
+/* ---- attachments + studio ---- */
+const studioFiles = [];
+async function analyzeDispatch(file, question, onStep) {
+  const key = store.getKey();
+  switch (kindOf(file)) {
+    case 'image': if (!key) throw new Error('NO_KEY'); return analyzeImage(file, key, question);
+    case 'video': if (!key) throw new Error('NO_KEY'); return analyzeVideo(file, key, question, onStep);
+    case 'pdf': return analyzePdf(file, key, question);
+    case 'text': return analyzeText(file, key, question);
+    case 'audio': return analyzeAudio(file);
+    default: return { text: `📎 **${file.name}** (${(file.size / 1024).toFixed(0)} КБ)\nНе знаю такой формат. Кинь фото, видео, PDF, текст или аудио.` };
+  }
+}
+function fileThumb(f, url) {
+  const k = kindOf(f);
+  if (k === 'image') return `<img src="${url}" alt="">`;
+  if (k === 'video') return `<video src="${url}" muted playsinline></video>`;
+  const ic = { pdf: '📄', text: '📝', audio: '🎵' }[k] || '📎';
+  return `<div class="st-file">${ic}</div>`;
+}
+function renderStudio() {
+  const g = $('#studioGrid'); if (!g) return;
+  g.innerHTML = '';
+  studioFiles.forEach(s => {
+    const d = document.createElement('div'); d.className = 'st-card';
+    const st = s.status === 'busy' ? 'busy' : s.status === 'done' ? 'done' : '';
+    const stT = s.status === 'busy' ? '◌ анализ…' : s.status === 'done' ? '✓ готов' : 'ждёт';
+    d.innerHTML = `${fileThumb(s.file, s.url)}<div class="st-meta"><div class="st-name">${esc(s.file.name)}</div><div class="st-st ${st}">${stT}</div></div>`;
+    d.onclick = () => { if (s.result) { const h = addAI(S.persona); h.set(s.result); h.done(aiActions(h)); goView('chat'); } };
+    g.appendChild(d);
+  });
+  if (!studioFiles.length) g.innerHTML = '<div class="empty">Пока пусто. Добавь файлы выше.</div>';
+}
+function stageFiles(list) {
+  Array.from(list || []).forEach(f => {
+    if (studioFiles.length >= 12) { toast('Студия: максимум 12 файлов', 'warn'); return; }
+    studioFiles.push({ file: f, url: URL.createObjectURL(f), kind: kindOf(f), status: 'wait', result: '' });
+  });
+  renderStudio();
+}
+function studioGo() {
+  const q = $('#studioQ') && $('#studioQ').value ? $('#studioQ').value.trim() : '';
+  const pend = studioFiles.filter(s => s.status !== 'done');
+  if (!pend.length) { toast('Нет новых файлов для анализа', 'warn'); return; }
+  if (!store.hasKey() && pend.some(s => ['image', 'video'].includes(s.kind))) { sysOk('⚠ Фото и видео требуют API-ключ (⚙️).'); return; }
+  goView('missions');
+  for (const s of pend) {
+    s.status = 'busy'; renderStudio();
+    const job = `${s.kind === 'image' ? '🖼' : s.kind === 'video' ? '🎬' : s.kind === 'pdf' ? '📄' : s.kind === 'audio' ? '🎵' : '📝'} ${s.file.name}`;
+    spawn(job, async rep => {
+      rep(8, 'читаю файл…');
+      const r = await analyzeDispatch(s.file, q || undefined, (i, n) => rep(10 + Math.round((i / n) * 75), `кадр ${i}/${n}`));
+      rep(92, 'оформляю…');
+      s.status = 'done'; s.result = r.text; renderStudio();
+      rep(100, 'готово');
+      addEpisode(`Файл: ${s.file.name} — ${String(r.text).replace(/\n/g, ' ').slice(0, 160)}`);
+      return r;
+    }).then(r => {
+      const h = addAI(S.persona); h.set(r.text.slice(0, 3500)); h.done(aiActions(h));
+      toast('✓ ' + s.file.name, 'ok'); updateNavBadge();
+    }).catch(() => { s.status = 'wait'; renderStudio(); updateNavBadge(); });
+    renderMissions($('#missionFeed')); updateNavBadge();
+  }
+}
+async function handleFiles(list, question) {
+  const files = Array.from(list || []);
+  if (!files.length) return;
+  goView('chat');
+  const names = files.map(f => f.name).join(', ');
+  addUser('📎 ' + names + (question ? '\n' + question : ''));
+  store.pushHistory('user', '[файлы] ' + names + (question ? ' ' + question : ''));
+  for (const f of files) {
+    const h = addAI(S.persona); h.set('◌ Разбираю ' + f.name + '…');
+    try {
+      const r = await analyzeDispatch(f, question || undefined, (i, n) => h.set(`◌ ${f.name}: кадр ${i}/${n}…`));
+      h.set(r.text.slice(0, 3500)); h.done(aiActions(h));
+      store.pushHistory('assistant', r.text.slice(0, 500)); convoPut('assistant', r.text);
+      addEpisode(`Файл: ${f.name} — ${r.text.replace(/\n/g, ' ').slice(0, 160)}`);
+      say('Готово. ' + f.name);
+    } catch (e) {
+      h.set(e && e.message === 'NO_KEY' ? '⚠ Фото и видео требуют API-ключ (⚙️).' : '⚠ ' + friendlyError(e)); h.done();
+    }
+  }
+  afterAnswer();
+}
+function initFiles() {
+  const fi = $('#fileInput');
+  const ba = $('#btnAttach');
+  if (ba && fi) ba.onclick = () => fi.click();
+  if (fi) fi.onchange = () => { const q = $('#input').value.trim(); handleFiles(fi.files, q || undefined); if (q) { $('#input').value = ''; autoresize(); } fi.value = ''; };
+  const dz = $('#studioDrop'), pick = $('#studioPick');
+  const tmp = document.createElement('input'); tmp.type = 'file'; tmp.multiple = true;
+  tmp.onchange = () => { stageFiles(tmp.files); tmp.value = ''; };
+  if (pick) pick.onclick = e => { e.preventDefault(); tmp.click(); };
+  if (dz) {
+    ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
+    dz.addEventListener('drop', e => stageFiles(e.dataTransfer.files));
+  }
+  const go = $('#studioGo'); if (go) go.onclick = studioGo;
+  renderStudio();
+}
+
+/* ---- legion missions + /deep ---- */
+function updateNavBadge() {
+  const b = $('#navBadge'); if (!b) return;
+  const n = pendingCount();
+  b.hidden = n === 0; b.textContent = n || '';
+}
+async function cmdDeep(topic) {
+  if (!store.hasKey()) { sysOk('⚠ /deep требует API-ключ (⚙️).'); return; }
+  goView('missions');
+  const key = store.getKey(), mem = digest();
+  const job = spawn('🧬 DEEP: ' + topic.slice(0, 60), async rep => {
+    rep(6, 'черновик…');
+    const draft = await quickChat({ key, maxTokens: 900, messages: [
+      { role: 'system', content: 'Ты LEGION. Дай глубокий развернутый черновик ответа по-русски.' + (mem ? ' Учитывай память:\n' + mem : '') },
+      { role: 'user', content: topic } ] });
+    rep(38, 'критика…');
+    const crit = await quickChat({ key, maxTokens: 500, messages: [
+      { role: 'system', content: 'Ты беспощадный критик. Найди слабые места, ошибки и пробелы в черновике. По-русски, списком.' },
+      { role: 'user', content: draft } ] });
+    rep(66, 'финал…');
+    const fin = await quickChat({ key, maxTokens: 1100, messages: [
+      { role: 'system', content: 'Собери финальный ответ по-русски: учти критику, убери слабости. Структура, конкретика, вывод.' },
+      { role: 'user', content: 'Тема: ' + topic + '\n\nЧерновик:\n' + draft + '\n\nКритика:\n' + crit } ] });
+    rep(100, 'готово');
+    return { draft, crit, fin };
+  });
+  renderMissions($('#missionFeed')); updateNavBadge();
+  job.then(r => {
+    const h = addAI(S.persona);
+    h.set('🧬 **DEEP-разбор:** ' + topic.slice(0, 200) + '\n\n' + r.fin.trim());
+    const bub = h.el.querySelector('.m-bub');
+    const btn = document.createElement('button'); btn.className = 'mini-btn'; btn.textContent = '⬇ Скачать разбор (.md)';
+    btn.onclick = () => { download('legion-deep.md', '# DEEP: ' + topic + '\n\n## Финал\n\n' + r.fin + '\n\n## Критика\n\n' + r.crit + '\n\n## Черновик\n\n' + r.draft, 'text/markdown'); toast('Файл скачан', 'ok'); };
+    bub.appendChild(document.createElement('br')); bub.appendChild(btn);
+    h.done(aiActions(h));
+    store.pushHistory('assistant', r.fin.slice(0, 600)); convoPut('assistant', r.fin);
+    addEpisode('DEEP: ' + topic.slice(0, 120));
+    say('Глубокий разбор готов.');
+    updateNavBadge();
+  }).catch(e => { const h = addAI(S.persona); h.set('⚠ ' + friendlyError(e)); h.done(); updateNavBadge(); });
+}
+function cmdMem(arg) {
+  const a = (arg || '').trim();
+  if (a) {
+    const hits = searchMemory(a);
+    const h = addAI(S.persona);
+    h.set(hits.length ? '🧠 **Нашёл в памяти:**\n' + hits.map(x => '• ' + x).join('\n') : '🧠 В памяти ничего про «' + a.slice(0, 80) + '» нет.');
+    h.done(aiActions(h));
+    return;
+  }
+  goView('memory');
+  const p = activeProfile();
+  toast(`🧠 ${p.name}: ${p.facts.length} фактов, ${p.prefs.length} вкусов, ${p.projects.length} проектов`, 'info');
+}
+function initMissions() {
+  const d = $('#btnDeep'); if (d) d.onclick = () => { const t = prompt('Тема для глубокого разбора:'); if (t) cmdDeep(t); };
+  const c = $('#btnCouncil2'); if (c) c.onclick = () => { const t = prompt('Вопрос совету:'); if (t) routeCommand('/council ' + t); };
+  const s = $('#btnScan2'); if (s) s.onclick = () => send('сканируй комнату');
+}
+
+/* ---- memory view ---- */
+function syncMemoryView() {
+  const sel = $('#profileSel');
+  if (sel && !sel.options.length) {
+    listProfiles().forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = (p.icon || '👤') + ' ' + p.name; sel.appendChild(o); });
+    sel.value = activeProfile().id;
+    sel.onchange = () => { switchProfile(sel.value); syncMemoryView(); toast('Профиль: ' + activeProfile().name, 'ok'); };
+  }
+  if (sel) sel.value = activeProfile().id;
+  renderMemory({ facts: '#memFacts', prefs: '#memPrefs', projects: '#memProjects', episodes: '#memEpisodes', files: '#memFiles', filter: ($('#memSearch') || {}).value || '' });
+}
+function initMemoryView() {
+  const s = $('#memSearch');
+  if (s) s.oninput = () => renderMemory({ facts: '#memFacts', prefs: '#memPrefs', projects: '#memProjects', episodes: '#memEpisodes', files: '#memFiles', filter: s.value });
+  const b = $('#btnProfile');
+  if (b) b.onclick = () => {
+    const name = prompt('Имя нового профиля:'); if (!name) return;
+    createProfile(name.trim());
+    const all = listProfiles(); switchProfile(all[all.length - 1].id);
+    const sel = $('#profileSel'); if (sel) sel.innerHTML = '';
+    syncMemoryView();
+  };
+}
+
+/* ---- watch ---- */
+async function cmdWatch(arg) {
+  const a = (arg || '').toLowerCase();
+  if (watchActive() || /^(выкл|off|стоп)/.test(a)) {
+    stopWatch();
+    $('#watchState').textContent = '○ выкл';
+    const bw = $('#btnWatch'); if (bw) bw.classList.remove('hot');
+    toast('👁 WATCH выключен', 'info'); vlog('watch: выкл'); return;
+  }
+  if (!store.hasKey()) { sysOk('⚠ WATCH требует API-ключ — анализ кадров идёт через нейросеть.'); return; }
+  if (!S.vision.live) { toast('👁 Включаю камеру для слежки…', 'info'); $('#btnCam').click(); await new Promise(r => setTimeout(r, 2500)); }
+  if (!S.vision.live) { toast('Камера не включилась', 'err'); return; }
+  startWatch({ video: $('#camVideo'), shot: () => S.vision.snapshot(480), onMotion: d => vlog('движение: ' + d) });
+  $('#watchState').textContent = '◉ слежу';
+  const bw = $('#btnWatch'); if (bw) bw.classList.add('hot');
+  toast('👁 WATCH включён: слежу за движением, доложу о важном', 'ok'); vlog('watch: вкл');
+}
+
+/* ---- proactive agent + rpm ---- */
+function initLegionAgent() {
+  initAgent({
+    key: () => store.getKey(),
+    historyLen: () => convoBuf.filter(m => m.role === 'user').length,
+    extractedAt: () => convoExtractedAt,
+    markExtracted: n => { convoExtractedAt = n; },
+    convo: convoText,
+    mood: textMood,
+    notify: t => { toast('💡 ' + t, 'info', 8000); say(t); vlog('проактив: ' + t.slice(0, 80)); },
+  });
+  setInterval(() => {
+    const el = $('#rpmState'); if (!el) return;
+    try { const r = rpmInfo(); el.textContent = `${r.used}/${r.limit}/мин`; el.className = 'val ' + (r.used >= r.limit ? 'err' : 'ok'); }
+    catch (e) {}
+  }, 5000);
+  setInterval(() => { if (curView === 'missions') renderMissions($('#missionFeed')); updateNavBadge(); }, 1500);
+}
+
+function initV18() {
+  try { document.documentElement.dataset.theme = localStorage.getItem('mark3_theme') || 'porcelain'; } catch (e) {}
+  const bt = $('#btnTheme'); if (bt) bt.onclick = () => cmdTheme('');
+  $$('#navRow button').forEach(b => b.onclick = () => goView(b.dataset.view));
+  initVoiceView(); initFiles(); initMemoryView(); initMissions(); initLegionAgent();
+  vlog('LEGION v18 готов');
 }
 
 /* test hooks */
 window.__mark2 = { send, routeCommand, store, get persona() { return S.persona; },
   get voice() { return S.voice; }, get vision() { return S.vision; }, version: APP.version,
   powers: () => POWERS.map(p => ({ id: p.id, sample: p.sample, expect: p.expect || '', skip: !!p.skipSweep })),
+  goView, cmdDeep, cmdWatch, cmdTheme, cmdMem, convo: convoText, extractNow, handleFiles, micTest,
+  memFacts: () => activeProfile().facts.length, rpm: () => rpmInfo(),
   testAuto: false, trapActive: () => trapActive() };
 
 init().catch(e => {

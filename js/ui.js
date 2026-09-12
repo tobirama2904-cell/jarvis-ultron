@@ -302,6 +302,7 @@ export function openSettings({ key, settings, voices, onSaveKey, onSave, onExpor
     <div class="grid2">
       <label class="chk"><input type="checkbox" id="sWake" ${settings.wake ? 'checked' : ''}> Wake-word (Джарвис/Пятница…)</label>
       <label class="chk"><input type="checkbox" id="sSpeak" ${settings.autoSpeak ? 'checked' : ''}> Авто-озвучка ответов</label>
+      <label class="chk"><input type="checkbox" id="sSubmit" ${settings.autoSubmit === false ? '' : 'checked'}> Автоотправка распознанного</label>
       <label class="chk"><input type="checkbox" id="sSfx" ${settings.sfx ? 'checked' : ''}> Звуки интерфейса</label>
     </div>
     <div class="row gap wrap">
@@ -318,6 +319,7 @@ export function openSettings({ key, settings, voices, onSaveKey, onSave, onExpor
   sel.onchange = e => onSave({ voiceURI: e.target.value });
   div.querySelector('#sWake').onchange = e => onSave({ wake: e.target.checked });
   div.querySelector('#sSpeak').onchange = e => onSave({ autoSpeak: e.target.checked });
+  div.querySelector('#sSubmit').onchange = e => onSave({ autoSubmit: e.target.checked });
   div.querySelector('#sSfx').onchange = e => onSave({ sfx: e.target.checked });
   div.querySelector('#sExport').onclick = onExport;
   div.querySelector('#sForget').onclick = () => { onForget(); close(); };
@@ -350,6 +352,8 @@ export function openHelp() {
     <p><b>/remind</b> 10 позвонить маме — напоминание · <b>/todo</b> текст — задача · <b>/persona</b> friday — смена персоны</p>
     <p><b>/diag</b> — диагностика · <b>/clear</b> — очистить чат · <b>/help</b> — эта справка</p>
     <p>Голосом: «Джарвис, …» — команда. ✋ ладонь — замолчи. ✊ кулак — микрофон вкл/выкл. Ctrl+K — палитра команд.</p>
+    <p>Разделы: 💬 Чат · 🎬 Студия (анализ фото/видео/PDF) · 🧠 Память (профили, факты) · ⚡ Легион (фоновые задачи) · 🎙 Голос (транскрипт, проверка микрофона).</p>
+    <p><b>/deep</b> тема — черновик → критика → финал + файл · <b>/mem</b> запрос — поиск по памяти · <b>/watch</b> — слежка камерой · <b>/theme</b> — фарфор/обсидиан. Файлы — кнопкой 📎 прямо в чат.</p>
     </div>` });
 }
 

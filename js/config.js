@@ -1,5 +1,5 @@
 /* MARK II — central config. No secrets here, ever. */
-export const APP = { name: 'MARK II', version: '17.0', build: 'mark2-1' };
+export const APP = { name: 'LEGION', version: '18.0', build: 'legion-1' }; /*__V18_APP__*/
 
 export const AGNES = {
   base: 'https://apihub.agnes-ai.com/v1',

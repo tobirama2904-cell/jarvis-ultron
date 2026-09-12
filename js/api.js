@@ -9,6 +9,11 @@ export class ApiError extends Error {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let lastCall = 0, chain = Promise.resolve();
 export function lastLatency() { return _lastLatency; }
+/*__V18_API__*/
+/* RPM meter: rolling 60s window of Agnes calls. */
+const _rpm = [];
+function rpmTick() { const n = Date.now(); _rpm.push(n); while (_rpm.length && n - _rpm[0] > 60000) _rpm.shift(); }
+export function rpmInfo() { const n = Date.now(); while (_rpm.length && n - _rpm[0] > 60000) _rpm.shift(); return { used: _rpm.length, limit: 20 }; }
 let _lastLatency = 0;
 
 /* Serialize all Agnes calls with min gap (free-tier RPM guard). */
@@ -105,6 +110,7 @@ function normToolCalls(tc) {
    runTool(name, args) -> string. onTool(name, args, phase) for UI. */
 export function chatComplete({ key, messages, tools, stream = true, onToken, onTool, signal }) {
   if (!key) return Promise.reject(new KeyError());
+  rpmTick();
   return enqueue(async () => {
     const msgs = messages.slice();
     const runTool = chatComplete.runTool || (async () => 'tool unavailable');
@@ -148,6 +154,7 @@ export function chatComplete({ key, messages, tools, stream = true, onToken, onT
 /* One-shot small chat (no tools). Used for council/translate/compose. */
 export function quickChat({ key, messages, maxTokens = 500, temperature = 0.7, signal }) {
   if (!key) return Promise.reject(new KeyError());
+  rpmTick();
   const once = (msgs, mt) => enqueue(() => callWithRetry('/chat/completions', key,
     { model: AGNES.chat, messages: msgs, temperature, max_tokens: mt }, { signal })
     .then(j => (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || ''));
@@ -162,6 +169,7 @@ export function quickChat({ key, messages, maxTokens = 500, temperature = 0.7, s
 /* Image generation with model fallbacks. Returns {url}. */
 export function genImage({ key, prompt, size = '1024x1024' }) {
   if (!key) return Promise.reject(new KeyError());
+  rpmTick();
   return enqueue(async () => {
     let lastErr = null;
     for (const model of AGNES.imgModels) {
@@ -179,13 +187,15 @@ export function genImage({ key, prompt, size = '1024x1024' }) {
 }
 
 /* Vision: chat with an image (camera snapshots). Model takes text+image input. */
-export function visionChat({ key, prompt, imageDataUrl, maxTokens = 600 }) {
+export function visionChat({ key, prompt, imageDataUrl, images, maxTokens = 600 }) {
   if (!key) return Promise.reject(new KeyError());
+  rpmTick();
+  const _imgs = (images && images.length ? images : (imageDataUrl ? [imageDataUrl] : [])).slice(0, 8);
   return enqueue(() => callWithRetry('/chat/completions', key, {
     model: AGNES.chat,
     messages: [{ role: 'user', content: [
       { type: 'text', text: prompt },
-      { type: 'image_url', image_url: { url: imageDataUrl } } ] }],
+      ..._imgs.map(u => ({ type: 'image_url', image_url: { url: u } })) ] }],
     max_tokens: maxTokens, temperature: 0.5,
   }, {}).then(j => (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || ''));
 }
@@ -193,6 +203,7 @@ export function visionChat({ key, prompt, imageDataUrl, maxTokens = 600 }) {
 /* Ping: GET models (cheap capability check). */
 export function ping(key) {
   if (!key) return Promise.reject(new KeyError());
+  rpmTick();
   return enqueue(async () => {
     await throttle();
     const ctrl = new AbortController();

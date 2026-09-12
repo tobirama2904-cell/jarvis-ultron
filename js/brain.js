@@ -1,5 +1,6 @@
 /* MARK II — brain: personas, tool-calling executors, fast-path, briefing, council. */
 import { chatComplete, quickChat, visionChat } from './api.js';
+import { digest } from './memory.js'; /*__V18_MEM__*/
 import { GEO, WMO, PERSONAS } from './config.js';
 import { get, addFact, addTodo, addReminder } from './store.js';
 
@@ -160,9 +161,10 @@ export async function answer(userText, { key, personaId, history, onToken, onToo
   const p = PERSONAS[personaId] || PERSONAS.jarvis;
   const ctx = history.slice(-10).map(h => ({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content }));
   setCtxKey(key);
-  const messages = [{ role: 'system', content: baseRules(p) }, ...ctx, { role: 'user', content: userText }];
+  const mem = digest();
+  const messages = [{ role: 'system', content: baseRules(p) + (mem ? '\n\nДолговременная память о боссе (факты, вкусы, проекты):\n' + mem : '') }, ...ctx, { role: 'user', content: userText }];
   const r = await chatComplete({ key, messages, tools: TOOLS, stream: true, onToken, onTool, signal });
-  return (r.text || '').trim();
+  return (r.text || '').replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '').replace(/<function=[^>]*>[\s\S]*?<\/function>/g, '').trim();
 }
 
 /* ---------- briefing ---------- */
