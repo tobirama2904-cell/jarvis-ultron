@@ -178,6 +178,18 @@ export function genImage({ key, prompt, size = '1024x1024' }) {
   });
 }
 
+/* Vision: chat with an image (camera snapshots). Model takes text+image input. */
+export function visionChat({ key, prompt, imageDataUrl, maxTokens = 600 }) {
+  if (!key) return Promise.reject(new KeyError());
+  return enqueue(() => callWithRetry('/chat/completions', key, {
+    model: AGNES.chat,
+    messages: [{ role: 'user', content: [
+      { type: 'text', text: prompt },
+      { type: 'image_url', image_url: { url: imageDataUrl } } ] }],
+    max_tokens: maxTokens, temperature: 0.5,
+  }, {}).then(j => (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || ''));
+}
+
 /* Ping: GET models (cheap capability check). */
 export function ping(key) {
   if (!key) return Promise.reject(new KeyError());

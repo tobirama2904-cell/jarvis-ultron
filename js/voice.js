@@ -1,4 +1,4 @@
-/* MARK II — voice engine: continuous STT, ru TTS, wake-word, dialog mode, anti-echo. */
+/* MARK II — voice engine v2: watchdog TTS (never stalls), robust STT, wake kinds. */
 import { WAKE_NAMES, PERSONAS } from './config.js';
 import { get } from './store.js';
 
@@ -7,20 +7,26 @@ const SR = (typeof window !== 'undefined') && (window.SpeechRecognition || windo
 export class Voice {
   constructor() {
     this.rec = null;
-    this.listening = false;      // mic on (continuous)
+    this.listening = false;
     this.wantListen = false;
     this.speaking = false;
     this.dialogUntil = 0;
     this.queue = [];
     this.level = 0;
     this.restartTimer = null;
-    this.onFinal = null;         // (text) => void
-    this.onInterim = null;       // (text) => void
-    this.onState = null;         // (state) => void
-    this.onWake = null;          // () => void
+    this.onFinal = null;
+    this.onInterim = null;
+    this.onState = null;
+    this.onWake = null;          // (kind: 'name'|'cmd') => void
+    this.lastHeard = '';
+    this.lastHeardAt = 0;
+    this.lastErr = '';
     this._voices = [];
     this._pulseTimer = null;
+    this._watchdog = null;
+    this._chunkDeadline = 0;
     this._lastFinal = '';
+    this._errCool = 0;
     try {
       if ('speechSynthesis' in window) {
         const load = () => { this._voices = speechSynthesis.getVoices() || []; };
@@ -33,50 +39,56 @@ export class Voice {
   get ttsOK() { return typeof window !== 'undefined' && 'speechSynthesis' in window; }
   inDialog() { return Date.now() < this.dialogUntil; }
   openDialog(sec = 9) { this.dialogUntil = Date.now() + sec * 1000; }
-
   emit() { if (this.onState) try { this.onState(this.snapshot()); } catch (e) {} }
   snapshot() {
     return { stt: this.sttOK, tts: this.ttsOK, listening: this.listening,
-      speaking: this.speaking, dialog: this.inDialog(), level: this.level };
+      speaking: this.speaking, dialog: this.inDialog(), level: this.level,
+      lastHeard: this.lastHeard, lastErr: this.lastErr };
   }
 
   /* ---------- STT ---------- */
   startListen() {
     if (!this.sttOK) { this.emit(); return false; }
     this.wantListen = true;
+    this.lastErr = '';
     if (this.listening) return true;
     try {
       const rec = new SR();
       rec.lang = 'ru-RU'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 1;
       rec.onresult = ev => {
-        let interim = '', finals = [];
+        let interim = '';
         for (let i = ev.resultIndex; i < ev.results.length; i++) {
           const r = ev.results[i];
-          if (r.isFinal) finals.push(r[0].transcript.trim());
+          if (r.isFinal) this._handleFinal(r[0].transcript.trim());
           else interim += r[0].transcript;
         }
         if (interim && this.onInterim) this.onInterim(interim);
-        for (const f of finals) this._handleFinal(f);
       };
       rec.onerror = ev => {
-        const err = ev.error || '';
-        // 'aborted' on intentional stop, 'no-speech'/'audio-capture' common headless — just reschedule
-        if (['not-allowed', 'service-not-allowed'].includes(err)) {
-          this.wantListen = false; this.listening = false; this.emit(); return;
+        const err = ev.error || 'unknown';
+        this.lastErr = err; this.emit();
+        if (err === 'not-allowed' || err === 'service-not-allowed') {
+          this.wantListen = false; this.listening = false;
+          try { rec.stop(); } catch (e) {}
+          this.emit();
         }
+        // 'no-speech' / 'audio-capture' / 'network' -> onend will reschedule
       };
       rec.onend = () => {
         this.listening = false; this.emit();
         if (this.wantListen && !this._intentStop) {
           clearTimeout(this.restartTimer);
-          this.restartTimer = setTimeout(() => { if (this.wantListen) this.startListen(); }, 700);
+          this.restartTimer = setTimeout(() => { if (this.wantListen) this.startListen(); }, 600);
         }
         this._intentStop = false;
       };
       rec.start();
       this.rec = rec; this.listening = true; this.emit();
       return true;
-    } catch (e) { this.wantListen = false; this.emit(); return false; }
+    } catch (e) {
+      this.lastErr = (e && e.message) || 'start-failed';
+      this.wantListen = false; this.emit(); return false;
+    }
   }
   stopListen() {
     this.wantListen = false;
@@ -91,34 +103,29 @@ export class Voice {
     if (!text || text === this._lastFinal) return;
     this._lastFinal = text;
     setTimeout(() => { if (this._lastFinal === text) this._lastFinal = ''; }, 4000);
+    this.lastHeard = text; this.lastHeardAt = Date.now(); this.emit();
     const low = text.toLowerCase();
-    const hasWake = WAKE_NAMES.some(n => low.includes(n));
+    const hasWake = get().settings.wake !== false && WAKE_NAMES.some(n => low.includes(n));
     if (hasWake) {
       this.openDialog(12);
-      if (this.onWake) this.onWake();
-      // strip the name, keep the command
       let cmd = text;
       WAKE_NAMES.forEach(n => { cmd = cmd.replace(new RegExp(n, 'ig'), ''); });
       cmd = cmd.replace(/^[,.\s!]+|[,.\s!]+$/g, '');
+      if (this.onWake) this.onWake(cmd.length > 1 ? 'cmd' : 'name');
       if (cmd.length > 1 && this.onFinal) this.onFinal(cmd);
       return;
     }
     if (this.onFinal) this.onFinal(text);
   }
 
-  /* ---------- TTS ---------- */
+  /* ---------- TTS (watchdog: never stalls) ---------- */
   pickVoice(personaId) {
-    const vs = this._voices.length ? this._voices : (speechSynthesis.getVoices() || []);
+    const vs = this._voices.length ? this._voices : [];
     if (!vs.length) return null;
     const want = get().settings.voiceURI;
     if (want) { const v = vs.find(x => x.voiceURI === want); if (v) return v; }
     const ru = vs.filter(v => (v.lang || '').toLowerCase().startsWith('ru'));
     if (ru.length) {
-      const fem = personaId === 'friday';
-      const named = ru.find(v => /female|жен|alena|milena|katja|irina/i.test(v.name)) ||
-        ru.find(v => /male|муж|pavel|dmitry|yuri/i.test(v.name));
-      if (fem && named && /female|жен|alena|milena|katja|irina/i.test(named.name)) return named;
-      if (!fem && named && /male|муж|pavel|dmitry|yuri/i.test(named.name)) return named;
       const g = ru.find(v => /google русский/i.test(v.name));
       return g || ru[0];
     }
@@ -135,30 +142,51 @@ export class Voice {
     if (!text) return false;
     this.queue.push({ text, personaId });
     if (!this.speaking) this._next();
+    else this._armWatchdog(15000); // queue grows but head may be stuck -> watchdog will push
     return true;
   }
   _next() {
     const item = this.queue.shift();
-    if (!item) { this.speaking = false; this.level = 0; this.emit(); return; }
+    if (!item) { this._setSpeaking(false); return; }
+    this._setSpeaking(true);
     try {
-      speechSynthesis.cancel(); // drop stale
       const p = PERSONAS[item.personaId] || PERSONAS.jarvis;
-      // chunk long text by sentences (Chrome ~200-300 chars per utter is safest)
       const chunks = item.text.match(/[^.!?…\n]+[.!?…\n]+|[^.!?…\n]+$/g) || [item.text];
       let i = 0;
       const sayChunk = () => {
         if (i >= chunks.length) { this._next(); return; }
-        const u = new SpeechSynthesisUtterance(chunks[i++].trim().slice(0, 400));
-        const v = this.pickVoice(item.personaId);
-        if (v) u.voice = v;
-        u.rate = (get().settings.rate || 1) * p.rate;
-        u.pitch = p.pitch; u.volume = 1;
-        u.onend = u.onerror = () => sayChunk();
-        this.speaking = true; this._pulse(true); this.emit();
-        speechSynthesis.speak(u);
+        const part = chunks[i++].trim().slice(0, 400);
+        if (!part) { sayChunk(); return; }
+        try {
+          const u = new SpeechSynthesisUtterance(part);
+          const v = this.pickVoice(item.personaId);
+          if (v) u.voice = v;
+          u.rate = (get().settings.rate || 1) * p.rate;
+          u.pitch = p.pitch; u.volume = 1;
+          let settled = false;
+          const go = () => { if (!settled) { settled = true; sayChunk(); } };
+          u.onend = u.onerror = go;
+          u.onstart = () => { this._armWatchdog(Math.max(8000, part.length * 220)); };
+          try { speechSynthesis.speak(u); } catch (e) { go(); return; }
+          // failsafe: if neither onstart nor onend in N sec -> advance
+          this._armWatchdog(Math.max(8000, part.length * 220), go);
+        } catch (e) { sayChunk(); }
       };
       sayChunk();
-    } catch (e) { this.speaking = false; this._next(); }
+    } catch (e) { this._next(); }
+  }
+  _armWatchdog(ms, force) {
+    clearTimeout(this._watchdog);
+    this._watchdog = setTimeout(() => {
+      // TTS event lost (mobile cancel-swallow etc.) -> force progress
+      if (force) { try { force(); } catch (e) {} return; }
+      if (this.speaking) { try { speechSynthesis.cancel(); } catch (e) {} this._next(); }
+    }, ms);
+  }
+  _setSpeaking(v) {
+    this.speaking = v;
+    if (v) this._pulse(true); else { this._pulse(false); clearTimeout(this._watchdog); }
+    this.emit();
   }
   _pulse(on) {
     clearInterval(this._pulseTimer);
@@ -173,8 +201,9 @@ export class Voice {
   }
   stopSpeak() {
     this.queue.length = 0;
+    clearTimeout(this._watchdog);
     try { speechSynthesis.cancel(); } catch (e) {}
-    this.speaking = false; this._pulse(false); this.emit();
+    this._setSpeaking(false);
   }
   stopAll() { this.stopSpeak(); }
 }

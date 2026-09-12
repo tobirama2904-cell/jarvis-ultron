@@ -1,19 +1,24 @@
 /* MARK II — brain: personas, tool-calling executors, fast-path, briefing, council. */
-import { chatComplete, quickChat } from './api.js';
+import { chatComplete, quickChat, visionChat } from './api.js';
 import { GEO, WMO, PERSONAS } from './config.js';
 import { get, addFact, addTodo, addReminder } from './store.js';
 
 chatComplete.runTool = runTool;
 let reminderHook = null;
 export function onReminderScheduled(fn) { reminderHook = fn; }
+let visionCtx = { shot: () => null, live: () => false };
+let ctxKey = '';
+export function setVisionCtx(v) { visionCtx = v; }
+export function setCtxKey(k) { ctxKey = k; }
 
 /* ---------- system prompts ---------- */
 function baseRules(p) {
   const now = dushanbeNow();
+  const camLine = visionCtx.live() ? 'Камера пользователя ВКЛЮЧЕНА — можешь посмотреть через инструмент see_camera.' : 'Камера пользователя выключена.';
   const facts = get().facts.slice(-12).map(f => '• ' + f.text).join('\n');
   return `Ты — ${p.name}, ${p.title}. AI дворецкий в стиле Тони Старка. Отвечай на русском, коротко и по делу (1-4 предложения, если не просят подробно). Характер: ${personaTrait(p.id)}.
 Сейчас: ${now} (Душанбе, UTC+5).
-${facts ? 'Ты помнишь о пользователе:\n' + facts + '\n' : ''}Если вопрос просится в инструмент (время, счёт, погода, курсы, факты из вики, новости, заметки, напоминания) — ВЫЗОВИ инструмент, не выдумывай данные. Никогда не показывай chain-of-thought. Форматируй легко: короткие абзацы, \`код\` в бэктиках.`;
+${facts ? 'Ты помнишь о пользователе:\n' + facts + '\n' : ''}Если вопрос просится в инструмент (время, счёт, погода, курсы, факты из вики, новости, заметки, напоминания) — ВЫЗОВИ инструмент, не выдумывай данные. ${camLine} Если спрашивают «что видишь» — ВЫЗОВИ see_camera, никогда не говори что нет доступа к камере. Никогда не показывай chain-of-thought. Форматируй легко: короткие абзацы, \`код\` в бэктиках.`;
 }
 function personaTrait(id) {
   return { jarvis: 'безупречный британский дворецкий, «сэр», спокойная уверенность',
@@ -46,6 +51,8 @@ export const TOOLS = [
   { type: 'function', function: { name: 'remember_fact', description: 'Запомнить факт о пользователе', parameters: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] } } },
   { type: 'function', function: { name: 'add_todo', description: 'Добавить задачу в список', parameters: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] } } },
   { type: 'function', function: { name: 'set_reminder', description: 'Напомнить через N минут', parameters: { type: 'object', properties: { text: { type: 'string' }, minutes: { type: 'number' } }, required: ['text', 'minutes'] } } },
+  { type: 'function', function: { name: 'see_camera', description: 'Посмотреть текущий кадр с камеры пользователя и описать что видно', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'read_camera', description: 'Прочитать текст с камеры пользователя', parameters: { type: 'object', properties: {} } } },
 ];
 
 export async function runTool(name, args = {}) {
@@ -63,6 +70,22 @@ export async function runTool(name, args = {}) {
       const r = addReminder(args.text || 'Напоминание', Date.now() + mins * 60000);
       if (reminderHook) reminderHook(r);
       return `Напомню через ${mins} мин: ${r.text}`;
+    }
+    case 'see_camera': {
+      const shot = visionCtx.shot();
+      if (!shot) return 'Камера выключена — попроси пользователя включить её кнопкой с камерой.';
+      if (!ctxKey) return 'Нужен API-ключ.';
+      const d = await visionChat({ key: ctxKey, imageDataUrl: shot, maxTokens: 400,
+        prompt: 'Опиши живо по-русски, что видишь на кадре с камеры (3-5 предложений).' });
+      return 'Кадр с камеры: ' + (d.trim() || 'пусто');
+    }
+    case 'read_camera': {
+      const shot = visionCtx.shot();
+      if (!shot) return 'Камера выключена.';
+      if (!ctxKey) return 'Нужен API-ключ.';
+      const d = await visionChat({ key: ctxKey, imageDataUrl: shot, maxTokens: 400,
+        prompt: 'Прочитай весь текст на изображении, выведи как есть.' });
+      return 'Текст с камеры: ' + (d.trim() || 'текста нет');
     }
     default: return 'Неизвестный инструмент: ' + name;
   }
@@ -136,6 +159,7 @@ export function fastPath(text) {
 export async function answer(userText, { key, personaId, history, onToken, onTool, signal }) {
   const p = PERSONAS[personaId] || PERSONAS.jarvis;
   const ctx = history.slice(-10).map(h => ({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content }));
+  setCtxKey(key);
   const messages = [{ role: 'system', content: baseRules(p) }, ...ctx, { role: 'user', content: userText }];
   const r = await chatComplete({ key, messages, tools: TOOLS, stream: true, onToken, onTool, signal });
   return (r.text || '').trim();

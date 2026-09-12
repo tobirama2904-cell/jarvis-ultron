@@ -1,5 +1,5 @@
 /* MARK II service worker */
-const CACHE = 'mark2-v16-1';
+const CACHE = 'mark2-v17-1';
 const FILES = ['index.html', 'css/app.css', 'manifest.json', 'icon-192.png',
   'js/config.js', 'js/store.js', 'js/api.js', 'js/brain.js', 'js/voice.js',
   'js/vision.js', 'js/fx.js', 'js/ui.js', 'js/app.js'];

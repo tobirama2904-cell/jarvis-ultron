@@ -3,13 +3,14 @@ import { APP, PERSONAS, PERSONA_IDS, IMG_STYLES } from './config.js';
 import * as store from './store.js';
 import { friendlyError, genImage, ping, quickChat, lastLatency } from './api.js';
 import { answer, fastPath, briefing, council, translateFlow, toolWeather, toolRates, toolNews,
-  dushanbeClock, onReminderScheduled } from './brain.js';
+  dushanbeClock, onReminderScheduled, setVisionCtx } from './brain.js';
+import { matchPower, POWERS, trapActive } from './powers.js';
 import { Voice } from './voice.js';
 import { Vision } from './vision.js';
-import { Sfx, unlockAudio, BgFX, Reactor } from './fx.js';
+import { Sfx, unlockAudio, BgFX, Reactor, confetti } from './fx.js';
 import { $, esc, toast, openModal, openViewer, openCreator, openSettings, openDiag, openHelp,
   addUser, addSys, addAI, addImageMsg, chips, regCommands, openPalette, closePalette,
-  setNet, renderTodos, renderReminders, renderGalleryStrip, runBoot, scrollChat } from './ui.js';
+  setNet, renderTodos, renderReminders, renderGalleryStrip, runBoot, scrollChat, askChoice } from './ui.js';
 
 /* ================= state ================= */
 const S = {
@@ -68,6 +69,9 @@ async function send(raw) {
   // offline natural intents (instant, no RPM spent)
   const off = await offlineIntent(text);
   if (off) return;
+
+  const pw = matchPower(text);
+  if (pw) { await runPower(pw.p, pw.arg, pw.cmd, pw.trapped); return; }
 
   const fast = fastPath(text);
   if (fast) {
@@ -139,8 +143,80 @@ async function offlineIntent(text) {
   m = text.match(/(?:нарисуй|сгенерируй|создай картинку|создай арт|изобрази)\s+(.+)/i);
   if (m) { imageFlow(m[1].trim(), S.style, '1024x1024'); return true; }
   if (/раскадровка|storyboard/i.test(t) && t.length > 12) { storyFlow(text.replace(/раскадровка|storyboard/ig, '').trim()); return true; }
-  if (/^(помощь|help|что ты умеешь|команды)/.test(t)) { openHelp(); return true; }
+  if (/^(помощь|help|что ты умеешь|команды)/.test(t)) { cmdHelp(''); return true; }
   return false;
+}
+
+/* ================= powers ================= */
+function buildCtx() {
+  return {
+    key: store.getKey(), personaId: S.persona, store,
+    notify: t => { addSys(t); say(t); toast(String(t).slice(0, 120), 'info', 5000); Sfx.notify(); },
+    ask: (q, opts) => askChoice(q, opts),
+    toast, download,
+    speak: t => say(t), stopSpeak: () => S.voice.stopAll(),
+    set: patch => { Object.assign(store.get().settings, patch); store.save(); },
+    paintToggles: () => {
+      const s = store.get().settings;
+      $('#tglWake').classList.toggle('on', !!s.wake);
+      $('#tglVoice').classList.toggle('on', !!s.autoSpeak);
+      $('#tglSfx').classList.toggle('on', !!s.sfx);
+    },
+    shot: () => S.vision.snapshot(), camLive: () => S.vision.live,
+    lastMood: () => S.vision.lastMood,
+    torch: () => S.vision.torch(),
+    micToggle: () => toggleMic(),
+    camToggle: async () => { $('#btnCam').click(); await new Promise(r => setTimeout(r, 1500)); return S.vision.live; },
+    camFlip: () => S.vision.flip(),
+    refreshGal: () => refreshGallery(), refreshTasks: () => refreshTasks(),
+    fx: { boom: () => S.reactor.boom(), confetti: () => confetti(), sfx: n => { if (Sfx[n]) Sfx[n](); } },
+  };
+}
+async function runPower(p, arg, cmd, trapped) {
+  const h = addAI(S.persona);
+  const before = document.querySelectorAll('.msg.ai').length;
+  h.set(`\u25c8 ${p.title}…`);
+  const finish = text => {
+    if (document.querySelectorAll('.msg.ai').length > before) {
+      h.el.remove();
+      const h2 = addAI(S.persona);
+      h2.set(text); h2.done(aiActions(h2));
+    } else { h.set(text); h.done(aiActions(h)); }
+    store.pushHistory('assistant', text);
+  };
+  try {
+    const r = await p.run(arg || '', buildCtx(), !!trapped, cmd || '');
+    if (r && typeof r === 'object' && (r.image || r.text)) {
+      if (r.text) finish(r.text); else h.el.remove();
+      if (r.image) addImageMsg(r.image, String(r.text || p.title).slice(0, 140), persona().name, (u, t) => openViewer(u, t));
+      Sfx.recv();
+    } else {
+      finish(String(r == null ? '' : r) || '\u25c8 Готово.');
+      Sfx.recv();
+    }
+  } catch (e) {
+    console.error('power', p.id, e);
+    h.set('\u26a0 Не вышло: ' + (e.message || e)); h.done(); Sfx.error();
+  }
+  afterAnswer();
+}
+function cmdHelp(arg) {
+  const q = (arg || '').toLowerCase().trim();
+  const base = [
+    ['◈', '/brief — утренний брифинг'], ['📰', '/news — новости'], ['🧠', '/council вопрос — совет троих'],
+    ['🌐', '/tr текст — перевод'], ['🎨', '/img описание — нарисовать'], ['🎬', '/story идея — раскадровка'],
+    ['⏰', '/remind 10 текст'], ['📝', '/todo текст'], ['◈', '/persona friday'], ['🔍', '/diag'], ['🧹', '/clear'],
+  ];
+  const list = POWERS.filter(p => p.id !== 'help' && (!q || p.cat.toLowerCase().includes(q) || p.title.toLowerCase().includes(q) || p.id.includes(q) || (p.hint || '').toLowerCase().includes(q)));
+  const cats = {};
+  list.forEach(p => { (cats[p.cat] = cats[p.cat] || []).push(p); });
+  let out = q ? `❓ По «${arg}»:
+` : `❓ **${list.length} сил + команды:**
+`;
+  if (!q) out += '\n**Основное:**\n' + base.map(b => `${b[0]} ${b[1]}`).join('\n');
+  for (const [c, arr] of Object.entries(cats)) out += `\n**${c}:**\n` + arr.map(p => `${p.icon} ${p.hint}`).join('\n');
+  const h = addAI(S.persona); h.set(out.slice(0, 3800)); h.done(aiActions(h));
+  store.pushHistory('assistant', 'help-shown');
 }
 
 /* ================= commands ================= */
@@ -155,8 +231,8 @@ function routeCommand(line) {
      tr: () => arg ? cmdTr(arg) : needArg('Текст: `/tr hello world`'),
      remind: () => cmdRemind(arg), todo: () => { if (!arg) return needArg('`/todo купить молоко`'); store.addTodo(arg); refreshTasks(); sysOk('✓ Задача записана.'); },
      persona: () => switchPersona(arg), diag: cmdDiag, clear: () => { $('#chat').innerHTML = ''; store.clearHistory(); sysOk('Чат очищен.'); },
-     help: () => openHelp(),
-  }[c] || (() => sysOk('Неизвестная команда. Напиши /help.')))();
+     help: () => cmdHelp(arg),
+  }[c] || (() => { const pw = matchPower(line); if (pw) runPower(pw.p, pw.arg, pw.cmd, pw.trapped); else sysOk('Неизвестная команда. Напиши /help.'); }))();
   $('#input').value = ''; autoresize();
 }
 function needArg(hint) { sysOk(hint); }
@@ -289,6 +365,8 @@ function cmdDiag() {
     rows.push({ name: 'Озвучка', ok: S.voice.ttsOK, info: `русских голосов: ${ru}` });
     rows.push({ name: 'Камера', ok: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia), info: S.vision.live ? 'включена' : 'готова' });
     rows.push({ name: 'Уведомления', ok: !('Notification' in window) || Notification.permission !== 'denied', info: 'Notification' in window ? Notification.permission : 'n/a' });
+    rows.push({ name: 'Микрофон', ok: true, info: (S.voice.listening ? 'слушает' : 'выкл') + ' · слышал: ' + (S.voice.lastHeard || '—') + (S.voice.lastErr ? ' · err: ' + S.voice.lastErr : '') });
+    rows.push({ name: 'Силы', ok: true, info: POWERS.length + ' команд · /help' });
     rows.push({ name: 'Память', ok: true, info: `фактов: ${store.get().facts.length} · история: ${store.get().history.length}` });
     rows.push({ name: 'Движок', ok: true, info: `${APP.name} v${APP.version} · пинг LLM: ${lastLatency()} мс` });
     return rows;
@@ -362,14 +440,30 @@ function wireCamera() {
     $('#visionState').className = 'val ' + (kind === 'ok' ? 'ok' : kind === 'err' ? 'err' : '');
     if (kind === 'err') toast(msg, 'err'); else if (kind === 'warn') toast(msg, 'warn');
   };
-  S.vision.onGesture = name => {
-    if (name === 'palm') { S.voice.stopAll(); Sfx.close(); toast('✋ Тихо. Остановил речь.', 'info'); }
-    if (name === 'fist') { toggleMic(); toast('✊ Микрофон: ' + (S.voice.listening ? 'ВКЛ' : 'ВЫКЛ'), 'info'); }
+  S.vision.onGesture = (name, info) => {
+    S.reactor.boom();
+    if (name === 'palm') { S.voice.stopAll(); if (S.abort) S.abort.abort(); Sfx.close(); toast('✋ Тихо. Всё остановил.', 'info'); }
+    else if (name === 'fist') { toggleMic(); toast('✊ Микрофон: ' + (S.voice.listening ? 'ВКЛ' : 'ВЫКЛ'), 'info'); }
+    else if (name === 'victory') { toast('✌️ Фото!', 'info'); send('/photo'); }
+    else if (name === 'point') { toast('☝️ Смотрю…', 'info'); send('что ты видишь'); }
+    else if (name === 'thumb' || name === 'nod') { Sfx.confirm(); addSys(name === 'nod' ? '👍 Кивок: принято!' : '👍 Принято, босс!'); }
+    else if (name === 'shake') { S.voice.stopAll(); toast('🚫 Понял: нет. Остановил.', 'warn'); }
+    else if (name === 'pinch' || name === 'ok') {
+      const hist = store.get().history.filter(h => h.role === 'assistant').pop();
+      if (hist) navigator.clipboard.writeText(hist.content).then(() => toast('🤏 Последний ответ скопирован!', 'ok')).catch(() => toast('Не скопировалось', 'warn'));
+      else toast('🤏 Пока нечего копировать', 'warn');
+    }
   };
   S.vision.onFace = () => {
     toast('👋 Вижу тебя, босс', 'ok');
     addSys('👋 Камера: вижу лицо. Рад тебя видеть.');
     say('Рад тебя видеть, босс.');
+  };
+  S.vision.onMood = mood => {
+    if (mood === 'smile') toast('😊 Отличная улыбка!', 'ok');
+    else if (mood === 'wow') { S.voice.stopAll(); toast('😮 Ого! Остановил речь.', 'info'); }
+    else if (mood === 'wink') { Sfx.confirm(); toast('😉 Подмигивание засчитано!', 'ok'); }
+    else if (mood === 'angry') toast('😠 Не хмурься, босс. Всё под контролем.', 'warn');
   };
   $('#btnCam').onclick = async () => {
     unlockAudio(); Sfx.click();
@@ -403,17 +497,28 @@ function wireVoice() {
   S.voice = new Voice();
   S.voice.onInterim = t => { const i = $('#input'); if (document.activeElement !== i) i.value = t; $('#interim').textContent = '… ' + t; };
   S.voice.onFinal = t => {
-    $('#interim').textContent = '';
-    if (S.voice.speaking) return;            // anti-echo: не слушаем сами себя
+    $('#interim').textContent = '🎙 «' + t.slice(0, 80) + '»';
+    setTimeout(() => { const el = $('#interim'); if (el && el.textContent.charCodeAt(0) === 0xD83C) el.textContent = ''; }, 4000);
+    if (S.voice.speaking) { toast('🎙 Услышал, но я говорю — жми ⏹ чтобы прервать', 'warn'); return; }
     send(t);
   };
-  S.voice.onWake = () => { Sfx.wake(); S.reactor.boom(); toast('Слушаю, босс', 'info'); };
+  S.voice.onWake = kind => {
+    Sfx.wake(); S.reactor.boom();
+    if (kind === 'name') { toast('Слушаю, босс — говори!', 'ok'); say('Слушаю, босс.'); }
+    else toast('Слушаю, босс', 'info');
+  };
   S.voice.onState = st => {
     $('#btnMic').classList.toggle('on', st.listening);
     $('#btnMic').classList.toggle('rec', st.listening);
     $('#micState').textContent = !st.stt ? 'STT н/д' : st.listening ? (st.dialog ? '◉ диалог' : '◉ слушаю') : '○ выкл';
     $('#vuFill').style.width = Math.round((st.speaking ? st.level : st.listening ? 0.12 : 0) * 100) + '%';
     if (S.reactor) S.reactor.setLevel(st.speaking ? st.level : st.listening ? 0.15 : 0.06);
+    if (st.lastErr && st.lastErr !== S._micErrShown) {
+      S._micErrShown = st.lastErr;
+      if (/not-allowed/.test(st.lastErr)) toast('🎙 Нет доступа к микрофону — разреши в браузере', 'err', 6000);
+      else if (st.lastErr === 'audio-capture') toast('🎙 Микрофон занят другим приложением', 'warn');
+    }
+    if (!st.listening && !st.lastErr) S._micErrShown = '';
   };
   $('#btnMic').onclick = toggleMic;
   $('#btnStop').onclick = () => {
@@ -497,9 +602,11 @@ function wireChrome() {
     ...PERSONA_IDS.map(id => ({ icon: '◈', title: 'Персона: ' + PERSONAS[id].name, run: () => applyPersona(id) })),
     { icon: '⚙', title: 'Настройки', run: () => $('#btnSettings').click() },
     { icon: '🔍', title: 'Диагностика', run: () => cmdDiag() },
-    { icon: '?', title: 'Помощь', run: () => openHelp() },
+    { icon: '?', title: 'Помощь', run: () => cmdHelp('') },
     { icon: '🧹', title: 'Очистить чат', run: () => routeCommand('/clear') },
   ]);
+  POWERS.filter(p => p.id !== 'help').forEach(p => regCommands([{ icon: p.icon,
+    title: (p.cmds[0] || p.title) + ' — ' + p.title, hint: p.cat, run: () => send(p.sample) }]));
   // net status
   window.addEventListener('online', updateNet);
   window.addEventListener('offline', updateNet);
@@ -531,12 +638,14 @@ function restoreHistory() {
 
 async function init() {
   document.documentElement.dataset.persona = S.persona;
+  window.__mark2boot = Date.now();
   new BgFX($('#bg')).start();
   S.reactor = new Reactor($('#reactor'));
   S.reactor.setColor(persona().color);
   S.reactor.setLevel(0.06);
 
   wireChrome(); wireComposer(); wireVoice(); wireCamera();
+  setVisionCtx({ shot: () => S.vision.snapshot(), live: () => S.vision.live });
   const paintPills = () => $$('#personaPills button').forEach(b => b.classList.toggle('sel', b.dataset.p === S.persona));
   paintPills();
   $('#reactorName').textContent = persona().name;
@@ -553,14 +662,16 @@ async function init() {
   // boot overlay (skippable)
   const bootP = runBoot(['Ядро MARK II … OK', 'Нейролинк Agnes … ' + (store.hasKey() ? 'KEY ✓' : 'NO KEY'),
     'Голосовой модуль … ' + (S.voice.sttOK ? 'OK' : 'НЕ ПОДДЕРЖИВАЕТСЯ'),
-    'Зрение … READY', 'Память … ' + store.get().facts.length + ' фактов', 'Интерфейс STARK OS … OK']);
+    'Зрение … READY', 'Память … ' + store.get().facts.length + ' фактов', 'Интерфейс AURORA … OK', 'Силы … ' + POWERS.length + ' шт']);
   $('#boot').addEventListener('click', () => { const b = $('#boot'); if (b) { b.classList.add('done'); setTimeout(() => b.remove(), 650); } });
   Sfx.boot();
   await bootP;
 
   if (!store.get().history.length) {
     const h = addAI(S.persona);
-    const greet = `${persona().hello}\n\nЯ умею: отвечать и искать, рисовать 🎨, брифинги ◈, новости 📰, переводы 🌐, задачи и напоминания ⏰. Напиши /help или нажми Ctrl+K.${store.hasKey() ? '' : '\n\n⚠ Вставь API-ключ в ⚙️ — без него я работаю в урезанном режиме.'}`;
+    const hr = parseInt(new Intl.DateTimeFormat('ru-RU', { timeZone: 'Asia/Dushanbe', hour: 'numeric' }).format(new Date()), 10);
+    const daypart = hr >= 5 && hr < 12 ? 'Доброе утро' : hr >= 12 && hr < 18 ? 'Добрый день' : hr >= 18 && hr < 23 ? 'Добрый вечер' : 'Доброй ночи';
+    const greet = `${daypart}! ${persona().hello}\n\nВо мне **${POWERS.length}+ сил**: рисую 🎨, брифинги ◈, викторины 🧠, крипта ₿, МКС 🛰, мемы 🤣, жесты 🤟 и мимика 🙂. Напиши /help или нажми Ctrl+K.${store.hasKey() ? '' : '\n\n⚠ Вставь API-ключ в ⚙️ — без него часть сил спит.'}`;
     h.set(greet); h.done(aiActions(h));
     store.pushHistory('assistant', greet);
   }
@@ -569,7 +680,9 @@ async function init() {
 
 /* test hooks */
 window.__mark2 = { send, routeCommand, store, get persona() { return S.persona; },
-  get voice() { return S.voice; }, get vision() { return S.vision; }, version: APP.version };
+  get voice() { return S.voice; }, get vision() { return S.vision; }, version: APP.version,
+  powers: () => POWERS.map(p => ({ id: p.id, sample: p.sample, expect: p.expect || '', skip: !!p.skipSweep })),
+  testAuto: false, trapActive: () => trapActive() };
 
 init().catch(e => {
   console.error(e);

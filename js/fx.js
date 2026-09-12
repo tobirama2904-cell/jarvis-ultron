@@ -1,7 +1,7 @@
-/* MARK II — FX: synth SFX, particle background, arc-reactor renderer. */
+/* MARK II — FX v2: synth SFX, soft particles, PLASMA ORB, confetti. */
 import { get } from './store.js';
 
-/* ================= SFX (WebAudio synth, no assets) ================= */
+/* ================= SFX ================= */
 let AC = null, master = null;
 function ac() {
   if (!AC) {
@@ -38,9 +38,15 @@ export const Sfx = {
   wake()    { tone(300, 900, 0.22, 'sine', 0.3); tone(600, 1500, 0.2, 'triangle', 0.15, 0.1); },
   boot()    { tone(80, 480, 0.7, 'sawtooth', 0.1); tone(160, 960, 0.7, 'sine', 0.2, 0.1); tone(1320, 1320, 0.2, 'sine', 0.2, 0.75); },
   alarm()   { tone(740, 740, 0.14, 'square', 0.2); tone(740, 740, 0.14, 'square', 0.2, 0.2); tone(988, 988, 0.3, 'square', 0.2, 0.4); },
+  scan()    { tone(200, 1800, 0.5, 'sine', 0.22); tone(1800, 300, 0.4, 'sine', 0.15, 0.45); },
+  suitup()  { [220, 330, 440, 660, 880].forEach((f, i) => tone(f, f * 1.5, 0.18, 'sawtooth', 0.16, i * 0.11)); tone(1320, 1320, 0.3, 'sine', 0.25, 0.6); },
+  tada()    { [523, 659, 784, 1046].forEach((f, i) => tone(f, f, 0.16, 'triangle', 0.3, i * 0.1)); },
+  dance()   { for (let i = 0; i < 8; i++) tone(i % 2 ? 440 : 660, i % 2 ? 660 : 440, 0.12, 'square', 0.12, i * 0.14); },
+  snap()    { tone(3000, 200, 0.3, 'sine', 0.25); tone(150, 60, 0.5, 'sine', 0.3, 0.2); },
+  tick()    { tone(1200, 1200, 0.04, 'square', 0.12); },
 };
 
-/* ================= Background particles ================= */
+/* ================= soft particles ================= */
 export class BgFX {
   constructor(canvas) {
     this.c = canvas; this.x = canvas.getContext('2d');
@@ -55,39 +61,31 @@ export class BgFX {
   resize() {
     const d = Math.min(1.5, devicePixelRatio || 1);
     this.c.width = innerWidth * d; this.c.height = innerHeight * d;
-    const n = Math.min(130, Math.round(innerWidth * innerHeight / 16000));
+    const n = Math.min(110, Math.round(innerWidth * innerHeight / 19000));
     this.pts = Array.from({ length: n }, () => ({
-      x: Math.random(), y: Math.random(), r: Math.random() * 1.6 + 0.4,
-      vx: (Math.random() - 0.5) * 0.00016, vy: (Math.random() - 0.5) * 0.00016,
-      tw: Math.random() * Math.PI * 2,
+      x: Math.random(), y: Math.random(), r: Math.random() * 2 + 0.6,
+      vx: (Math.random() - 0.5) * 0.00012, vy: (Math.random() - 0.5) * 0.00012,
+      tw: Math.random() * Math.PI * 2, depth: Math.random(),
     }));
   }
-  color() { return getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#35c4ff'; }
+  cols() {
+    const cs = getComputedStyle(document.documentElement);
+    return [cs.getPropertyValue('--acc').trim() || '#38e1ff',
+      cs.getPropertyValue('--a2').trim() || '#818cf8'];
+  }
   start() {
     if (this.running) return; this.running = true;
     const step = () => {
-      if (!this.running) return;
-      const { x, c } = this, W = c.width, H = c.height, col = this.color();
+      if (!this.running || document.hidden) { requestAnimationFrame(step); return; }
+      const { x, c } = this, W = c.width, H = c.height, [c1, c2] = this.cols();
       x.clearRect(0, 0, W, H);
-      const px = (this.mx - 0.5) * 24, py = (this.my - 0.5) * 24;
+      const px = (this.mx - 0.5) * 30, py = (this.my - 0.5) * 30;
       for (const p of this.pts) {
-        p.x = (p.x + p.vx + 1) % 1; p.y = (p.y + p.vy + 1) % 1; p.tw += 0.02;
-        const a = 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(p.tw));
+        p.x = (p.x + p.vx + 1) % 1; p.y = (p.y + p.vy + 1) % 1; p.tw += 0.015;
+        const a = 0.2 + 0.4 * (0.5 + 0.5 * Math.sin(p.tw));
         x.beginPath();
-        x.arc(p.x * W + px * p.r, p.y * H + py * p.r, p.r * (W / innerWidth), 0, 7);
-        x.fillStyle = hexA(col, a * 0.5); x.fill();
-      }
-      // links
-      x.lineWidth = 1;
-      for (let i = 0; i < this.pts.length; i += 3) {
-        for (let j = i + 3; j < this.pts.length; j += 3) {
-          const a = this.pts[i], b = this.pts[j];
-          const dx = (a.x - b.x) * W, dy = (a.y - b.y) * H, d2 = dx * dx + dy * dy;
-          if (d2 < 120 * 120) {
-            x.strokeStyle = hexA(col, 0.06 * (1 - Math.sqrt(d2) / 120));
-            x.beginPath(); x.moveTo(a.x * W, a.y * H); x.lineTo(b.x * W, b.y * H); x.stroke();
-          }
-        }
+        x.arc(p.x * W + px * p.depth, p.y * H + py * p.depth, p.r * (W / innerWidth), 0, 7);
+        x.fillStyle = hexA(p.depth > 0.5 ? c1 : c2, a * 0.55); x.fill();
       }
       requestAnimationFrame(step);
     };
@@ -95,85 +93,111 @@ export class BgFX {
   }
 }
 export function hexA(hex, a) {
-  const h = hex.replace('#', '');
-  const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a.toFixed(3)})`;
+  try {
+    const h = String(hex).trim().replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a.toFixed(3)})`;
+  } catch (e) { return `rgba(56,225,255,${a})`; }
 }
 
-/* ================= Arc reactor ================= */
+/* ================= PLASMA ORB (same API as Reactor) ================= */
 export class Reactor {
   constructor(canvas) {
     this.c = canvas; this.x = canvas.getContext('2d');
-    this.level = 0; this.target = 0; this.color = '#35c4ff';
-    this.t = 0; this.spike = 0;
+    this.level = 0; this.target = 0; this.color = '#38e1ff'; this.color2 = '#818cf8';
+    this.t = Math.random() * 10; this.spike = 0;
+    this.sparks = Array.from({ length: 26 }, () => ({ a: Math.random() * 7, r: 0.75 + Math.random() * 0.45, s: 0.4 + Math.random() * 1.2, w: Math.random() * 7 }));
     this.resize = this.resize.bind(this);
     window.addEventListener('resize', this.resize);
     this.resize();
-    const step = () => { this.draw(); requestAnimationFrame(step); };
+    const step = () => { if (!document.hidden) this.draw(); requestAnimationFrame(step); };
     requestAnimationFrame(step);
   }
   resize() {
     const d = Math.min(2, devicePixelRatio || 1), r = this.c.getBoundingClientRect();
     this.c.width = Math.max(2, r.width * d); this.c.height = Math.max(2, r.height * d);
   }
-  setColor(c) { this.color = c; }
+  setColor(c) {
+    this.color = c;
+    try {
+      const cs = getComputedStyle(document.documentElement);
+      this.color2 = cs.getPropertyValue('--a2').trim() || c;
+    } catch (e) { this.color2 = c; }
+  }
   setLevel(v) { this.target = Math.max(0, Math.min(1, v)); }
   boom() { this.spike = 1; }
+  blob(R, lobes, phase, amp) {
+    const { x } = this, N = 90;
+    x.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const a = (i / N) * Math.PI * 2;
+      const r = R * (1 + amp * Math.sin(a * lobes + phase) + amp * 0.6 * Math.sin(a * (lobes + 2) - phase * 1.3));
+      const px = Math.cos(a) * r, py = Math.sin(a) * r;
+      i ? x.lineTo(px, py) : x.moveTo(px, py);
+    }
+    x.closePath();
+  }
   draw() {
     const { x, c } = this, W = c.width, H = c.height;
     if (!W) return;
     this.t += 0.016;
-    this.level += (this.target - this.level) * 0.12;
-    this.spike *= 0.92;
+    this.level += (this.target - this.level) * 0.1;
+    this.spike *= 0.93;
     const lvl = Math.min(1, this.level + this.spike);
-    const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 4 * (W / 300);
-    const col = this.color;
+    const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 6;
+    const col = this.color, col2 = this.color2, t = this.t;
     x.clearRect(0, 0, W, H);
     x.save(); x.translate(cx, cy);
-    // halo
-    const halo = x.createRadialGradient(0, 0, R * 0.2, 0, 0, R * 1.25);
-    halo.addColorStop(0, hexA(col, 0.28 + lvl * 0.25));
-    halo.addColorStop(1, hexA(col, 0));
-    x.fillStyle = halo; x.beginPath(); x.arc(0, 0, R * 1.25, 0, 7); x.fill();
-    // outer ticks (slow)
-    x.save(); x.rotate(this.t * 0.25);
-    for (let i = 0; i < 60; i++) {
-      const big = i % 6 === 0;
-      x.rotate(Math.PI * 2 / 60);
-      x.strokeStyle = hexA(col, big ? 0.9 : 0.35);
-      x.lineWidth = (big ? 3 : 1.5) * (W / 300);
-      x.beginPath(); x.moveTo(0, -R); x.lineTo(0, -R + (big ? 14 : 7) * (W / 300)); x.stroke();
+    x.globalCompositeOperation = 'lighter';
+    // outer halo
+    const halo = x.createRadialGradient(0, 0, R * 0.3, 0, 0, R * 1.3);
+    halo.addColorStop(0, hexA(col, 0.22 + lvl * 0.2));
+    halo.addColorStop(0.7, hexA(col2, 0.1));
+    halo.addColorStop(1, hexA(col2, 0));
+    x.fillStyle = halo; x.beginPath(); x.arc(0, 0, R * 1.3, 0, 7); x.fill();
+    // plasma lobes
+    this.blob(R * 0.86, 3, t * 0.9, 0.06 + lvl * 0.05);
+    x.fillStyle = hexA(col, 0.28); x.fill();
+    this.blob(R * 0.86, 4, -t * 0.7, 0.05 + lvl * 0.04);
+    x.fillStyle = hexA(col2, 0.26); x.fill();
+    this.blob(R * 0.68, 5, t * 1.4, 0.07 + lvl * 0.06);
+    x.fillStyle = hexA(col, 0.4); x.fill();
+    // sparks orbit
+    for (const s of this.sparks) {
+      s.a += 0.008 * s.s * (1 + lvl * 2);
+      const rr = R * s.r * (1 + 0.08 * Math.sin(t * 2 + s.w));
+      const sx = Math.cos(s.a) * rr, sy = Math.sin(s.a) * rr * 0.92;
+      x.beginPath(); x.arc(sx, sy, (1 + lvl * 2) * (W / 300), 0, 7);
+      x.fillStyle = hexA(s.w > 3.5 ? col : '#ffffff', 0.5); x.fill();
     }
-    x.restore();
-    // segmented ring (counter-rotating)
-    x.save(); x.rotate(-this.t * (0.5 + lvl * 1.6));
-    for (let i = 0; i < 10; i++) {
-      x.rotate(Math.PI * 2 / 10);
-      x.strokeStyle = hexA(col, 0.55 + lvl * 0.4);
-      x.lineWidth = 6 * (W / 300);
-      x.beginPath(); x.arc(0, 0, R * 0.78, -0.22, 0.22); x.stroke();
-    }
-    x.restore();
-    // thin rings
-    [0.66, 0.6].forEach((k, i) => {
-      x.strokeStyle = hexA(col, i ? 0.9 : 0.4); x.lineWidth = (i ? 2 : 1) * (W / 300);
-      x.beginPath(); x.arc(0, 0, R * k, 0, 7); x.stroke();
-    });
-    // coils
-    x.save(); x.rotate(this.t * (1.2 + lvl * 3));
-    x.strokeStyle = hexA(col, 0.85); x.lineWidth = 3 * (W / 300);
-    for (let i = 0; i < 10; i++) {
-      x.rotate(Math.PI * 2 / 10);
-      x.beginPath(); x.moveTo(0, -R * 0.6); x.lineTo(0, -R * 0.34); x.stroke();
-    }
-    x.restore();
     // core
-    const flick = 1 + Math.sin(this.t * 31) * 0.04 + lvl * 0.25;
-    const core = x.createRadialGradient(0, 0, 0, 0, 0, R * 0.32 * flick);
+    const flick = 1 + Math.sin(t * 6) * 0.03 + lvl * 0.22;
+    const core = x.createRadialGradient(0, 0, 0, 0, 0, R * 0.4 * flick);
     core.addColorStop(0, '#ffffff');
-    core.addColorStop(0.45, hexA(col, 0.95));
-    core.addColorStop(1, hexA(col, 0.05));
-    x.fillStyle = core; x.beginPath(); x.arc(0, 0, R * 0.32 * flick, 0, 7); x.fill();
+    core.addColorStop(0.35, hexA(col, 0.95));
+    core.addColorStop(0.7, hexA(col2, 0.5));
+    core.addColorStop(1, hexA(col2, 0));
+    x.fillStyle = core; x.beginPath(); x.arc(0, 0, R * 0.4 * flick, 0, 7); x.fill();
     x.restore();
   }
+}
+
+/* ================= confetti ================= */
+const CONF_COLORS = ['#38e1ff', '#818cf8', '#f472b6', '#fbbf24', '#34d399', '#ffffff'];
+export function confetti(n = 90) {
+  try {
+    for (let i = 0; i < n; i++) {
+      const d = document.createElement('div');
+      d.className = 'confetti-piece';
+      const s = 6 + Math.random() * 8;
+      d.style.cssText = `left:${Math.random() * 100}vw;top:-20px;width:${s}px;height:${s * (Math.random() > 0.5 ? 1 : 0.5)}px;background:${CONF_COLORS[i % CONF_COLORS.length]};border-radius:${Math.random() > 0.5 ? '50%' : '2px'};`;
+      document.body.appendChild(d);
+      const dx = (Math.random() - 0.5) * 300, dur = 1800 + Math.random() * 1600;
+      d.animate([
+        { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx}px,${innerHeight + 60}px) rotate(${Math.random() * 1080 - 540}deg)`, opacity: 0.9 },
+      ], { duration: dur, easing: 'cubic-bezier(.2,.6,.4,1)' }).onfinish = () => d.remove();
+      setTimeout(() => d.remove(), dur + 300);
+    }
+  } catch (e) {}
 }

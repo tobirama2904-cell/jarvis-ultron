@@ -370,3 +370,31 @@ export function runBoot(lines) {
     setTimeout(() => ov.remove(), 700);
   })();
 }
+
+/* ---------- choice buttons (powers Q&A) ---------- */
+export function askChoice(question, options) {
+  const c = $('#chat');
+  const d = document.createElement('div');
+  d.className = 'msg ai';
+  d.innerHTML = `<div class="m-tag"><span class="dot"></span>ВЫБОР</div><div class="m-bub"><div>${mdLite(question)}</div><div class="choice-btns"></div></div>`;
+  const box = d.querySelector('.choice-btns');
+  c.appendChild(d); scrollChat(true);
+  return new Promise(resolve => {
+    const btns = [];
+    options.forEach((opt, i) => {
+      const b = document.createElement('button');
+      b.className = 'choice-btn'; b.textContent = opt;
+      b.style.animationDelay = (i * 0.06) + 's';
+      b.onclick = () => {
+        btns.forEach(x => x.disabled = true);
+        b.classList.add('picked');
+        addUser('\u25b8 ' + opt);
+        resolve(i);
+      };
+      btns.push(b); box.appendChild(b);
+    });
+    if (window.__mark2 && window.__mark2.testAuto) {
+      setTimeout(() => { if (btns[0] && !btns[0].disabled) btns[0].click(); }, 400);
+    }
+  });
+}
