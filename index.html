@@ -1,376 +1,122 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-persona="jarvis">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>JARVIS AMIN — MARVEL OS • 2026</title>
-<meta name="theme-color" content="#00D9FF">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MARK II — STARK OS</title>
+<meta name="description" content="MARK II — персональный ИИ в стиле лаборатории Тони Старка: JARVIS, FRIDAY, ULTRON, VISION.">
+<meta name="theme-color" content="#03060c">
 <link rel="manifest" href="manifest.json">
-<style>
-
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@600&display=swap');
-  :root{--bg:#050815;--panel:#0E193A;--panel2:#080F2A;--line:rgba(118,145,255,.13);--cyan:#00E7FF;--orange:#FF8B1A;--red:#FF2040;--vio:#7C3AED;--green:#18FF9A;--text:#ECF1FF;--muted:#8FA0CC;--navH:64px;--accent:var(--cyan)}
-  .theme-friday{--accent:var(--orange)} .theme-ultron{--accent:var(--red)} .theme-jarvis{--accent:var(--cyan)}
-  *{margin:0;padding:0;box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',system-ui,sans-serif;min-height:100dvh;overflow-x:hidden;padding-top:var(--navH)}
-  .aura{position:fixed;inset:0;z-index:0;pointer-events:none;background:
-    radial-gradient(1100px 700px at 18% 6%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 68%),
-    radial-gradient(900px 600px at 92% 10%, rgba(124,58,237,.20), transparent 70%),
-    radial-gradient(800px 520px at 50% 98%, rgba(24,255,154,.07), transparent 72%),
-    linear-gradient(180deg,#07102A 0%, #050815 58%, #040612 100%);animation:nebula 16s ease-in-out infinite}
-  @keyframes nebula{0%,100%{filter:brightness(1) saturate(1)}50%{filter:brightness(1.07) saturate(1.12)}}
-  .grid{position:fixed;inset:0;z-index:0;opacity:.055;background-image:linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg,var(--line) 1px, transparent 1px);background-size:36px 36px;animation:drift 22s linear infinite}
-  @keyframes drift{0%{transform:translate(0,0)}100%{transform:translate(36px,36px)}}
-  /* NAV FIXED not floating */
-  nav{position:fixed;top:0;left:0;right:0;height:var(--navH);z-index:60;background:rgba(6,10,28,.90);backdrop-filter:blur(24px) saturate(1.3);-webkit-backdrop-filter:blur(24px) saturate(1.3);border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 14px 44px rgba(0,0,0,.50), 0 1px 0 rgba(255,255,255,.06) inset}
-  .nav-inner{max-width:1520px;margin:0 auto;height:100%;padding:0 18px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:nowrap}
-  .brand{display:flex;gap:14px;align-items:center;min-width:0}
-  .mark{width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--vio));display:grid;place-items:center;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:white;box-shadow:0 0 28px color-mix(in srgb, var(--accent) 42%, transparent), 0 8px 20px rgba(0,0,0,.4);position:relative;overflow:hidden;flex-shrink:0}
-  .mark::after{content:'';position:absolute;inset:-18px;background:conic-gradient(from 0deg, transparent, rgba(255,255,255,.18), transparent 42%);animation:spin 3.2s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .modes{display:flex;gap:5px;padding:4px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(8px);flex-shrink:0}
-  .mode{padding:8px 16px;border-radius:999px;font-weight:800;font-size:12px;cursor:pointer;transition:.22s;border:1px solid transparent;letter-spacing:.02em;white-space:nowrap}
-  .mode.active{background:var(--accent);color:#061018;box-shadow:0 6px 18px color-mix(in srgb, var(--accent) 36%, transparent);transform:translateY(-1px)}
-  .pills{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-  .pill{padding:6px 11px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10.5px;display:inline-flex;gap:6px;align-items:center;backdrop-filter:blur(8px)}
-  .dot{width:7px;height:7px;border-radius:50%;background:#5A6A95;transition:.2s}
-  .dot.on{background:var(--green);box-shadow:0 0 10px var(--green);animation:dotPulse 1.8s ease-in-out infinite}
-  .dot.wait{background:var(--orange);animation:blink 1s infinite}
-  @keyframes dotPulse{0%,100%{opacity:1}50%{opacity:.7}}
-  @keyframes blink{50%{opacity:.45}}
-  /* SHELL */
-  .shell{position:relative;z-index:2;max-width:1520px;margin:0 auto;padding:18px;display:grid;grid-template-columns:460px 1fr;gap:18px}
-  .card{background:rgba(14,23,52,.86);backdrop-filter:blur(22px) saturate(1.18);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,.08);border-radius:26px;overflow:hidden;box-shadow:0 18px 64px rgba(0,0,0,.46), 0 0 0 1px rgba(255,255,255,.04) inset, 0 1px 0 rgba(255,255,255,.09) inset;animation:cardIn .55s ease-out}
-  @keyframes cardIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-  .card:hover{transform:translateY(-1px);box-shadow:0 22px 72px rgba(0,0,0,.52), 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent) inset}
-  .card-head{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:linear-gradient(180deg, rgba(255,255,255,.05), transparent 72%)}
-  .card-head b{font-family:'Syne',sans-serif;font-size:11px;letter-spacing:.07em;display:flex;align-items:center;gap:8px}
-  .card-head b::before{content:'◆';color:var(--accent);font-size:10px;display:inline-block;animation:spin 5s linear infinite}
-  /* STAGE SUN */
-  .stage{height:440px;position:relative;overflow:hidden;background:
-    radial-gradient(620px 380px at 50% 28%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
-    radial-gradient(420px 320px at 50% 55%, rgba(255,185,55,.11), transparent 66%),
-    linear-gradient(180deg,#0B1540 0%, #06102A 56%, #050A1F 100%);border-bottom:1px solid rgba(255,255,255,.06)}
-  #holo3d{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg, transparent, var(--accent), transparent);opacity:.56;animation:scan 3.6s ease-in-out infinite;pointer-events:none;z-index:3}
-  @keyframes scan{0%{top:8%}50%{top:88%}100%{top:8%}}
-  .face{position:absolute;right:14px;bottom:14px;width:176px;height:128px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.14);background:#000;box-shadow:0 14px 36px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.05) inset;z-index:4}
-  .face video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block}
-  .face canvas{position:absolute;inset:0;width:100%;height:100%}
-  .face-off{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(180deg,#0B1024,#060A14);font-size:11px;color:var(--muted);text-align:center;z-index:2}
-  .hud{position:absolute;left:14px;bottom:14px;display:flex;gap:7px;flex-wrap:wrap;z-index:4}
-  .hud span{padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.08);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--accent);backdrop-filter:blur(8px)}
-  .controls{padding:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .btn{height:38px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06);color:white;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.22s;white-space:nowrap;position:relative;overflow:hidden}
-  .btn:hover{transform:translateY(-1px) scale(1.015);border-color:color-mix(in srgb, var(--accent) 45%, rgba(255,255,255,.10));box-shadow:0 8px 22px color-mix(in srgb, var(--accent) 18%, transparent)}
-  .btn.primary{background:linear-gradient(135deg,var(--accent), color-mix(in srgb, var(--accent) 78%, white));color:#061018;border-color:var(--accent);font-weight:800;box-shadow:0 10px 28px color-mix(in srgb, var(--accent) 28%, transparent)}
-  .btn:active{transform:translateY(0) scale(.98)}
-  .log{padding:10px 14px;border-top:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.24);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);min-height:34px;max-height:72px;overflow:auto}
-  /* TABS sticky under fixed nav */
-  .tabs{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(9,16,38,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);flex-wrap:wrap}
-  .tab{padding:9px 15px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-weight:700;font-size:12.5px;cursor:pointer;transition:.2s;position:relative}
-  .tab.active{background:var(--accent);color:#061018;border-color:var(--accent);box-shadow:0 6px 18px color-mix(in srgb, var(--accent) 32%, transparent);transform:translateY(-1px)}
-  .pane{padding:16px;display:none;min-height:360px;animation:paneIn .32s ease-out}
-  @keyframes paneIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-  .pane.active{display:block !important}
-  .pane h3{font-family:'Syne',sans-serif;font-size:15px;margin-bottom:7px;display:flex;align-items:center;gap:8px}
-  .pane p{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:12px}
-  .code-top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-  .code-top input{flex:1;min-width:240px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.06);color:white;padding:0 14px;font-size:12px;transition:.2s}
-  .code-top input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent)}
-  .code-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  #codeOut{width:100%;min-height:320px;background:#0A0F1E;color:#E6EDF3;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical}
-  #codePreview{width:100%;height:320px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:white}
-  .chat-list{height:440px;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:11px;background:radial-gradient(620px 320px at 50% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 62%);border:1px solid rgba(255,255,255,.06);border-radius:16px}
-  .msg{max-width:88%;padding:11px 13px;border-radius:16px;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;animation:msgIn .3s ease-out}
-  @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-  .msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--accent), color-mix(in srgb, var(--accent) 82%, #fff));color:#061018;font-weight:600;box-shadow:0 8px 20px color-mix(in srgb, var(--accent) 20%, transparent)}
-  .msg.bot{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px)}
-  .msg.sys{align-self:center;background:rgba(124,58,237,.14);border:1px solid rgba(124,58,237,.22);font-size:11px;color:#C4B5FD}
-  .composer{display:flex;gap:8px;margin-top:12px}
-  .composer input{flex:1;height:44px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.06);color:white;padding:0 16px;font-size:13px;transition:.2s}
-  .composer input:focus{outline:none;border-color:var(--accent);background:rgba(255,255,255,.08)}
-  @media(max-width:1020px){.shell{grid-template-columns:1fr;gap:16px;padding:14px} .stage{height:360px} .code-grid{grid-template-columns:1fr} #codePreview{height:300px} .chat-list{height:380px} .nav-inner{padding:0 12px} .pills{gap:6px} .mode{padding:7px 12px;font-size:11px}}
-  @media(max-width:640px){body{padding-top:58px} :root{--navH:58px} .brand b{font-size:15px !important} .mark{width:42px;height:42px;font-size:15px;border-radius:12px} .stage{height:320px} .face{width:132px;height:96px}}
-
-@media(max-width:640px){#enginePill{display:none}}
-
-  /* WAVE 2-6 */
-  #boot{position:fixed;inset:0;z-index:200;background:radial-gradient(800px 500px at 50% 40%,#0B1540,#04060D);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer}
-  .reactor{width:110px;height:110px;border-radius:50%;border:6px solid var(--cyan);position:relative;animation:react 2s ease-in-out infinite}
-  .reactor::before{content:'';position:absolute;inset:16px;border-radius:50%;border:3px dashed var(--cyan);animation:spin 1.4s linear infinite reverse}
-  .reactor::after{content:'◆';position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:30px}
-  @keyframes react{0%,100%{box-shadow:0 0 30px var(--cyan)}50%{box-shadow:0 0 70px var(--cyan),0 0 120px var(--cyan) inset}}
-  .boot-t{font-family:'Syne',sans-serif;font-size:34px;letter-spacing:.2em;color:#fff}
-  .boot-s{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.3em}
-  .boot-bar{width:220px;height:4px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
-  .boot-bar i{display:block;height:100%;width:40%;background:var(--cyan);border-radius:99px;animation:bootb 1.1s ease-in-out infinite}
-  @keyframes bootb{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
-  .boot-h{font-size:10px;color:var(--muted)}
-  #chips{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none}
-  #chips::-webkit-scrollbar{display:none}
-  #chips button{flex:0 0 auto;height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.2s}
-  #chips button:hover{border-color:var(--accent);transform:translateY(-1px)}
-  #wRow{display:none;gap:8px;flex-wrap:wrap;padding:10px 14px 0;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--accent)}
-  #wRow span{padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(0,0,0,.3)}
-  body.cinema .shell{grid-template-columns:1fr}
-  body.cinema .shell>.card:first-child{display:none}
-  #styChips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-  #styChips button{height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:#fff;font-size:11px;font-weight:700;cursor:pointer}
-  #styChips button:hover{border-color:var(--accent)}
-  #editBox{margin-top:12px;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03)}
-  #editBox b{font-size:12px}
-  #editPrompt,#storyPrompt{flex:1;min-width:200px;height:40px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:#fff;padding:0 12px;font-size:12px}
-  #editStat{font-size:11px;color:var(--muted);align-self:center}
-  #storyBox{margin-bottom:12px;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03)}
-  #storyBox b{font-size:12px}
-  #storyOut{display:flex;flex-direction:column;gap:8px;margin-top:8px}
-  .stcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#000;font-size:11px}
-  .stcard img{width:100%;display:block}
-  .stcard div{padding:6px 8px}
-  .stcard.live{border-color:var(--accent);box-shadow:0 0 18px rgba(0,231,255,.35)}
-  .gal-in{max-width:760px;margin:20px auto;background:#0B1430;border:1px solid var(--line);border-radius:18px;padding:16px}
-  #galGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
-  #galGrid .g{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#000}
-  #galGrid img{width:100%;display:block;aspect-ratio:1;object-fit:cover}
-  #galGrid .cap{padding:5px 7px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #galGrid .row{display:flex;gap:4px;padding:0 7px 7px}
-  #galGrid .row button{flex:1;height:26px;font-size:11px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:#fff;cursor:pointer}
-  #avaImg{width:100%;border-radius:14px;border:1px solid var(--line);background:#000;min-height:200px}
-  #avaCap{font-size:12px;color:var(--muted);margin-top:8px}
-  #factBox{display:flex;flex-direction:column;gap:4px;margin-top:8px}
-  #factBox .f{font-size:10px;padding:5px 8px;border-radius:8px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.25);display:flex;justify-content:space-between;gap:6px;align-items:center}
-  #factBox .f button{background:none;border:none;color:var(--muted);cursor:pointer}
-  #remWrap{margin-top:8px}
-  #remList{display:flex;flex-direction:column;gap:4px;margin-top:6px}
-  #remList .r{font-size:10px;padding:5px 8px;border-radius:8px;background:rgba(255,139,26,.1);border:1px solid rgba(255,139,26,.25);display:flex;justify-content:space-between;gap:6px;align-items:center}
-  #remList .r button{background:none;border:none;color:var(--muted);cursor:pointer}
-  @media(max-width:640px){#galGrid{grid-template-columns:1fr 1fr}.boot-t{font-size:24px}}
-
-</style>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="css/app.css">
 </head>
-<body class="theme-jarvis">
-<div id="boot"><div class="reactor"></div><div class="boot-t">STARK OS</div><div class="boot-s">JARVIS • FRIDAY • ULTRON</div><div class="boot-bar"><i></i></div><div class="boot-h">нажми чтобы пропустить</div></div>
-<div class="aura"></div><div class="grid"></div>
-<nav>
-  <div class="nav-inner">
-    <div class="brand">
-      <div class="mark">◆</div>
-      <div>
-        <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap"><b style="font-family:'Syne',sans-serif;font-size:18px" id="whoName">JARVIS</b><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">FOR AMIN • <span id="modeWord">JARVIS</span> • MARVEL OS</span></div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.08em">ONLY AGNES 2.5-FLASH • FREE UNLIMITED • V15</div>
-      </div>
-    </div>
-    <div class="modes">
-      <div class="mode active" data-m="jarvis" onclick="setMode('jarvis')">JARVIS</div>
-      <div class="mode" data-m="friday" onclick="setMode('friday')">FRIDAY</div>
-      <div class="mode" data-m="ultron" onclick="setMode('ultron')">ULTRON</div>
-    </div>
-    <div class="pills">
-      <span class="pill"><span class="dot on" id="dot"></span><span id="dotText">JARVIS</span></span>
-      <span class="pill" id="sysClock">00:00:00 DSH</span>
-      <span class="pill" id="enginePill" title="AI движок">⚡ <span id="engineText">Agnes 2.5-flash</span></span>
-      <span class="pill" id="handStat">🖐️ off</span>
-    </div>
-  </div>
-</nav>
+<body>
+<canvas id="bg"></canvas>
+<div class="grid-overlay"></div>
+<div class="vignette"></div>
+<div class="scanlines"></div>
 
-<div class="shell">
-  <!-- LEFT HERO -->
-  <div class="card">
-    <div class="card-head"><b id="orbTitle">HOLO-SUN • JARVIS</b><div style="display:flex;gap:6px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">● LIVE</span><div class="wave" id="wave" style="display:none"><i></i><i></i><i></i></div></div></div>
-    <div class="stage" id="stage"><canvas id="holo3d" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
-      <div class="scanline"></div><div class="face" id="faceBox"><video id="cam" autoplay muted playsinline></video><canvas id="faceOv"></canvas><div style="position:absolute;left:6px;top:6px;padding:3px 7px;border-radius:999px;background:rgba(0,0,0,.7);border:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--accent)" id="faceLabel">FACE • OFF</div><div class="face-off" id="faceOff">Камера выкл<br><span style="font-size:10px;opacity:.7">Нажми 📷</span></div></div>
-      <div class="hud"><span id="hudState">JARVIS • STANDBY</span><span id="hudVoice">VOICE: READY</span><span id="hudHand">HAND: OFF</span></div>
-      <div id="disBadge" style="position:absolute;top:12px;right:12px;z-index:5;font-size:9px;font-weight:800;padding:5px 10px;border-radius:999px;background:rgba(0,0,0,.65);border:1px solid var(--line);color:var(--accent);backdrop-filter:blur(8px)">☀️ SUN • PARTICLES</div>
-    </div>
-    <div id="wRow" style="display:none"></div>
-    <div class="controls">
-      <button class="btn" id="camBtn" onclick="toggleCam()">📷 Камера</button>
-      <button class="btn" id="micBtn" onclick="toggleMic()">🎙️ Слушать</button>
-      <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="voiceToggle" checked> Озвучка</label>
-      <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)"><input type="checkbox" id="gestureToggle" checked> Жесты</label>
-    </div>
-    <div style="padding:0 14px 10px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.06);padding-top:10px">
-      <button class="btn" id="wakeBtn" onclick="toggleWake()">🎙️ WAKE</button>
-      <button class="btn" id="liveBtn" onclick="toggleLiveVision()">👁️ LIVE</button>
-      <button class="btn" id="coachBtn" onclick="toggleGameCoach()">🎮 Коуч</button>
-      <button class="btn" id="flipBtn" onclick="flipCam()">🔄 Зад</button><button class="btn" id="avaBtn" onclick="Creator.avatarSpeak()">🗣 Диктор</button>
-      <span id="wakeStat" style="font-size:10px;color:var(--muted);align-self:center"></span>
-    </div>
-    <div style="padding:0 14px 10px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
-      <button class="btn" onclick="rot-=0.4">↺</button><button class="btn" onclick="rot+=0.4">↻</button>
-      <button class="btn" onclick="scale=Math.min(1.7,scale+0.12)">＋</button><button class="btn" onclick="scale=Math.max(0.6,scale-0.12)">－</button>
-      <span style="font-size:10px;color:var(--muted);align-self:center">тащи солнце пальцем • щипок зум • ✌️ свайп</span><button class="btn" style="height:28px;font-size:10px" onclick="toggleSunBurst()">☀️ Вспышка</button>
-    </div>
-    <div style="padding:0 14px 10px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px"><button class="btn" id="cineBtn" onclick="Stage.toggleCinema()">🎞 Кино</button><button class="btn" onclick="Stage.toggleFull()">⛶ Экран</button><button class="btn" onclick="Brain.morningBriefing()">☀️ Брифинг</button><button class="btn" id="sndBtn" onclick="Sfx.toggle()">🔊 Звук</button></div>
-    <div class="log" id="log">готов для Амина... скажи "Джарвис" или нажми 🎙️</div>
-    <div style="padding:12px;border-top:1px solid var(--line)">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="font-size:11px;font-weight:800">🔑 Agnes один ключ на всё</div><span style="font-size:9px;padding:3px 7px;border-radius:999px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);color:#34d399;font-weight:700">FREE • БЕЗЛИМИТ</span></div>
-      <div style="font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.45;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:8px">👋 <b>Гость?</b> <a href="https://apihub.agnes-ai.com" target="_blank" style="color:#60a5fa;text-decoration:underline;font-weight:700">apihub.agnes-ai.com → Получить ключ</a> → <b>sk-...</b> → Сохранить.</div>
-      <input id="agnesKey" type="password" placeholder="sk-... вставь сюда" style="width:100%;height:40px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;font-size:12px;margin-top:8px">
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center"><button class="btn primary" style="height:34px" onclick="saveAgnes()">💾 Сохранить</button><a href="https://apihub.agnes-ai.com" target="_blank" style="height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;border-radius:999px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:white;font-weight:800;font-size:12px;text-decoration:none">🔗 Получить</a><button class="btn" style="height:34px" onclick="testAgnes()">Проверить</button><button class="btn" style="height:34px" onclick="openSelfCheck()">🔍 Всё</button><button class="btn" style="height:34px" onclick="clearAgnes()">Очистить</button><button class="btn" style="height:34px" onclick="var i=document.getElementById('agnesKey');i.type=i.type==='password'?'text':'password'">👁</button><span id="agnesStat" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">проверка...</span></div>
-    </div>
-    <div style="padding:12px;border-top:1px solid var(--line)" id="memoryBlock">
-      <div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:11px;font-weight:800">🧠 Память JARVIS</div><button class="btn" style="height:26px;font-size:10px" onclick="clearMemory()">Очистить</button></div>
-      <div id="memoryStat" style="font-size:10px;color:var(--muted);margin-top:4px">Помню Амина • авто-сохраняю проекты</div>
-      <div id="memoryPanel" style="margin-top:8px;max-height:140px;overflow:auto;display:flex;flex-direction:column;gap:6px"></div>
-      <div style="display:flex;gap:6px;margin-top:8px"><button class="btn" style="height:28px;font-size:10px" onclick="exportMemory()">💾 Экспорт</button><button class="btn" style="height:28px;font-size:10px" onclick="document.getElementById('memoryPanel').scrollTop=0">↑ Топ</button></div>
-      <div id="factBox"></div>
-      <div id="remWrap"><div style="font-size:11px;font-weight:800">⏰ Напоминания</div><div id="remList"></div></div>
-    </div>
-    <div style="padding:12px;border-top:1px solid var(--line)" id="aboutBlock">
-      <div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:11px;font-weight:800">👤 Обо мне — JARVIS знает тебя</div><button class="btn" style="height:26px;font-size:10px" onclick="saveAboutMe()">Сохранить</button></div>
-      <textarea id="aboutMe" placeholder="Кто ты? Что любишь? JARVIS запомнит..." style="width:100%;height:64px;margin-top:6px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:8px;font-size:11px;resize:vertical"></textarea>
-    </div>
-  </div>
-
-  <!-- RIGHT -->
-  <div class="card">
-    <div class="tabs">
-      <div class="tab active" id="t-chat" onclick="switchTab('chat')">💬 Чат</div>
-      <div class="tab" id="t-code" onclick="switchTab('code')">💻 Кодинг • 2.5-flash</div>
-      <div class="tab" id="t-image" onclick="switchTab('image')">🎨 Изображения</div>
-      <div class="tab" id="t-video" onclick="switchTab('video')">🎬 Видео</div>
-      <div class="tab" id="t-analysis" onclick="switchTab('analysis')">🔍 Анализ</div>
-      <div class="tab" id="t-legion" onclick="switchTab('legion')">🦾 Legion</div>
-      <div class="tab" id="t-quest" onclick="switchTab('quest')">💬 VisionQuest</div>
-    </div>
-
-    <!-- CHAT -->
-    <div class="pane active" id="pane-chat">
-      <div class="chat-list" id="msgs"></div>
-      <div class="media" id="imgBox" style="margin-top:10px;display:none"><img id="genImg" style="width:100%;border-radius:12px;border:1px solid var(--line)"><div id="imgCap" style="font-size:11px;color:var(--muted);margin-top:6px"></div></div>
-      <div class="media" id="vidBox" style="margin-top:10px;display:none"></div>
-      <div id="chips"><button onclick="Brain.morningBriefing()">☀️ Брифинг</button><button onclick="Brain.weatherQuick()">🌤 Погода</button><button onclick="Brain.ratesQuick()">💱 Курс</button><button onclick="Brain.freshNews()">📰 Новости</button><button onclick="chipCouncil()">🧠 Совет</button><button onclick="chipFix()">🩹 Почини код</button><button onclick="chipTranslate()">🌐 Перевод</button><button onclick="Brain.exportChat()">💾 Экспорт</button></div>
-      <div class="composer"><input id="inp" placeholder="Напиши или скажи ‘Джарвис сделай...’"><button class="btn primary" onclick="send()">→</button><button class="btn" title="Новый диалог — очистить историю" onclick="ChatHist.clear();document.getElementById('msgs').innerHTML='';addMsg('sys','🧹 Новый диалог')">🧹</button><button class="btn" title="Стоп — замолчать" onclick="stopAll()">⏹</button></div>
-    </div>
-
-    <!-- CODING -->
-    <div class="pane" id="pane-code">
-      <h3>💻 Кодинг — Agnes 2.5-flash • free безлимит</h3>
-      <p>Полный файл без обрывов. Превью / localhost / запуск.</p>
-      <div class="code-top">
-        <input id="codePrompt" placeholder="Напр: Лендинг кофейни в Душанбе, тёмная тема">
-        <select id="codeLang" style="height:44px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 10px;font-size:12px">
-          <option value="html">HTML (превью)</option><option value="javascript">JavaScript</option><option value="python">Python</option><option value="react">React</option><option value="vue">Vue</option><option value="nextjs">Next.js</option><option value="php">PHP</option>
-        </select>
-        <button class="btn primary" onclick="genCode()">⚡ Сгенерить</button>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <button class="btn primary" onclick="runCode()">▶️ Запустить</button>
-        <button class="btn" onclick="openPreview()">⛶ Полный экран</button>
-        <button class="btn" onclick="openLocalhost()">🌐 Localhost</button>
-        <button class="btn" onclick="copyCode()">📋 Копи</button>
-        <button class="btn" onclick="downloadCode()">💾 Скачать</button>
-        <button class="btn" onclick="formatCode()">✨ Формат</button>
-        <span id="codeStat" style="font-size:11px;color:var(--muted);align-self:center"></span><span id="codeLen" style="font-size:11px;color:var(--muted)">0 симв</span>
-      </div>
-      <div class="code-grid">
-        <textarea id="codeOut" placeholder="// код появится здесь..."></textarea>
-        <div><iframe id="codePreview"></iframe><pre id="codeConsole" style="background:#0A0F1E;border:1px solid var(--line);border-radius:10px;padding:8px;min-height:60px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:8px;white-space:pre-wrap">превью</pre></div>
-      </div>
-    </div>
-
-    <!-- IMAGE -->
-    <div class="pane" id="pane-image">
-      <h3>🎨 Изображения — agnes-image-2.1</h3>
-      <p>Промпт → 4 варианта, история сохраняется.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <input id="imgPrompt2" placeholder="Киберпанк Душанбе, неон, дождь" style="flex:1;min-width:260px;height:44px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 14px">
-        <select id="imgSize" style="height:44px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 10px"><option value="1024x1024">1024</option><option value="1792x1024">1792×1024</option></select>
-        <button class="btn primary" onclick="genImg2()">🎨 Генерить</button>
-      </div>
-      <div id="styChips"><button onclick="Creator.stylePreset('cyber')">🌃 Киберпанк</button><button onclick="Creator.stylePreset('anime')">🌸 Аниме</button><button onclick="Creator.stylePreset('marvel')">🦸 Marvel</button><button onclick="Creator.stylePreset('photo')">📷 Фото</button><button onclick="Creator.openGallery()">🖼 Галерея</button></div>
-      <div id="imgGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
-      <div id="editBox"><b>✏️ Изменить картинку</b><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center"><label class="btn" style="cursor:pointer">📷 Файл<input type="file" id="editFile" accept="image/*" style="display:none"></label><input id="editPrompt" placeholder="Что изменить: сделай ночь, добавь дождь…"><button class="btn primary" onclick="Creator.editImageFlow()">✏️ Изменить</button><span id="editStat"></span></div></div>
-    </div>
-
-    <!-- VIDEO -->
-    <div class="pane" id="pane-video">
-      <h3>🎬 Видео — agnes-video-v2.0</h3>
-      <p>Текст → 5 сек cinematic.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <input id="vidPrompt2" placeholder="Полет над Душанбе на закате, cinematic, 5с" style="flex:1;min-width:260px;height:44px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 14px">
-        <button class="btn primary" onclick="genVid2()">🎬 Генерить</button>
-      </div>
-      <div id="storyBox"><b>🎬 Кино за минуту</b><div style="display:flex;gap:8px;margin-top:8px"><input id="storyPrompt" placeholder="Идея: погоня по ночному Душанбе"><button class="btn primary" onclick="Creator.storyboard()">🎬 Снять</button></div><div id="storyOut"></div></div>
-      <div id="vidList" style="display:flex;flex-direction:column;gap:8px"></div>
-    </div>
-
-    <!-- ANALYSIS -->
-    <div class="pane" id="pane-analysis">
-      <div style="margin:-16px -16px 12px;padding:10px 16px;background:linear-gradient(135deg,rgba(59,130,246,.14),rgba(139,92,246,.14));border-bottom:1px solid var(--line);font-size:10px;color:var(--accent);font-weight:800;text-align:center;letter-spacing:.06em">🔍 АНАЛИЗ — ФОТО / ВИДЕО / ЛЮБОЙ ФАЙЛ — ПОНИМАЕТ ПАТТЕРНЫ</div>
-      <div style="padding:2px">
-        <div style="font-size:13px;font-weight:800">🔍 Умный Анализ • JARVIS видит</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Кинь <b>фото, видео (даже 100МБ+), PDF, TXT</b> — найду паттерны, детали, совет. Реально понимает.</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <label class="btn primary" style="cursor:pointer"><input type="file" id="analysisFile" accept="image/*,video/*,.pdf,.txt,.md,.json,.csv" style="display:none" onchange="handleAnalysisFile(this.files[0])">📷 Выбрать файл</label>
-          <button class="btn" onclick="clearAnalysis()">Очистить</button>
-          <span id="analysisStat" style="font-size:11px;color:var(--muted);align-self:center"></span>
-        </div>
-        <div id="analysisDrop" style="margin-top:10px;border:1px dashed var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--muted);font-size:11px;background:rgba(255,255,255,.02);transition:.2s">Перетащи сюда фото / видео / PDF</div>
-        <div id="analysisPreview" style="margin-top:10px;display:none"><img id="analysisImg" style="max-width:100%;border-radius:10px;border:1px solid var(--line)"><video id="analysisVid" controls style="max-width:100%;border-radius:10px;border:1px solid var(--line);display:none"></video><div id="analysisFileName" style="font-size:11px;color:var(--muted);margin-top:6px"></div></div>
-        <div id="analysisOut" style="margin-top:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:120px;font-size:12px;line-height:1.5;white-space:pre-wrap"></div>
-        <details id="analysisDetails" style="margin-top:8px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;padding:8px"><summary style="cursor:pointer;font-size:11px;color:var(--accent)">▸ Показать покадровые детали (скрыто, чтоб не спамить)</summary><div id="perFrameBox" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;max-height:300px;overflow:auto"></div></details>
-        <div id="analysisLog" style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);white-space:pre-wrap"></div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input id="analysisChatInput" placeholder="Спроси анализ: какой удар чаще? стиль боя? след. удар? вероятное слово?" style="flex:1;height:42px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px;font-size:12px" onkeydown="if(event.key==='Enter') sendAnalysisChat()">
-          <button class="btn primary" onclick="sendAnalysisChat()">💬 Спросить</button>
-        </div>
-        <div id="analysisChatOut" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
-      </div>
-    </div>
-
-
-    <!-- LEGION -->
-    <div class="pane" id="pane-legion">
-      <div style="margin:-16px -16px 12px;padding:10px 16px;background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(59,130,246,.14));border-bottom:1px solid var(--line);font-size:10px;color:#34d399;font-weight:800;text-align:center;letter-spacing:.06em">🦾 LEGION — РОЙ ИЗ 3 КООРДИНИРОВАННО</div>
-      <div style="padding:2px">
-        <div style="font-size:13px;font-weight:800">🦾 Iron Legion • рой</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">JARVIS план + FRIDAY действия + ULTRON риски → финал.</div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input id="legionInput" placeholder="Задача для роя: план кофейни" style="flex:1;height:42px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px" onkeydown="if(event.key==='Enter') runLegionPane()">
-          <button class="btn primary" onclick="runLegionPane()">🚀 Рой</button>
-        </div>
-        <div id="legionLog" style="margin-top:10px;max-height:320px;overflow:auto;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:11px;white-space:pre-wrap"></div>
-        <div id="legionOut" style="margin-top:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:12px;min-height:80px;font-size:12px;white-space:pre-wrap"></div>
-      </div>
-    </div>
-
-    <!-- VISIONQUEST -->
-    <div class="pane" id="pane-quest">
-      <div style="margin:-16px -16px 12px;padding:10px 16px;background:linear-gradient(135deg,rgba(168,85,247,.14),rgba(236,72,153,.14));border-bottom:1px solid var(--line);font-size:10px;color:#a78bfa;font-weight:800;text-align:center;letter-spacing:.06em">💬 VISIONQUEST — 3 ИИ СПОРЯТ</div>
-      <div style="padding:2px">
-        <div style="font-size:13px;font-weight:800">💬 VisionQuest • диалог 3</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">JARVIS vs FRIDAY vs ULTRON — по очереди, разные голоса.</div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input id="questInput" placeholder="Тема спора: стоит ли запускать стартап?" style="flex:1;height:42px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;padding:0 12px" onkeydown="if(event.key==='Enter') runQuestPane()">
-          <button class="btn primary" onclick="runQuestPane()">💬 Спор</button>
-        </div>
-        <div id="questLog" style="margin-top:10px;max-height:320px;overflow:auto;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:11px;white-space:pre-wrap"></div>
-        <div id="questOut" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div>
-      </div>
-    </div>
+<div id="boot">
+  <div class="boot-box">
+    <div class="boot-ring"></div>
+    <div class="boot-brand">STARK INDUSTRIES</div>
+    <div class="boot-name">MARK II</div>
+    <div class="boot-track"><div id="bootBar"></div></div>
+    <div id="bootLog"></div>
+    <div class="boot-hint">нажми, чтобы пропустить</div>
   </div>
 </div>
 
-<div id="galModal" style="display:none;position:fixed;inset:0;z-index:99;background:rgba(0,0,0,.8);padding:18px;overflow:auto"><div class="gal-in"><div style="display:flex;justify-content:space-between;align-items:center"><b>🖼 Галерея</b><button class="btn" style="height:30px" onclick="Creator.closeGallery()">✕</button></div><div id="galGrid"></div></div></div>
-<div id="avaModal" style="display:none;position:fixed;inset:0;z-index:99;background:rgba(0,0,0,.8);padding:18px;overflow:auto"><div class="gal-in" style="max-width:480px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b>🗣 Диктор</b><button class="btn" style="height:30px" onclick="Creator.closeAvatar()">✕</button></div><img id="avaImg" alt="персона"><div id="avaCap"></div></div></div>
-<!-- SELFCHECK modal (Wave-1) -->
-<div id="checkModal" style="display:none;position:fixed;inset:0;z-index:99;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);padding:18px;overflow:auto">
-  <div style="max-width:560px;margin:24px auto;background:#0B1430;border:1px solid var(--line);border-radius:18px;padding:18px">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>🔍 Проверка системы</b><button class="btn" style="height:30px" onclick="document.getElementById('checkModal').style.display='none'">✕</button></div>
-    <div id="checkOut" style="margin-top:10px;display:flex;flex-direction:column;gap:6px"></div>
-    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn primary" onclick="runSelfCheck()">🔄 Проверить снова</button><button class="btn" onclick="copyCheckReport()">📋 Копировать отчёт</button></div>
+<header>
+  <div class="logo">
+    <div class="logo-mark"></div>
+    <div class="logo-t"><b>MARK II</b><span>STARK OS · v16</span></div>
+  </div>
+  <div id="personaPills"></div>
+  <div class="hdr-spacer"></div>
+  <div class="net"><span class="net-dot" id="netDot"></span><span id="netTxt">…</span></div>
+  <div id="clock">--:--:--</div>
+  <button class="icon-btn" id="btnPalette" title="Палитра команд (Ctrl+K)">⌘</button>
+  <button class="icon-btn" id="btnDiag" title="Диагностика">🔍</button>
+  <button class="icon-btn" id="btnHelp" title="Помощь">?</button>
+  <button class="icon-btn" id="btnSettings" title="Настройки">⚙</button>
+  <button class="icon-btn" id="btnFull" title="Полный экран">⛶</button>
+</header>
+
+<main>
+  <aside class="panel" id="left">
+    <div class="p-title">ARC РЕАКТОР</div>
+    <div class="reactor-box">
+      <canvas id="reactor"></canvas>
+      <div id="reactorName">JARVIS</div>
+      <div id="reactorTitle"></div>
+    </div>
+    <div class="vu"><div id="vuFill"></div></div>
+    <div class="stat-row"><span class="k">МИКРОФОН</span><span class="val" id="micState">○ выкл</span></div>
+    <div class="stat-row"><span class="k">ЗРЕНИЕ</span><span class="val" id="visionState">—</span></div>
+    <div class="toggles">
+      <button class="tgl" id="tglWake" title="Реакция на имя">WAKE</button>
+      <button class="tgl" id="tglVoice" title="Авто-озвучка ответов">VOICE</button>
+      <button class="tgl" id="tglSfx" title="Звуки интерфейса">SFX</button>
+    </div>
+  </aside>
+
+  <section class="panel" id="center">
+    <div id="chat"></div>
+    <div id="chips"></div>
+    <form id="composer">
+      <button type="button" class="icon-btn" id="btnArt" title="Творец — нарисовать">🎨</button>
+      <button type="button" class="icon-btn" id="btnCam" title="Камера">📷</button>
+      <textarea id="input" rows="1" placeholder="Спроси что-нибудь… или /help" autocomplete="off"></textarea>
+      <button type="button" class="icon-btn" id="btnMic" title="Микрофон">🎙</button>
+      <button type="button" class="icon-btn" id="btnStop" title="Стоп">⏹</button>
+      <button type="submit" class="icon-btn on" id="btnSend" title="Отправить">➤</button>
+    </form>
+    <div id="interim"></div>
+  </section>
+
+  <aside id="right">
+    <div class="panel mod">
+      <div class="p-title">ТЕЛЕМЕТРИЯ · ДУШАНБЕ</div>
+      <div class="widget" id="wWeather">🌤 …</div>
+      <div class="widget" id="wRates">💱 …</div>
+    </div>
+    <div class="panel mod">
+      <div class="p-title">ЗАДАЧИ</div>
+      <div id="todoList"></div>
+    </div>
+    <div class="panel mod">
+      <div class="p-title">НАПОМИНАНИЯ</div>
+      <div id="remList"></div>
+    </div>
+    <div class="panel mod">
+      <div class="p-title">ГАЛЕРЕЯ</div>
+      <div id="galStrip"></div>
+    </div>
+  </aside>
+</main>
+
+<div id="camPanel" hidden>
+  <video id="camVideo" playsinline muted></video>
+  <div class="cam-bar">
+    <span id="camState">—</span>
+    <button class="icon-btn" id="camFlip" title="Фронт ↔ Зад" style="width:32px;height:32px">⇄</button>
+    <button class="icon-btn" id="camClose" title="Закрыть" style="width:32px;height:32px">✕</button>
+  </div>
+  <label class="cam-ai"><input type="checkbox" id="camAI" checked> ИИ-зрение: жесты ✋✊ + лицо</label>
+</div>
+
+<div id="toasts"></div>
+
+<div id="palette" hidden>
+  <div class="panel pal-box">
+    <input id="palInput" placeholder="Введи команду…" autocomplete="off">
+    <div id="palList"></div>
   </div>
 </div>
-<script src="js/core.js"></script>
-<script src="js/brain.js"></script>
-<script src="js/creator.js"></script>
-<script src="js/stage.js"></script>
-<script src="js/app.js"></script>
+
+<div id="modalRoot"></div>
+
+<script type="module" src="js/app.js"></script>
 </body>
 </html>
